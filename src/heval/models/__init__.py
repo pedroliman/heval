@@ -1,0 +1,24 @@
+"""Model engines behind an output contract (:mod:`heval.models`).
+
+The durable piece here is :class:`Outcomes` — the standardized
+(strategy, iteration) outcome schema — and :class:`ModelEngine`, the
+protocol every engine satisfies. Engine implementations (cohort
+state-transition, microsimulation, discrete-event) arrive in later phases;
+their stubs document the planned designs.
+"""
+
+from heval.models.des import DESEngine
+from heval.models.markov import MarkovCohortEngine
+from heval.models.microsim import ContinuousTimeMicrosimEngine, DiscreteTimeMicrosimEngine
+from heval.models.outcomes import Outcomes
+from heval.models.protocol import ModelEngine, ModelFn
+
+__all__ = [
+    "ContinuousTimeMicrosimEngine",
+    "DESEngine",
+    "DiscreteTimeMicrosimEngine",
+    "MarkovCohortEngine",
+    "ModelEngine",
+    "ModelFn",
+    "Outcomes",
+]
