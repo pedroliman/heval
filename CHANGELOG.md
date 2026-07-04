@@ -10,6 +10,24 @@ Each entry links to the pull request that introduced it. Add a line under
 
 ## [Unreleased]
 
+### Added
+
+- Microsimulation engines: `DiscreteTimeMicrosimEngine` advances an
+  individual-level population on a cycle grid with history-dependent
+  transitions and heterogeneity, and `ContinuousTimeMicrosimEngine` races
+  competing time-to-event samplers between events. Both emit the standard
+  `Outcomes` schema, seed each iteration from a `SeedManager` so results do not
+  depend on `n_jobs`, and use common random numbers across strategies by
+  default.
+- `heval.models._accrual`: shared cost and utility accrual, discounting, and
+  aggregation to `Outcomes`, used by both engines and reserved for the
+  discrete-event engine.
+- `SeedManager.child_sequence` returns a per-key seed sequence, so
+  iteration-indexed streams stay identical however a run is chunked across
+  workers.
+- Microsimulation example (`examples/microsim.py`) and website tutorial,
+  validated against the closed-form cohort solution it mirrors.
+
 ## [0.2.0] - 2026-07-04
 
 ### Added

@@ -31,8 +31,8 @@ A plain function `draws -> Outcomes` works too; the alias `ModelFn` names that s
 
 `run_psa` is where the contract is enforced rather than trusted. It rejects empty or duplicate-indexed draws, checks the returned index, and when `n_jobs` splits the draws into parallel batches, it verifies strategies are consistent across batches and reassembles the panel before checking again. An engine that violates the contract fails loudly at the run boundary, not silently inside an analysis.
 
-## Built-in engines are stubs
+## Built-in engines land in roadmap order
 
-Phase 1 fixed the contract; the engines land in later phases, in roadmap order. `MarkovCohortEngine`, `DiscreteTimeMicrosimEngine`, `ContinuousTimeMicrosimEngine`, and `DESEngine` exist as stubs that raise `NotImplementedError` with a pointer to the alternatives: write a `ModelFn` callable, or skip engines entirely and bring your own outputs through `as_outcomes`.
+Phase 1 fixed the contract; the engines follow in priority order. The microsimulation engines are built: `DiscreteTimeMicrosimEngine` advances an individual-level population on a cycle grid, and `ContinuousTimeMicrosimEngine` races competing time-to-event samplers between events. Both configure once and evaluate on draws, seed each iteration from an injected `SeedManager`, and share the accrual and discounting helpers in `heval.models._accrual`. The [microsimulation tutorial](../tutorials/microsim.qmd) runs the discrete-time engine end to end. `MarkovCohortEngine` and `DESEngine` remain stubs that raise `NotImplementedError` with a pointer to the alternatives: write a `ModelFn` callable, or bring your own outputs through `as_outcomes`.
 
 This ordering is deliberate. Because analyses consume only the schema, everything downstream of an engine already works, so each engine phase ships against a stable analysis layer and a documented contract. The design notes for each engine are on the [roadmap](../roadmap/index.md).

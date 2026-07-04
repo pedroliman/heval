@@ -20,12 +20,12 @@ All prose follows [guidance/writing_style.md](../guidance/writing_style.md).
 
 - Item 1, quartodoc documentation website ([01-quartodoc-site.md](01-quartodoc-site.md)): the site publishes to GitHub Pages with API reference, tutorials, and concept pages.
 - Item 2, full calibration workflow ([02-calibration-workflow.md](02-calibration-workflow.md)): `heval.params.mix_draws` combines calibrated and literature draw matrices; `capture_run` records `draw_sources`; `examples/calibration_workflow.py` and the calibration workflow tutorial run it end to end.
+- Item 3, microsimulation engine ([03-microsim-engine.md](03-microsim-engine.md)): `DiscreteTimeMicrosimEngine` and `ContinuousTimeMicrosimEngine` simulate an individual-level population per iteration and emit `Outcomes`. They share the `heval.models._accrual` layer, seed each iteration from a `SeedManager` so results do not depend on `n_jobs`, and use common random numbers across strategies by default. `examples/microsim.py` and the microsimulation tutorial run it end to end.
 
 ## Prioritized next steps
 
 | # | Item | Design note |
 |---|------|-------------|
-| 3 | Microsimulation engine (discrete-time, then continuous-time) | [03-microsim-engine.md](03-microsim-engine.md) |
 | 4 | DES engine wrapping SimPy, coherent with the microsim architecture | [04-des-engine.md](04-des-engine.md) |
 
 Each new feature ships with a website tutorial, as items 1 and 2 did.

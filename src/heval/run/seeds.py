@@ -54,5 +54,28 @@ class SeedManager:
         self._spawned += n
         return [np.random.default_rng(child) for child in children]
 
+    def child_sequence(self, key: int) -> np.random.SeedSequence:
+        """A child seed sequence addressed by a stable integer ``key``.
+
+        Unlike `spawn`, the returned sequence depends only on ``key`` and
+        this manager's seed, not on call order. Keying by iteration index
+        gives per-iteration streams that stay identical however a run is
+        chunked across workers. Spawn from the sequence for sub-streams
+        (population sampling, per-strategy randomness).
+
+        Example:
+            >>> from heval.run import SeedManager
+            >>> import numpy as np
+            >>> a = SeedManager(7).child_sequence(3)
+            >>> b = SeedManager(7).child_sequence(3)
+            >>> int(np.random.default_rng(a).integers(1_000_000)) == int(
+            ...     np.random.default_rng(b).integers(1_000_000))
+            True
+        """
+        return np.random.SeedSequence(
+            entropy=self._sequence.entropy,
+            spawn_key=(*self._sequence.spawn_key, int(key)),
+        )
+
     def __repr__(self) -> str:
         return f"SeedManager(entropy={self.entropy}, spawned={self._spawned})"

@@ -55,12 +55,14 @@ round(evpi(outcomes, wtp=30_000), 1)
 
 [`examples/calibration_workflow.py`](examples/calibration_workflow.py) mixes parameter sources: a natural-history model's transition rates are calibrated to observed prevalence with `abc_calibrate`, utilities and costs come from the literature, and `mix_draws` joins the two into one PSA that flows through CEA and VoI. Run it with `uv run python examples/calibration_workflow.py` after installing the `calibration` extra.
 
+[`examples/microsim.py`](examples/microsim.py) builds an individual-level model with `DiscreteTimeMicrosimEngine`: frailty heterogeneity and a mortality risk that rises with time spent sick, two features a cohort average cannot carry, then runs it through CEA and VoI. Run it with `uv run python examples/microsim.py`.
+
 ## Package layout
 
 | Subpackage | Status | Contents |
 |---|---|---|
 | `heval.params` | done | Distribution specs with mean/SE constructors; correlated sampling |
-| `heval.models` | contract done | `Outcomes` schema, `ModelEngine` protocol; engines stubbed |
+| `heval.models` | contract done | `Outcomes` schema, `ModelEngine` protocol; microsimulation engines built, Markov and DES stubbed |
 | `heval.run` | done | `SeedManager`, `run_psa`, `as_outcomes`, running-mean diagnostics |
 | `heval.cea` | done | ICERs, dominance, extended dominance, frontier, NMB/NHB, CEAC/CEAF |
 | `heval.voi` | done | EVPI; EVPPI (spline/GP metamodels); EVSI (regression; others stubbed) |
