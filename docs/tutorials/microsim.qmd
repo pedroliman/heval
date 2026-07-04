@@ -1,0 +1,144 @@
+---
+title: Microsimulation engine
+---
+
+This tutorial builds an individual-level model with `DiscreteTimeMicrosimEngine` and runs it through CEA and VoI. It assumes the [full pipeline tutorial](full-pipeline.qmd), which covers `run_psa` and the analysis layer. The narrated version here is [`examples/microsim.py`](https://github.com/pedroliman/heval/blob/main/examples/microsim.py). A microsimulation earns its cost when outcomes depend on individual history or heterogeneity, which a cohort average cannot carry.
+
+## The model
+
+Three states, Healthy, Sick, Dead, over a 30-year horizon. Two features rule out a single cohort transition matrix: each individual carries a `frailty` attribute that scales their sick-state cost and mortality, and the Sick to Dead risk rises with time already spent sick. The engine maintains `time_in_state` and passes it, alongside the sampled attributes, to the `transition` and `payoffs` functions.
+
+```{python}
+import numpy as np
+import pandas as pd
+
+STATES = ("Healthy", "Sick", "Dead")
+BACKGROUND_MORTALITY = 0.01
+WORSENING = 0.05  # extra Sick -> Dead risk per year already spent sick
+
+def population(rng, n):
+    return pd.DataFrame({"frailty": rng.lognormal(mean=0.0, sigma=0.3, size=n)})
+
+def transition(params, state, attrs, rng):
+    n = len(state)
+    probs = np.zeros((n, 3))
+    on_tx = bool(params["on_treatment"])
+    p_hs = params["p_hs"] * (params["rr_tx"] if on_tx else 1.0)
+    healthy = state == 0
+    probs[healthy, 1] = p_hs
+    probs[healthy, 2] = BACKGROUND_MORTALITY
+    probs[healthy, 0] = 1.0 - p_hs - BACKGROUND_MORTALITY
+    sick = state == 1
+    frailty = attrs["frailty"].to_numpy()[sick]
+    time_sick = attrs["time_in_state"].to_numpy()[sick]
+    p_sd = np.clip(params["p_sd"] * frailty * (1.0 + WORSENING * time_sick), 0.0, 1.0)
+    probs[sick, 2] = p_sd
+    probs[sick, 1] = 1.0 - p_sd
+    probs[state == 2, 2] = 1.0  # Dead is absorbing
+    return probs
+
+def payoffs(params, state, attrs):
+    n = len(state)
+    cost, qaly = np.zeros(n), np.zeros(n)
+    frailty = attrs["frailty"].to_numpy()
+    tx_cost = params["c_treat"] if bool(params["on_treatment"]) else 0.0
+    healthy = state == 0
+    cost[healthy] = params["c_well"] + tx_cost
+    qaly[healthy] = 1.0
+    sick = state == 1
+    cost[sick] = params["c_sick"] * frailty[sick] + tx_cost
+    qaly[sick] = params["u_sick"]
+    return cost, qaly
+```
+
+## Configure once, evaluate on draws
+
+The constructor takes the model structure; `evaluate` takes only the draw matrix. Strategies are parameter-override dicts merged into each iteration's draw, so the two arms differ by one flag the model reads. The two strategies share one population through common random numbers (the engine default), so the incremental result reflects the treatment effect rather than sampling noise.
+
+```{python}
+from heval.models import DiscreteTimeMicrosimEngine
+from heval.params import Beta, Fixed, Gamma, ParameterSet
+from heval.run import SeedManager, run_psa
+
+seeds = SeedManager(20260704)
+parameters = ParameterSet({
+    "p_hs": Beta.from_mean_se(0.08, 0.02),
+    "p_sd": Beta.from_mean_se(0.12, 0.03),
+    "rr_tx": Beta.from_mean_se(0.60, 0.05),
+    "u_sick": Beta.from_mean_se(0.65, 0.05),
+    "c_well": Fixed(500.0),
+    "c_sick": Gamma.from_mean_se(9_000.0, 1_500.0),
+    "c_treat": Gamma.from_mean_se(2_000.0, 300.0),
+})
+draws = parameters.sample(256, seed=seeds.generator())
+
+engine = DiscreteTimeMicrosimEngine(
+    states=STATES, transition=transition, payoffs=payoffs,
+    population=population, n_individuals=800,
+    strategies={"Standard care": {"on_treatment": 0.0},
+                "Treatment": {"on_treatment": 1.0}},
+    horizon=30, seed_manager=seeds,
+)
+outcomes = run_psa(engine, draws)
+outcomes.summary().round(3)
+```
+
+`run_psa` runs the engine like any other model, and enforces the same contract: the outcome iteration index equals `draws.index`. Because each iteration draws a stream keyed by its index, the result is identical at any `n_jobs`.
+
+## CEA and VoI
+
+From here nothing is engine-specific. At a willingness-to-pay near the base-case ICER the decision is genuinely uncertain, so EVPI is positive and the EVPPI ranking is informative.
+
+```{python}
+from heval.cea import icer_table
+icer_table(outcomes).round(3)
+```
+
+```{python}
+from heval.voi import evpi, evppi_ranking
+
+WTP = 11_000.0
+print(f"EVPI at WTP {WTP:,.0f}: {evpi(outcomes, WTP):,.1f}")
+evppi_ranking(outcomes, draws, WTP).round(1)
+```
+
+The treatment cost and its effect `rr_tx` lead the ranking: they drive whether treatment clears the threshold.
+
+## It matches a cohort closed form
+
+Confidence rests on a check: with constant transitions and no heterogeneity, a microsimulation must converge to the exact cohort calculation as the population grows. The engine and the cohort share the same discounting and half-cycle convention, so the only gap is Monte Carlo error.
+
+```{python}
+P = np.array([[0.80, 0.15, 0.05], [0.0, 0.90, 0.10], [0.0, 0.0, 1.0]])
+cost_vec, eff_vec = np.array([1_000.0, 3_000.0, 0.0]), np.array([1.0, 0.6, 0.0])
+
+def cohort(horizon=40, rate=0.03):
+    p, total_c, total_e = np.array([1.0, 0.0, 0.0]), 0.0, 0.0
+    for c in range(horizon + 1):
+        w = 0.5 if c in (0, horizon) else 1.0
+        total_c += w * (1 + rate) ** -c * float(p @ cost_vec)
+        total_e += w * (1 + rate) ** -c * float(p @ eff_vec)
+        p = p @ P
+    return total_c, total_e
+
+check = DiscreteTimeMicrosimEngine(
+    states=STATES,
+    transition=lambda params, state, attrs, rng: P[state],
+    payoffs=lambda params, state, attrs: (cost_vec[state], eff_vec[state]),
+    population=60_000, strategies={"cohort": {}}, horizon=40,
+    seed_manager=SeedManager(1),
+)
+sim = check.evaluate(draws.iloc[[0]]).summary().loc["cohort"]
+ref_cost, ref_eff = cohort()
+pd.DataFrame({
+    "microsim": [sim["cost"], sim["qaly"]],
+    "cohort": [ref_cost, ref_eff],
+}, index=["cost", "qaly"]).assign(rel_error=lambda d: (d["microsim"] / d["cohort"] - 1))
+```
+
+The two agree to under 1% at 60,000 individuals, and the gap shrinks with the population.
+
+## Continuous time
+
+`ContinuousTimeMicrosimEngine` shares this constructor shape. Instead of per-cycle probabilities, `hazards` returns sampled times to each competing event; the engine races them, advances to the earliest, and accrues continuously between events. On constant hazards it reproduces the exponential cohort solution. See the [engines](../concepts/engines.qmd) concept page for where both fit in the contract, and the [roadmap](../roadmap/index.md) for the discrete-event engine that reuses the same accrual layer.
+```
