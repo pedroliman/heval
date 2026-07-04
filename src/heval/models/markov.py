@@ -1,4 +1,4 @@
-"""Cohort state-transition (Markov) engine — planned, not yet implemented.
+"""Cohort state-transition (Markov) engine (planned, not yet implemented).
 
 Planned design (phase 2):
 

@@ -5,8 +5,8 @@ Two first-class entry points:
 - :func:`run_psa` evaluates a model engine (or plain callable) over the
   parameter draw matrix, optionally in parallel via ``joblib``, and
   guarantees the returned outcomes carry the draws' iteration index.
-- :func:`as_outcomes` normalises a bring-your-own-outputs PSA table — from
-  any external simulator or spreadsheet export — into the standard
+- :func:`as_outcomes` normalises a bring-your-own-outputs PSA table (from
+  any external simulator or spreadsheet export) into the standard
   :class:`~heval.models.outcomes.Outcomes` schema so it can flow straight
   into :mod:`heval.cea` and :mod:`heval.voi` without touching an engine.
 """

@@ -3,7 +3,7 @@
 Bridges ``heval`` parameter specs to ``pyabc`` priors, runs ABC-SMC against
 observed calibration targets, and returns the posterior as an
 equally-weighted parameter draw matrix carrying the standard ``iteration``
-index — so calibrated draws flow through :func:`heval.run.run_psa` and the
+index, so calibrated draws flow through :func:`heval.run.run_psa` and the
 analysis layer exactly like draws from :meth:`heval.params.ParameterSet.sample`.
 
 ``pyabc`` is an optional dependency: install with ``uv pip install
@@ -50,7 +50,7 @@ def to_pyabc_prior(distributions: Mapping[str, Distribution | Dirichlet]) -> Any
 
     Supported: :class:`Beta`, :class:`Gamma`, :class:`LogNormal`,
     :class:`Normal`, :class:`Uniform`. Dirichlet and Fixed parameters cannot
-    be calibrated directly — hold them constant inside the simulator instead.
+    be calibrated directly; hold them constant inside the simulator instead.
 
     Example:
         >>> from heval.calibrate import to_pyabc_prior  # doctest: +SKIP
@@ -84,7 +84,7 @@ class CalibrationResult:
 
     Attributes:
         posterior: Equally-weighted posterior draw matrix with a
-            ``RangeIndex`` named ``iteration`` — ready for
+            ``RangeIndex`` named ``iteration``, ready for
             :func:`heval.run.run_psa`.
         weighted: The raw weighted particle population (columns = parameters,
             plus a ``weight`` column).

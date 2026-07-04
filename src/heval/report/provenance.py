@@ -1,8 +1,8 @@
 """Reproducibility scaffolding: seed logging, parameter provenance, model card.
 
 A :class:`RunRecord` snapshots everything needed to reproduce and audit an
-analysis — the root seed entropy, the parameter specification, the outcome
-dimensions, and package versions — and renders it as JSON (for archives) or
+analysis (the root seed entropy, the parameter specification, the outcome
+dimensions, and package versions) and renders it as JSON (for archives) or
 a markdown model card (for reports).
 """
 

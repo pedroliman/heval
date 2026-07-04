@@ -1,20 +1,20 @@
-"""heval — health economic evaluation in Python.
+"""heval: health economic evaluation in Python.
 
 One parameter draw matrix flows through swappable model engines into a
 shared analysis layer. Engines differ internally but share a contract on
-their outputs — the :class:`~heval.models.Outcomes` schema indexed by
-``(strategy, iteration)`` — which makes cost-effectiveness and
+their outputs, the :class:`~heval.models.Outcomes` schema indexed by
+``(strategy, iteration)``, which makes cost-effectiveness and
 value-of-information analysis engine-agnostic. Outputs from any external
-model can enter the same pipeline via :func:`~heval.run.as_outcomes`.
+model enter the same pipeline via :func:`~heval.run.as_outcomes`.
 
 Subpackages:
-    - :mod:`heval.params` — distributions and correlated PSA sampling
-    - :mod:`heval.models` — engines behind the output contract
-    - :mod:`heval.run` — seeds, run loop, bring-your-own-outputs ingestion
-    - :mod:`heval.cea` — incremental analysis, frontier, NMB/NHB, CEAC/CEAF
-    - :mod:`heval.voi` — EVPI, EVPPI, EVSI
-    - :mod:`heval.calibrate` — ABC calibration (optional ``pyabc`` extra)
-    - :mod:`heval.report` — plots and reproducibility scaffolding
+    - :mod:`heval.params`: distributions and correlated PSA sampling
+    - :mod:`heval.models`: engines behind the output contract
+    - :mod:`heval.run`: seeds, run loop, bring-your-own-outputs ingestion
+    - :mod:`heval.cea`: incremental analysis, frontier, NMB/NHB, CEAC/CEAF
+    - :mod:`heval.voi`: EVPI, EVPPI, EVSI
+    - :mod:`heval.calibrate`: ABC calibration (optional ``pyabc`` extra)
+    - :mod:`heval.report`: plots and reproducibility scaffolding
 """
 
 from heval.models import ModelEngine, ModelFn, Outcomes

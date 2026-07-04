@@ -6,7 +6,7 @@ Gaussian-copula sampler in :mod:`heval.params.sampling` needs, plus direct
 sampling and moments for convenience.
 
 Method-of-moments constructors (``from_mean_se``) build the distribution
-that matches a published point estimate and standard error — the everyday
+that matches a published point estimate and standard error, the everyday
 workflow when parameterising a PSA from the literature.
 """
 
@@ -59,7 +59,7 @@ class Distribution(ABC):
 
 @dataclass(frozen=True)
 class Beta(Distribution):
-    """Beta distribution — probabilities and utilities on [0, 1].
+    """Beta distribution, for probabilities and utilities on [0, 1].
 
     Example:
         >>> from heval.params import Beta
@@ -94,7 +94,7 @@ class Beta(Distribution):
 
 @dataclass(frozen=True)
 class Gamma(Distribution):
-    """Gamma distribution — non-negative quantities such as costs.
+    """Gamma distribution, for non-negative quantities such as costs.
 
     Parameterised by ``shape`` (k) and ``scale`` (theta); mean = shape * scale.
 
@@ -125,7 +125,7 @@ class Gamma(Distribution):
 
 @dataclass(frozen=True)
 class LogNormal(Distribution):
-    """Lognormal distribution — relative risks, skewed costs.
+    """Lognormal distribution, for relative risks and skewed costs.
 
     Parameterised on the log scale: ``mu`` and ``sigma`` are the mean and
     standard deviation of ``log(X)``.
@@ -200,7 +200,7 @@ class Uniform(Distribution):
 
 @dataclass(frozen=True)
 class Fixed(Distribution):
-    """Degenerate distribution — a parameter held constant across iterations.
+    """Degenerate distribution: a parameter held constant across iterations.
 
     Example:
         >>> from heval.params import Fixed
@@ -232,14 +232,14 @@ class Fixed(Distribution):
 
 @dataclass(frozen=True)
 class Dirichlet:
-    """Dirichlet distribution — a vector of transition probabilities summing to 1.
+    """Dirichlet distribution: a vector of transition probabilities summing to 1.
 
     Multivariate: inside a :class:`~heval.params.sampling.ParameterSet` a
     Dirichlet named ``p`` with component names ``("a", "b")`` expands to draw
     columns ``p[a]`` and ``p[b]``. Sampling uses the standard construction of
     independent Gamma(alpha_i, 1) marginals normalised to sum to one, which
     makes each component compatible with the copula machinery. Leave the
-    correlation entries for Dirichlet component columns at zero — correlating
+    correlation entries for Dirichlet component columns at zero; correlating
     the underlying gammas with other parameters distorts the Dirichlet.
 
     Example:

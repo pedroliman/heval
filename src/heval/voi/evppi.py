@@ -71,7 +71,7 @@ def evppi(
         raise KeyError(f"Parameters not found in draw matrix: {missing}.")
     if not pd.Index(draws.index).equals(pd.Index(outcomes.iterations)):
         raise ValueError(
-            "draws index must equal the outcomes iteration index — EVPPI needs the "
+            "draws index must equal the outcomes iteration index; EVPPI needs the "
             "parameter/outcome linkage preserved by run_psa."
         )
     nb = nmb(outcomes, wtp, effect=effect)

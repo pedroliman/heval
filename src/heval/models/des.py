@@ -1,4 +1,4 @@
-"""Discrete-event simulation engine — planned, not yet implemented.
+"""Discrete-event simulation engine (planned, not yet implemented).
 
 Planned design (phase 4): a thin wrapper around SimPy rather than a new DES
 kernel. ``heval`` adds only what SimPy does not provide for health economic

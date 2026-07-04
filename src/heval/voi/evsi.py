@@ -1,7 +1,7 @@
 """Expected value of sample information.
 
 Implemented now: the nonparametric-regression estimator (Strong, Oakley,
-Brennan & Breeze, 2015, Medical Decision Making 35:570-583) — simulate a
+Brennan & Breeze, 2015, Medical Decision Making 35:570-583): simulate a
 summary statistic of the proposed study once per PSA iteration (from that
 iteration's parameter draw), regress net benefit on the summary, and read
 EVSI off the fitted conditional means.
@@ -100,7 +100,7 @@ def evsi_regression(
     """
     if not pd.Index(summaries.index).equals(pd.Index(outcomes.iterations)):
         raise ValueError(
-            "summaries index must equal the outcomes iteration index — each summary "
+            "summaries index must equal the outcomes iteration index; each summary "
             "must be simulated from the parameter draw of the same iteration."
         )
     nb = nmb(outcomes, wtp, effect=effect)
@@ -111,7 +111,7 @@ def evsi_regression(
 
 
 def evsi_moment_matching(*args: Any, **kwargs: Any) -> float:
-    """EVSI by moment matching (stub — scheduled for a later phase).
+    """EVSI by moment matching (stub, scheduled for a later phase).
 
     Raises:
         NotImplementedError: Always, in this phase.
@@ -122,7 +122,7 @@ def evsi_moment_matching(*args: Any, **kwargs: Any) -> float:
 
 
 def evsi_importance_sampling(*args: Any, **kwargs: Any) -> float:
-    """EVSI by importance sampling (stub — scheduled for a later phase).
+    """EVSI by importance sampling (stub, scheduled for a later phase).
 
     Raises:
         NotImplementedError: Always, in this phase.

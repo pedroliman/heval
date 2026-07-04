@@ -1,4 +1,4 @@
-"""The model engine protocol — a contract on outputs, not internals.
+"""The model engine protocol: a contract on outputs, not internals.
 
 Engines differ radically inside (cohort matrix algebra, individual-level
 simulation, discrete-event simulation) and deliberately do **not** share an
@@ -25,7 +25,7 @@ class ModelEngine(Protocol):
     Implementations must satisfy two invariants:
 
     1. The returned :class:`Outcomes` iteration index equals ``draws.index``
-       (same values, same order) — this preserves the parameter/outcome
+       (same values, same order); this preserves the parameter/outcome
        linkage required by EVPPI and EVSI.
     2. Every strategy is evaluated on every iteration (a balanced panel);
        the :class:`Outcomes` constructor enforces this.

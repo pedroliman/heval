@@ -35,7 +35,7 @@ class SeedManager:
 
     @property
     def entropy(self) -> int:
-        """The root entropy — persist this to reproduce the run exactly."""
+        """The root entropy; persist this to reproduce the run exactly."""
         entropy = self._sequence.entropy
         assert entropy is not None
         return int(entropy)  # type: ignore[arg-type]

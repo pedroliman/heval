@@ -1,4 +1,4 @@
-"""The standardized outcome schema — the integration contract of ``heval``.
+"""The standardized outcome schema: the integration contract of ``heval``.
 
 Every model engine, and every bring-your-own-outputs table, is normalised
 into an :class:`Outcomes` object: a tidy ``DataFrame`` indexed by
@@ -8,7 +8,7 @@ Every analysis in :mod:`heval.cea` and :mod:`heval.voi` consumes this object
 and nothing else, which is what makes the analysis layer engine-agnostic.
 
 The ``iteration`` level of the index is the same iteration index carried by
-the parameter draw matrix from :mod:`heval.params` — EVPPI and EVSI rely on
+the parameter draw matrix from :mod:`heval.params`; EVPPI and EVSI rely on
 that shared index to trace which parameter draw produced which outcome.
 """
 

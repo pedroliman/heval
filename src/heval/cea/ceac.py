@@ -94,7 +94,7 @@ def ce_plane(
 
     Returns:
         Tidy DataFrame with columns ``strategy``, ``iteration``,
-        ``inc_cost`` and ``inc_effect`` for every non-comparator strategy —
+        ``inc_cost`` and ``inc_effect`` for every non-comparator strategy,
         ready to scatter on the cost-effectiveness plane.
 
     Example:

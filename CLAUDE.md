@@ -4,7 +4,7 @@ Guidance for Claude Code when working in this repository.
 
 ## Environment
 
-- **Always use `uv` for the Python environment** — never bare `pip` or `python -m venv`.
+- **Always use `uv` for the Python environment**; never bare `pip` or `python -m venv`.
   - Create/sync the environment: `uv venv && uv pip install -e ".[dev]"`
   - Run tools through it: `uv run pytest`, `uv run ruff check .`, `uv run mypy`
 - Python 3.11+ is required.
@@ -12,6 +12,9 @@ Guidance for Claude Code when working in this repository.
 ## Conventions
 
 - `src/` layout; the package lives in `src/heval`.
+- Follow `guidance/writing_style.md` for all prose: README, roadmap,
+  docstrings, comments, commit messages, and website pages. In short:
+  concise, no em-dashes, HEOR vocabulary.
 - Do not mention external existing R packages in code or documentation.
 - Lint/format with `ruff`, type-check the public API with `mypy`, test with `pytest`.
 - Every public function carries a docstring with a short worked example.

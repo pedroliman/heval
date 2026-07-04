@@ -3,7 +3,7 @@
 A :class:`ParameterSet` maps parameter names to distribution specs and
 produces the **parameter draw matrix**: a tidy ``pandas.DataFrame`` with one
 row per PSA iteration (index named ``"iteration"``) and one column per scalar
-parameter. That matrix is the shared currency of the package — model engines
+parameter. That matrix is the shared currency of the package: model engines
 consume it, and value-of-information analyses trace outcomes back to it
 through the shared iteration index.
 
