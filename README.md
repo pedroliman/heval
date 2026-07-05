@@ -63,6 +63,8 @@ round(evpi(outcomes, wtp=30_000), 1)
 
 The `examples/mdm_*.py` scripts replicate three published Sick-Sicker cost-effectiveness tutorials and match their deterministic results: a cohort state-transition model (`mdm_cohort.py`), its time-dependent version with age-varying mortality (`mdm_cohort_timedep.py`), and a microsimulation (`mdm_microsim.py`). Each has a companion page in the [replication gallery](https://pedroliman.github.io/heormodel/tutorials/replication-gallery.html).
 
+[`examples/markov_vs_microsim.py`](examples/markov_vs_microsim.py) builds one Sick-Sicker-style model as both a `MarkovModel` cohort trace and a `MicrosimModel` individual simulation from the same rates. The homogeneous microsimulation converges to the cohort trace (a cross-engine cross-validation), then a mean-1 frailty raises the microsimulation QALYs about 8% above the cohort on unchanged mean rates, the heterogeneity a cohort averages away. Run it with `uv run python examples/markov_vs_microsim.py`.
+
 ## Package layout
 
 | Subpackage | Status | Contents |

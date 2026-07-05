@@ -12,6 +12,16 @@ Each entry links to the pull request that introduced it. Add a line under
 
 ### Added
 
+- Markov vs microsimulation cross-validation: `examples/markov_vs_microsim.py` and
+  a website tutorial build one Sick-Sicker-style model twice, as a `MarkovModel`
+  cohort trace and a `MicrosimModel` individual simulation from the same rates.
+  The homogeneous microsimulation mean converges to the cohort trace within a
+  fraction of a percent at 40,000 individuals, cross-validating the two engines.
+  A mean-1 frailty on the progression and mortality hazards then raises the
+  microsimulation QALYs about 8% above the cohort on unchanged mean rates, the
+  risk heterogeneity a cohort averages away, with duration-dependent mortality as
+  a short second example. A test asserts both the convergence and the divergence
+  ([#18](https://github.com/pedroliman/heormodel/pull/18)).
 - Parameter inputs from data in `heormodel.params`: `single_draw` wraps one named
   set of point values as a one-row draw matrix (iteration 0) for a base-case
   run, and `ParameterSet.at_means` is the same call on a distribution set's

@@ -38,6 +38,8 @@ website:
               text: Cohort state-transition
             - href: tutorials/mdm-cohort-timedep.qmd
               text: Time-dependent cohort
+            - href: tutorials/markov-vs-microsim.qmd
+              text: Markov vs microsimulation
             - href: tutorials/mdm-microsim.qmd
               text: Microsimulation
         - section: Reference & Info
@@ -77,6 +79,8 @@ website:
             text: Cohort state-transition model
           - href: tutorials/mdm-cohort-timedep.qmd
             text: Time-dependent cohort model
+          - href: tutorials/markov-vs-microsim.qmd
+            text: Markov vs microsimulation
           - href: tutorials/mdm-microsim.qmd
             text: Microsimulation replication
       - text: Concepts
