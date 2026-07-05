@@ -19,7 +19,7 @@ Keep the old names as thin subclasses that emit a `DeprecationWarning` pointing 
 
 ## Rename the `build` parameter
 
-`MarkovModel` takes `build=fn`, where `fn(params, strategy)` returns the `CohortSpec` (transition matrix and reward arrays) for one parameter row and one strategy. The word `build` reads as a lifecycle hook, not as "describe this model's structure". Rename it to `specify`: `specify=fn` reads as "specify the model at these parameters". The callback's signature and return type are unchanged. Apply the same name if any other engine grows an equivalent structure callback; the microsimulation `transition`/`payoffs` and DES `process` callbacks already name what they return and stay as they are.
+`MarkovModel` takes `build=fn`, where `fn(params, strategy)` returns the `CohortSpec` (transition matrix and reward arrays) for one parameter row and one strategy. The word `build` reads as a lifecycle hook, not as "the function that produces the model". Rename it to `model_fn`: the argument holds the function that maps parameters to the model's structure, and the `_fn` suffix matches the existing `ModelFn` type in `heval.models`. The callback's signature and return type are unchanged. Apply the same name if any other engine grows an equivalent structure callback; the microsimulation `transition`/`payoffs` and DES `process` callbacks already name what they return and stay as they are.
 
 ## One discount rate
 
@@ -30,7 +30,7 @@ Costs and effects are always discounted at the same rate in practice, so the two
 ## Deliverables
 
 - Renamed classes and the folded `MicrosimModel`, with deprecation shims for the old names for one release.
-- `specify` in place of `build` on `MarkovModel`.
+- `model_fn` in place of `build` on `MarkovModel`.
 - `discount_rate` in place of `discount_cost` and `discount_effect` across all engines and `_accrual`.
 - Updated `__all__`, the quartodoc reference section, every example and tutorial, the changelog, and the README.
 
