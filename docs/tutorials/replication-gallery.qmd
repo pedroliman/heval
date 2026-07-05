@@ -2,7 +2,7 @@
 title: Replication gallery
 ---
 
-Published cost-effectiveness tutorials reproduced with `heval`, one per model type. Each replicates a peer-reviewed decision model with public code, matching its deterministic results, then flows the same model through `heval.cea` and `heval.voi`. All three use the Sick-Sicker example, so they share a structure and differ only in the engine and the time dependence.
+Published cost-effectiveness tutorials reproduced with `heormodel`, one per model type. Each replicates a peer-reviewed decision model with public code, matching its deterministic results, then flows the same model through `heormodel.cea` and `heormodel.voi`. All three use the Sick-Sicker example, so they share a structure and differ only in the engine and the time dependence.
 
 | Replication | Engine | Deterministic result |
 |---|---|---|

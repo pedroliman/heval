@@ -1,6 +1,6 @@
 # 5. Markov cohort engine
 
-Implement `MarkovCohortEngine` in `heval/models/markov.py`, a cohort state-transition engine that sweeps a cohort trace across PSA iterations and emits the standard `Outcomes` schema. It shares the `heval.models._accrual` layer with the microsimulation and discrete-event engines, so discounting and aggregation stay one implementation.
+Implement `MarkovCohortEngine` in `heormodel/models/markov.py`, a cohort state-transition engine that sweeps a cohort trace across PSA iterations and emits the standard `Outcomes` schema. It shares the `heormodel.models._accrual` layer with the microsimulation and discrete-event engines, so discounting and aggregation stay one implementation.
 
 ## Coherence with the engine architecture
 
@@ -8,7 +8,7 @@ The same three commitments as items 3 and 4, the same shapes:
 
 1. Configure once, evaluate on draws. `MarkovCohortEngine(...)` takes the states, strategies, and a `build` callback; `evaluate(draws)` returns `Outcomes` indexed by `draws.index`.
 2. No hidden randomness. A cohort trace is deterministic given a parameter row, so the engine draws no random numbers; reproducibility follows from the draw matrix alone.
-3. Accrual reuse. Per-cycle discount factors and the reduction to `Outcomes` rows come from `heval/models/_accrual.py`.
+3. Accrual reuse. Per-cycle discount factors and the reduction to `Outcomes` rows come from `heormodel/models/_accrual.py`.
 
 ## Sketch
 

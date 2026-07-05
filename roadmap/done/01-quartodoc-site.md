@@ -21,8 +21,8 @@ docs/
 
 ## quartodoc configuration
 
-- `quartodoc:` section in `_quarto.yml` with `package: heval` and one reference section per subpackage (`params`, `models`, `run`, `cea`, `voi`, `calibrate`, `report`), listing the names each `__init__.py` exports in `__all__`.
-- Docstrings are Google style with worked `Example:` blocks. quartodoc renders them directly, and `uv run pytest --doctest-modules src/heval` keeps every example on the site true.
+- `quartodoc:` section in `_quarto.yml` with `package: heormodel` and one reference section per subpackage (`params`, `models`, `run`, `cea`, `voi`, `calibrate`, `report`), listing the names each `__init__.py` exports in `__all__`.
+- Docstrings are Google style with worked `Example:` blocks. quartodoc renders them directly, and `uv run pytest --doctest-modules src/heormodel` keeps every example on the site true.
 - Interlinks to numpy, pandas, and scipy documentation.
 
 ## Tutorials execute at render time

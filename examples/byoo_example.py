@@ -22,9 +22,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from heval.cea import ceac, ceaf, icer_table
-from heval.params import Beta, Gamma, Normal, ParameterSet
-from heval.report import (
+from heormodel.cea import ceac, ceaf, icer_table
+from heormodel.params import Beta, Gamma, Normal, ParameterSet
+from heormodel.report import (
     capture_run,
     plot_ce_plane,
     plot_ceac,
@@ -32,8 +32,8 @@ from heval.report import (
     plot_tornado,
     tornado_data,
 )
-from heval.run import SeedManager, as_outcomes
-from heval.voi import evpi, evppi_ranking
+from heormodel.run import SeedManager, as_outcomes
+from heormodel.voi import evpi, evppi_ranking
 
 HERE = Path(__file__).parent
 OUT = HERE / "output"

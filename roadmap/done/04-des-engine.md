@@ -1,10 +1,10 @@
 # 4. Discrete-event simulation engine (SimPy wrapper)
 
-Implement `DESEngine`, replacing the stub in `heval/models/des.py`, as a thin wrapper around SimPy. Not a new DES kernel. It stays coherent with the microsimulation architecture in item 3.
+Implement `DESEngine`, replacing the stub in `heormodel/models/des.py`, as a thin wrapper around SimPy. Not a new DES kernel. It stays coherent with the microsimulation architecture in item 3.
 
 ## Guardrails
 
-- Do not reimplement an event loop, queues, or resources. SimPy's `Environment`, `Process`, and `Resource` remain the user's own code. `heval` adds trajectory recording, resource-constraint helpers, cost and utility accrual, seeding, and aggregation to `Outcomes`.
+- Do not reimplement an event loop, queues, or resources. SimPy's `Environment`, `Process`, and `Resource` remain the user's own code. `heormodel` adds trajectory recording, resource-constraint helpers, cost and utility accrual, seeding, and aggregation to `Outcomes`.
 - The engine shares the output contract and the `_accrual` layer with the microsim engines, never an implementation API. A DES model is not forced to look like a microsimulation.
 
 ## Coherence with the microsim architecture
@@ -13,7 +13,7 @@ The same three commitments, the same shapes:
 
 1. Configure once, evaluate on draws: `DESEngine(...)` takes the model (a process factory); `evaluate(draws)` returns `Outcomes` indexed by `draws.index`.
 2. Seeding: a `SeedManager` at construction, one child generator per iteration, entity-level streams derived from the iteration stream. Results do not depend on `n_jobs`.
-3. Accrual: reuse `heval/models/_accrual.py` from item 3, extended with accrual between events (which the continuous-time microsim also uses). One implementation, two engines. If DES starts first, `_accrual` is pulled forward.
+3. Accrual: reuse `heormodel/models/_accrual.py` from item 3, extended with accrual between events (which the continuous-time microsim also uses). One implementation, two engines. If DES starts first, `_accrual` is pulled forward.
 
 ## Sketch
 
@@ -30,7 +30,7 @@ DESEngine(
 )
 ```
 
-The `toolkit` handed to each process is what `heval` adds on top of SimPy:
+The `toolkit` handed to each process is what `heormodel` adds on top of SimPy:
 
 - `toolkit.accrue_cost(amount)` and `toolkit.accrue_rate(cost_rate, utility)`: point and continuous accruals, discounted at the current `env.now` through `_accrual`.
 - `toolkit.state(name)`: marks trajectory segments in the per-entity event log (`entity, t, event, state, resource`). The log is the optional trace side channel, the same pattern as the microsim `trace=`.
@@ -41,7 +41,7 @@ Per iteration and strategy, `evaluate` builds the environment, resources, and en
 
 ## Dependencies
 
-- `simpy` as an optional extra, `heval[des]`, mirroring the `pyabc` pattern: lazy import with an actionable error message.
+- `simpy` as an optional extra, `heormodel[des]`, mirroring the `pyabc` pattern: lazy import with an actionable error message.
 - `_accrual` from item 3.
 
 ## Validation (acceptance)

@@ -5,10 +5,10 @@ import io
 import pandas as pd
 import pytest
 
-from heval.models import Outcomes
-from heval.params import Normal, ParameterSet, Uniform
-from heval.run import run_psa
-from heval.run._progress import ProgressReporter, resolve_enabled
+from heormodel.models import Outcomes
+from heormodel.params import Normal, ParameterSet, Uniform
+from heormodel.run import run_psa
+from heormodel.run._progress import ProgressReporter, resolve_enabled
 
 
 def _model(draws: pd.DataFrame) -> Outcomes:

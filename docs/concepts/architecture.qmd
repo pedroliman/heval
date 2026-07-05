@@ -2,7 +2,7 @@
 title: Architecture
 ---
 
-This page explains the two invariants that hold everywhere in `heval`: the outcome schema as the integration point, and the shared iteration index. It assumes the [quickstart](../index.qmd); [engines](engines.qmd) covers the model side of the contract.
+This page explains the two invariants that hold everywhere in `heormodel`: the outcome schema as the integration point, and the shared iteration index. It assumes the [quickstart](../index.qmd); [engines](engines.qmd) covers the model side of the contract.
 
 ## The outcome schema is the integration point
 
@@ -12,7 +12,7 @@ The constructor validates the contract so analyses do not have to: a balanced pa
 
 ```{python}
 import pandas as pd
-from heval.models import Outcomes
+from heormodel.models import Outcomes
 
 tidy = pd.DataFrame({
     "strategy": ["A", "A", "B", "B"],
@@ -35,8 +35,8 @@ Parameter draw matrices and outcomes share one iteration index. `ParameterSet.sa
 The point is traceability: EVPPI and EVSI regress outcome quantities on parameter draws, which is only valid when row `i` of the draws produced iteration `i` of the outcomes. Analyses that need both objects, such as `evppi` and `tornado_data`, rely on the index to align them.
 
 ```{python}
-from heval.params import Normal, ParameterSet
-from heval.run import run_psa
+from heormodel.params import Normal, ParameterSet
+from heormodel.run import run_psa
 
 def model(d: pd.DataFrame) -> Outcomes:
     costs = pd.DataFrame({"A": d["c"], "B": d["c"] + 10})

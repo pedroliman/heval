@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `heval` are documented here. Format follows
+All notable changes to `heormodel` are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow
 [Semantic Versioning](https://semver.org/).
 
@@ -12,7 +12,7 @@ Each entry links to the pull request that introduced it. Add a line under
 
 ### Added
 
-- Parameter inputs from data in `heval.params`: `single_draw` wraps one named
+- Parameter inputs from data in `heormodel.params`: `single_draw` wraps one named
   set of point values as a one-row draw matrix (iteration 0) for a base-case
   run, and `ParameterSet.at_means` is the same call on a distribution set's
   analytic means. `read_draws` validates a CSV path or DataFrame as a draw
@@ -22,17 +22,17 @@ Each entry links to the pull request that introduced it. Add a line under
   to the weights, so joint correlation survives. Each result flows through
   `run_psa` unchanged. `examples/parameter_inputs.py` and the parameter-inputs
   tutorial run all three end to end
-  ([#13](https://github.com/pedroliman/heval/pull/13)).
-- Deterministic sensitivity analysis: `heval.dsa` builds scenario designs that
+  ([#13](https://github.com/pedroliman/heormodel/pull/13)).
+- Deterministic sensitivity analysis: `heormodel.dsa` builds scenario designs that
   run through `run_psa` unchanged. `one_way` sweeps a single parameter,
   `one_at_a_time` sweeps each parameter in turn (the tornado design), and `grid`
   takes the full factorial of several parameters (the heatmap design). Each
   returns a `(design, descriptor)` pair: the design is a draw matrix of
   scenarios, the descriptor a tidy table naming what each scenario varied.
-  `heval.report.tornado_data` now reads a one-way or one-at-a-time DSA result as
+  `heormodel.report.tornado_data` now reads a one-way or one-at-a-time DSA result as
   well as a PSA, and `heatmap_data` reshapes a two-parameter grid into a matrix.
   `examples/dsa.py` and a website tutorial run all three forms on the
-  Sick-Sicker model ([#14](https://github.com/pedroliman/heval/pull/14)).
+  Sick-Sicker model ([#14](https://github.com/pedroliman/heormodel/pull/14)).
 
 ### Changed
 
@@ -46,7 +46,7 @@ Each entry links to the pull request that introduced it. Add a line under
   finish, driven by the mean throughput of finished work; it is on when
   `stderr` is a terminal and quiet otherwise, so CI logs and docs builds stay
   silent unless `progress=True` is explicit
-  ([#15](https://github.com/pedroliman/heval/pull/15)).
+  ([#15](https://github.com/pedroliman/heormodel/pull/15)).
 
 ## [0.6.0] - 2026-07-05
 
@@ -61,7 +61,7 @@ Each entry links to the pull request that introduced it. Add a line under
   `discount_rate` (annual, default `0.03`, applied to costs and effects) in
   place of `discount_cost` and `discount_effect`; `cycle_length` scales the
   annual clock. The pre-0.6 names are removed outright rather than deprecated
-  ([#11](https://github.com/pedroliman/heval/pull/11)).
+  ([#11](https://github.com/pedroliman/heormodel/pull/11)).
 
 ## [0.5.0] - 2026-07-05
 
@@ -72,19 +72,19 @@ Each entry links to the pull request that introduced it. Add a line under
   per-cycle array (age-varying rates); rewards accrue per state and, optionally,
   per transition (a one-time cost of dying or disutility of onset). Supports
   Simpson's 1/3, half-cycle, or no within-cycle correction, reusing
-  `heval.models._accrual` for discounting. `CohortSpec` carries one strategy's
+  `heormodel.models._accrual` for discounting. `CohortSpec` carries one strategy's
   matrices, and `gen_wcc` builds the correction weights
-  ([#9](https://github.com/pedroliman/heval/pull/9)).
+  ([#9](https://github.com/pedroliman/heormodel/pull/9)).
 - `duration_groups` on `DiscreteTimeMicrosimEngine`: a per-individual counter of
   consecutive cycles spent in a set of states, so a sojourn that progresses
   (Sick to Sicker) keeps counting where `time_in_state` would reset
-  ([#9](https://github.com/pedroliman/heval/pull/9)).
+  ([#9](https://github.com/pedroliman/heormodel/pull/9)).
 - Three replications of published Sick-Sicker cost-effectiveness tutorials, each
   matching the source's deterministic results, with runnable scripts and website
   tutorials: cohort state-transition (`examples/mdm_cohort.py`), time-dependent
   cohort with age-varying mortality (`examples/mdm_cohort_timedep.py`), and
   microsimulation (`examples/mdm_microsim.py`). A replication gallery page
-  collects them with citations ([#9](https://github.com/pedroliman/heval/pull/9)).
+  collects them with citations ([#9](https://github.com/pedroliman/heormodel/pull/9)).
 
 ## [0.4.0] - 2026-07-04
 
@@ -94,17 +94,17 @@ Each entry links to the pull request that introduced it. Add a line under
   process functions, and resources stay the user's own code; the engine adds a
   per-entity toolkit for discounted cost and utility accrual, per-iteration
   seeding from a `SeedManager` so results do not depend on `n_jobs`, and an
-  optional event log. It reuses `heval.models._accrual` and uses common random
+  optional event log. It reuses `heormodel.models._accrual` and uses common random
   numbers across strategies by default, staying coherent with the
-  microsimulation engines ([#8](https://github.com/pedroliman/heval/pull/8)).
-- `heval.models.queue_waits`: derive per-request waiting times from a `DESEngine`
+  microsimulation engines ([#8](https://github.com/pedroliman/heormodel/pull/8)).
+- `heormodel.models.queue_waits`: derive per-request waiting times from a `DESEngine`
   trace, so queueing reports come from the event log rather than engine
-  internals ([#8](https://github.com/pedroliman/heval/pull/8)).
+  internals ([#8](https://github.com/pedroliman/heormodel/pull/8)).
 - `simpy` as an optional dependency behind the `des` extra
-  (`uv pip install 'heval[des]'`) ([#8](https://github.com/pedroliman/heval/pull/8)).
+  (`uv pip install 'heormodel[des]'`) ([#8](https://github.com/pedroliman/heormodel/pull/8)).
 - Discrete-event example (`examples/des.py`) and website tutorial, validated
   against an M/M/1 queue and the exponential cohort solution
-  ([#8](https://github.com/pedroliman/heval/pull/8)).
+  ([#8](https://github.com/pedroliman/heormodel/pull/8)).
 
 ## [0.3.0] - 2026-07-04
 
@@ -116,16 +116,16 @@ Each entry links to the pull request that introduced it. Add a line under
   competing time-to-event samplers between events. Both emit the standard
   `Outcomes` schema, seed each iteration from a `SeedManager` so results do not
   depend on `n_jobs`, and use common random numbers across strategies by
-  default ([#7](https://github.com/pedroliman/heval/pull/7)).
-- `heval.models._accrual`: shared cost and utility accrual, discounting, and
+  default ([#7](https://github.com/pedroliman/heormodel/pull/7)).
+- `heormodel.models._accrual`: shared cost and utility accrual, discounting, and
   aggregation to `Outcomes`, used by both engines and reserved for the
-  discrete-event engine ([#7](https://github.com/pedroliman/heval/pull/7)).
+  discrete-event engine ([#7](https://github.com/pedroliman/heormodel/pull/7)).
 - `SeedManager.child_sequence` returns a per-key seed sequence, so
   iteration-indexed streams stay identical however a run is chunked across
-  workers ([#7](https://github.com/pedroliman/heval/pull/7)).
+  workers ([#7](https://github.com/pedroliman/heormodel/pull/7)).
 - Microsimulation example (`examples/microsim.py`) and website tutorial,
   validated against the closed-form cohort solution it mirrors
-  ([#7](https://github.com/pedroliman/heval/pull/7)).
+  ([#7](https://github.com/pedroliman/heormodel/pull/7)).
 
 ## [0.2.0] - 2026-07-04
 
@@ -134,43 +134,43 @@ Each entry links to the pull request that introduced it. Add a line under
 - Documentation website built with Quarto and quartodoc, published to GitHub
   Pages from CI on every merge to `main`: executed tutorials, concept pages, a
   generated API reference, the roadmap, and this changelog
-  ([#3](https://github.com/pedroliman/heval/pull/3)).
-- `heval.params.mix_draws` combines draw matrices from different sources
+  ([#3](https://github.com/pedroliman/heormodel/pull/3)).
+- `heormodel.params.mix_draws` combines draw matrices from different sources
   (a calibrated posterior and literature draws) into one PSA matrix,
   resampling whole rows so joint correlation survives and sources stay
-  independent ([#5](https://github.com/pedroliman/heval/pull/5)).
+  independent ([#5](https://github.com/pedroliman/heormodel/pull/5)).
 - `capture_run` records a `draw_sources` map, so the run report shows where
   each parameter's draws came from
-  ([#5](https://github.com/pedroliman/heval/pull/5)).
+  ([#5](https://github.com/pedroliman/heormodel/pull/5)).
 - Calibration workflow example (`examples/calibration_workflow.py`) and
   website tutorial: calibrate a natural-history model's rates, mix them with
   literature parameters, and run CEA and VoI on the result
-  ([#5](https://github.com/pedroliman/heval/pull/5)).
+  ([#5](https://github.com/pedroliman/heormodel/pull/5)).
 
 ### Changed
 
 - Docstring cross-references use plain backticks instead of Sphinx roles, so
   they render cleanly on the website and in `help()`
-  ([#3](https://github.com/pedroliman/heval/pull/3)).
+  ([#3](https://github.com/pedroliman/heormodel/pull/3)).
 - Distribution spec strings format floats at 6 significant digits, so
   provenance records and run reports stay readable
-  ([#3](https://github.com/pedroliman/heval/pull/3)).
+  ([#3](https://github.com/pedroliman/heormodel/pull/3)).
 - `RunRecord.model_card()` renamed to `to_markdown()`, titled "Run report":
   "model card" is ML documentation jargon, not a HEOR term
-  ([#6](https://github.com/pedroliman/heval/pull/6)).
+  ([#6](https://github.com/pedroliman/heormodel/pull/6)).
 
 ## [0.1.0] - 2026-07-04
 
-Initial release: parameter sampling (`heval.params`), the `Outcomes` schema
-and `ModelEngine` protocol (`heval.models`), the PSA run loop and
-bring-your-own-outputs ingestion (`heval.run`), cost-effectiveness analysis
-(`heval.cea`), value-of-information analysis (`heval.voi`), optional ABC
-calibration (`heval.calibrate`), and reporting plots (`heval.report`).
+Initial release: parameter sampling (`heormodel.params`), the `Outcomes` schema
+and `ModelEngine` protocol (`heormodel.models`), the PSA run loop and
+bring-your-own-outputs ingestion (`heormodel.run`), cost-effectiveness analysis
+(`heormodel.cea`), value-of-information analysis (`heormodel.voi`), optional ABC
+calibration (`heormodel.calibrate`), and reporting plots (`heormodel.report`).
 
-[Unreleased]: https://github.com/pedroliman/heval/compare/v0.6.0...HEAD
-[0.6.0]: https://github.com/pedroliman/heval/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/pedroliman/heval/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/pedroliman/heval/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/pedroliman/heval/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/pedroliman/heval/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/pedroliman/heval/releases/tag/v0.1.0
+[Unreleased]: https://github.com/pedroliman/heormodel/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/pedroliman/heormodel/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/pedroliman/heormodel/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/pedroliman/heormodel/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/pedroliman/heormodel/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/pedroliman/heormodel/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/pedroliman/heormodel/releases/tag/v0.1.0

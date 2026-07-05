@@ -1,6 +1,6 @@
 # 12. Value-of-information tutorial against a published analysis
 
-`heval.voi` ships EVPI, EVPPI, and EVSI, but the site has no tutorial that walks the value-of-information workflow end to end and checks it against an external answer. This item adds one, reproducing a published VoI analysis so a reader sees the numbers land where the source says they should. It ships as `examples/voi_tutorial.py` and a website tutorial, and it reinforces the EVPPI validation already in `tests/test_voi.py` with a second, published reference point.
+`heormodel.voi` ships EVPI, EVPPI, and EVSI, but the site has no tutorial that walks the value-of-information workflow end to end and checks it against an external answer. This item adds one, reproducing a published VoI analysis so a reader sees the numbers land where the source says they should. It ships as `examples/voi_tutorial.py` and a website tutorial, and it reinforces the EVPPI validation already in `tests/test_voi.py` with a second, published reference point.
 
 ## What the tutorial reproduces
 

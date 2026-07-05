@@ -28,10 +28,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from heval.cea import icer_table
-from heval.models import MicrosimModel
-from heval.report import capture_run, plot_ce_plane, plot_frontier
-from heval.run import SeedManager, run_psa
+from heormodel.cea import icer_table
+from heormodel.models import MicrosimModel
+from heormodel.report import capture_run, plot_ce_plane, plot_frontier
+from heormodel.run import SeedManager, run_psa
 
 HERE = Path(__file__).parent
 OUT = HERE / "output"

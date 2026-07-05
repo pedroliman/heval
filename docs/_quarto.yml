@@ -3,9 +3,9 @@ project:
   pre-render: _prerender.py
 
 website:
-  title: heval
-  site-url: https://pedroliman.github.io/heval/
-  repo-url: https://github.com/pedroliman/heval
+  title: heormodel
+  site-url: https://pedroliman.github.io/heormodel/
+  repo-url: https://github.com/pedroliman/heormodel
   page-navigation: true
   navbar:
     search: true
@@ -52,7 +52,7 @@ website:
         text: Changelog
     right:
       - icon: github
-        href: https://github.com/pedroliman/heval
+        href: https://github.com/pedroliman/heormodel
 
 format:
   html:
@@ -78,16 +78,16 @@ interlinks:
       url: https://docs.scipy.org/doc/scipy/
 
 quartodoc:
-  package: heval
+  package: heormodel
   dir: reference
   title: API reference
   parser: google
   sidebar: reference/_sidebar.yml
   render_interlinks: true
   sections:
-    - title: Parameters (`heval.params`)
+    - title: Parameters (`heormodel.params`)
       desc: Distribution specs, mean/SE constructors, and correlated sampling into a parameter draw matrix.
-      package: heval.params
+      package: heormodel.params
       contents:
         - Distribution
         - Normal
@@ -102,9 +102,9 @@ quartodoc:
         - read_draws
         - resample_posterior
         - mix_draws
-    - title: Models (`heval.models`)
+    - title: Models (`heormodel.models`)
       desc: The `Outcomes` schema every engine targets, the `ModelEngine` protocol, and the cohort state-transition, microsimulation, and discrete-event engines.
-      package: heval.models
+      package: heormodel.models
       contents:
         - Outcomes
         - ModelEngine
@@ -114,17 +114,17 @@ quartodoc:
         - MicrosimModel
         - DESModel
         - queue_waits
-    - title: Run loop (`heval.run`)
+    - title: Run loop (`heormodel.run`)
       desc: Drive a model over parameter draws, or ingest external PSA tables.
-      package: heval.run
+      package: heormodel.run
       contents:
         - SeedManager
         - run_psa
         - as_outcomes
         - running_means
-    - title: Cost-effectiveness analysis (`heval.cea`)
+    - title: Cost-effectiveness analysis (`heormodel.cea`)
       desc: ICERs, dominance, the efficiency frontier, net benefit, and acceptability curves.
-      package: heval.cea
+      package: heormodel.cea
       contents:
         - icer_table
         - frontier
@@ -137,17 +137,17 @@ quartodoc:
         - STATUS_D
         - STATUS_ED
         - STATUS_ND
-    - title: Deterministic sensitivity analysis (`heval.dsa`)
+    - title: Deterministic sensitivity analysis (`heormodel.dsa`)
       desc: One-way, one-at-a-time, and full-factorial grid scenario designs that run through the standard loop and feed tornado and heatmap reports.
-      package: heval.dsa
+      package: heormodel.dsa
       contents:
         - one_way
         - one_at_a_time
         - grid
         - Design
-    - title: Value of information (`heval.voi`)
+    - title: Value of information (`heormodel.voi`)
       desc: EVPI, EVPPI via metamodels, and EVSI estimators.
-      package: heval.voi
+      package: heormodel.voi
       contents:
         - evpi
         - evppi
@@ -156,17 +156,17 @@ quartodoc:
         - evsi_regression
         - evsi_moment_matching
         - evsi_importance_sampling
-    - title: Calibration (`heval.calibrate`)
+    - title: Calibration (`heormodel.calibrate`)
       desc: ABC-SMC calibration; the posterior returns as a standard draw matrix. Requires the `calibration` extra.
-      package: heval.calibrate
+      package: heormodel.calibrate
       contents:
         - TargetSimulator
         - abc_calibrate
         - CalibrationResult
         - to_pyabc_prior
-    - title: Reporting (`heval.report`)
+    - title: Reporting (`heormodel.report`)
       desc: Standard plots, provenance capture, and run reports.
-      package: heval.report
+      package: heormodel.report
       contents:
         - plot_ce_plane
         - plot_ceac

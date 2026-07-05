@@ -4,12 +4,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from heval.models import (
+from heormodel.models import (
     ModelEngine,
     Outcomes,
 )
-from heval.params import Normal, ParameterSet, Uniform
-from heval.run import SeedManager, as_outcomes, run_psa, running_means
+from heormodel.params import Normal, ParameterSet, Uniform
+from heormodel.run import SeedManager, as_outcomes, run_psa, running_means
 
 
 def tidy_table(n: int = 4) -> pd.DataFrame:

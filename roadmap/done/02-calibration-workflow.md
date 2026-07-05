@@ -7,14 +7,14 @@ This item exercises every implemented layer at once and closes the one API gap i
 ## The workflow to demonstrate
 
 1. Literature parameters: a `ParameterSet` with mean/SE-derived distributions (utilities, unit costs), optionally correlated.
-2. Calibrated parameters: a natural-history simulator with unknown transition intensities, priors as `heval` specs, observed targets such as prevalence at two ages. `abc_calibrate` returns an iteration-indexed posterior draw matrix.
+2. Calibrated parameters: a natural-history simulator with unknown transition intensities, priors as `heormodel` specs, observed targets such as prevalence at two ages. `abc_calibrate` returns an iteration-indexed posterior draw matrix.
 3. Mix the two sources into one draw matrix (API below). Calibrated columns keep their joint posterior correlation; literature columns are independent of them; both share one iteration index.
 4. Run the decision model over the mixed draws with `run_psa`.
 5. CEA: `icer_table`, CEAC, CEAF.
 6. VoI: `evppi_ranking` over calibrated and literature parameters together. Once draws share the iteration index, VoI does not care where a parameter came from.
 7. Report: plots plus `capture_run` provenance recording the ABC settings and the literature specs.
 
-## API gap: `heval.params.mix_draws`
+## API gap: `heormodel.params.mix_draws`
 
 ```python
 def mix_draws(
@@ -44,7 +44,7 @@ Notes:
 ## Deliverables
 
 - `examples/calibration_workflow.py`, structured like `examples/byoo_example.py`, printing the ICER table and EVPPI ranking and saving plots.
-- `mix_draws` in `heval.params` with tests: disjoint-column validation, joint-row preservation, reproducibility under seed, index contract.
+- `mix_draws` in `heormodel.params` with tests: disjoint-column validation, joint-row preservation, reproducibility under seed, index contract.
 - A README section pointing at the example.
 
 ## Acceptance

@@ -11,7 +11,7 @@ from pathlib import Path
 
 DOCS = Path(__file__).parent
 ROOT = DOCS.parent
-BLOB = "https://github.com/pedroliman/heval/blob/main/"
+BLOB = "https://github.com/pedroliman/heormodel/blob/main/"
 
 
 def rewrite_links(text: str) -> str:

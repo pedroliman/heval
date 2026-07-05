@@ -2,7 +2,7 @@
 title: Calibration workflow
 ---
 
-This tutorial mixes two parameter sources in one analysis: some parameters are calibrated to observed data, the rest come from the literature. Both feed one PSA that flows through CEA and VoI. It builds on the [full pipeline tutorial](full-pipeline.qmd) and is the narrated version of [`examples/calibration_workflow.py`](https://github.com/pedroliman/heval/blob/main/examples/calibration_workflow.py). Calibration needs the `calibration` extra: `uv pip install 'heval[calibration]'`.
+This tutorial mixes two parameter sources in one analysis: some parameters are calibrated to observed data, the rest come from the literature. Both feed one PSA that flows through CEA and VoI. It builds on the [full pipeline tutorial](full-pipeline.qmd) and is the narrated version of [`examples/calibration_workflow.py`](https://github.com/pedroliman/heormodel/blob/main/examples/calibration_workflow.py). Calibration needs the `calibration` extra: `uv pip install 'heormodel[calibration]'`.
 
 ## The disease model
 
@@ -52,9 +52,9 @@ def occupancy(onset, progression):
 import os
 os.environ["ABC_LOG_LEVEL"] = "WARNING"  # quiet pyabc's per-population logging
 
-from heval.calibrate import abc_calibrate
-from heval.params import Uniform
-from heval.run import SeedManager
+from heormodel.calibrate import abc_calibrate
+from heormodel.params import Uniform
+from heormodel.run import SeedManager
 
 N = 2_000
 seeds = SeedManager(20260704)
@@ -84,7 +84,7 @@ round(posterior["onset"].corr(posterior["progression"]), 3)
 Utilities and costs come from the literature as mean/SE distributions, with a negative correlation between the sick-state utility and its cost.
 
 ```{python}
-from heval.params import Beta, Gamma, ParameterSet
+from heormodel.params import Beta, Gamma, ParameterSet
 
 literature = ParameterSet(
     {
@@ -103,7 +103,7 @@ lit_draws = literature.sample(N, seed=rng_lit)
 `mix_draws` joins the sources into one matrix. It resamples whole rows within each source, so the posterior's joint correlation survives, and resamples sources independently, so no correlation is invented across them.
 
 ```{python}
-from heval.params import mix_draws
+from heormodel.params import mix_draws
 
 draws = mix_draws(posterior, lit_draws, n=N, seed=rng_mix)
 list(draws.columns)
@@ -114,8 +114,8 @@ list(draws.columns)
 From here the pipeline is source-agnostic: the decision model runs over the mixed draws, and CEA and VoI treat every column alike.
 
 ```{python}
-from heval.models import Outcomes
-from heval.run import run_psa
+from heormodel.models import Outcomes
+from heormodel.run import run_psa
 
 def disease_model(d):
     _, sick_std = occupancy(d["onset"].to_numpy(), d["progression"].to_numpy())
@@ -133,12 +133,12 @@ def disease_model(d):
     return Outcomes.from_wide(costs, effects)
 
 outcomes = run_psa(disease_model, draws, sequential=True)
-from heval.cea import icer_table
+from heormodel.cea import icer_table
 icer_table(outcomes).round(3)
 ```
 
 ```{python}
-from heval.voi import evpi, evppi_ranking
+from heormodel.voi import evpi, evppi_ranking
 
 WTP = 50_000.0
 print(f"EVPI at WTP {WTP:,.0f}: {evpi(outcomes, WTP):,.1f}")
@@ -152,7 +152,7 @@ The treatment effect `rr_progression` leads the ranking. The calibrated rates ra
 `capture_run` takes a `draw_sources` map so the run report records where each parameter came from.
 
 ```{python}
-from heval.report import capture_run
+from heormodel.report import capture_run
 
 record = capture_run(
     seed=seeds,
@@ -163,7 +163,7 @@ record = capture_run(
     },
     note="Calibration workflow tutorial.",
 )
-print(record.to_markdown("heval calibration workflow run report"))
+print(record.to_markdown("heormodel calibration workflow run report"))
 ```
 
 Next: the [microsimulation](microsim.qmd) and [discrete-event](des.qmd) engines replace this hand-written model while keeping the same analysis layer.

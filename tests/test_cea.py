@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from heval.cea import (
+from heormodel.cea import (
     STATUS_D,
     STATUS_ED,
     STATUS_ND,
@@ -22,7 +22,7 @@ from heval.cea import (
     nhb,
     nmb,
 )
-from heval.models import Outcomes
+from heormodel.models import Outcomes
 
 
 @pytest.fixture

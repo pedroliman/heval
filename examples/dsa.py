@@ -26,11 +26,11 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from heval.cea import nmb
-from heval.dsa import grid, one_at_a_time, one_way
-from heval.models import CohortSpec, MarkovModel
-from heval.report import heatmap_data, plot_tornado, tornado_data
-from heval.run import run_psa
+from heormodel.cea import nmb
+from heormodel.dsa import grid, one_at_a_time, one_way
+from heormodel.models import CohortSpec, MarkovModel
+from heormodel.report import heatmap_data, plot_tornado, tornado_data
+from heormodel.run import run_psa
 
 HERE = Path(__file__).parent
 OUT = HERE / "output"
