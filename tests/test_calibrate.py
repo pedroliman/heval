@@ -5,8 +5,8 @@ import pytest
 
 pyabc = pytest.importorskip("pyabc")
 
-from heval.calibrate import abc_calibrate, to_pyabc_prior  # noqa: E402
-from heval.params import Beta, Fixed, Normal, Uniform  # noqa: E402
+from heormodel.calibrate import abc_calibrate, to_pyabc_prior  # noqa: E402
+from heormodel.params import Beta, Fixed, Normal, Uniform  # noqa: E402
 
 
 class TestPriorTranslation:

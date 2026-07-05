@@ -27,12 +27,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from heval.cea import ceac, ceaf, icer_table
-from heval.models import CohortSpec, MarkovModel
-from heval.params import Beta, Gamma, LogNormal, ParameterSet
-from heval.report import capture_run, plot_ce_plane, plot_ceac, plot_frontier
-from heval.run import SeedManager, run_psa
-from heval.voi import evpi, evppi_ranking
+from heormodel.cea import ceac, ceaf, icer_table
+from heormodel.models import CohortSpec, MarkovModel
+from heormodel.params import Beta, Gamma, LogNormal, ParameterSet
+from heormodel.report import capture_run, plot_ce_plane, plot_ceac, plot_frontier
+from heormodel.run import SeedManager, run_psa
+from heormodel.voi import evpi, evppi_ranking
 
 HERE = Path(__file__).parent
 OUT = HERE / "output"

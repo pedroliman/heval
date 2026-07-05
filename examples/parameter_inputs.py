@@ -22,8 +22,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from heval.models import Outcomes
-from heval.params import (
+from heormodel.models import Outcomes
+from heormodel.params import (
     Beta,
     Gamma,
     ParameterSet,
@@ -31,7 +31,7 @@ from heval.params import (
     resample_posterior,
     single_draw,
 )
-from heval.run import run_psa
+from heormodel.run import run_psa
 
 HERE = Path(__file__).parent
 OUT = HERE / "output"

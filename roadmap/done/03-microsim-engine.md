@@ -1,6 +1,6 @@
 # 3. Microsimulation engine
 
-Implement `DiscreteTimeMicrosimEngine` first, then `ContinuousTimeMicrosimEngine`, replacing the stubs in `heval/models/microsim.py`. Both simulate an individual-level population per PSA iteration and emit the standard `Outcomes` schema.
+Implement `DiscreteTimeMicrosimEngine` first, then `ContinuousTimeMicrosimEngine`, replacing the stubs in `heormodel/models/microsim.py`. Both simulate an individual-level population per PSA iteration and emit the standard `Outcomes` schema.
 
 ## Architectural commitments
 
@@ -8,7 +8,7 @@ The DES engine (item 4) must stay coherent with these decisions, so they are fix
 
 1. Configure once, evaluate on draws. The constructor takes the model structure; `evaluate(draws)` takes only the parameter draw matrix and returns `Outcomes` with `draws.index` as the iteration index. The existing protocol, unchanged.
 2. Randomness comes from a `SeedManager` injected at construction. `evaluate` spawns one child generator per iteration, so iteration i is reproducible in isolation and results do not depend on `n_jobs`. Individual-level streams derive from the iteration stream, never from a global RNG.
-3. A shared accrual layer, not a shared engine API. Cost and utility accrual, discounting, and aggregation to `Outcomes` live in a new internal module `heval/models/_accrual.py`, used by microsim and DES:
+3. A shared accrual layer, not a shared engine API. Cost and utility accrual, discounting, and aggregation to `Outcomes` live in a new internal module `heormodel/models/_accrual.py`, used by microsim and DES:
    - `discount_factor(t, rate)`, continuous and per-cycle variants
    - `accrue(occupancy_or_events, payoffs, rate)` per individual
    - `aggregate(per_individual, strategy, iteration)` to `Outcomes` rows

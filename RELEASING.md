@@ -1,4 +1,4 @@
-# Releasing heval
+# Releasing heormodel
 
 How to cut a release after a PR merges to `main`. Release often: a single
 bug fix or small feature is enough to justify a patch release.
@@ -36,10 +36,10 @@ Every PR that changes behavior adds one line under `## [Unreleased]` in
 
 The release workflow publishes via
 [PyPI trusted publishing](https://docs.pypi.org/trusted-publishers/), no API
-token stored in the repo. On the `heval` project's PyPI page, under
+token stored in the repo. On the `heormodel` project's PyPI page, under
 `Publishing`, add a trusted publisher for this repository:
 
-- Owner: `pedroliman`, repository: `heval`
+- Owner: `pedroliman`, repository: `heormodel`
 - Workflow file: `release.yml`
 - Environment: `pypi`
 

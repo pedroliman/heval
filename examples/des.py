@@ -36,12 +36,12 @@ import numpy as np
 import pandas as pd
 import simpy
 
-from heval.cea import ceac, ceaf, icer_table
-from heval.models import DESModel, queue_waits
-from heval.params import Beta, Gamma, ParameterSet
-from heval.report import capture_run, plot_ce_plane, plot_ceac, plot_frontier
-from heval.run import SeedManager, run_psa
-from heval.voi import evpi, evppi_ranking
+from heormodel.cea import ceac, ceaf, icer_table
+from heormodel.models import DESModel, queue_waits
+from heormodel.params import Beta, Gamma, ParameterSet
+from heormodel.report import capture_run, plot_ce_plane, plot_ceac, plot_frontier
+from heormodel.run import SeedManager, run_psa
+from heormodel.voi import evpi, evppi_ranking
 
 HERE = Path(__file__).parent
 OUT = HERE / "output"

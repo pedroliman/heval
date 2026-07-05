@@ -38,11 +38,11 @@ import numpy as np
 import pandas as pd
 from scipy.linalg import expm
 
-from heval.calibrate import abc_calibrate
-from heval.cea import ceac, ceaf, icer_table
-from heval.models import Outcomes
-from heval.params import Beta, Gamma, ParameterSet, Uniform, mix_draws
-from heval.report import (
+from heormodel.calibrate import abc_calibrate
+from heormodel.cea import ceac, ceaf, icer_table
+from heormodel.models import Outcomes
+from heormodel.params import Beta, Gamma, ParameterSet, Uniform, mix_draws
+from heormodel.report import (
     capture_run,
     plot_ce_plane,
     plot_ceac,
@@ -50,8 +50,8 @@ from heval.report import (
     plot_tornado,
     tornado_data,
 )
-from heval.run import SeedManager, run_psa
-from heval.voi import evpi, evppi_ranking
+from heormodel.run import SeedManager, run_psa
+from heormodel.voi import evpi, evppi_ranking
 
 # Quiet pyabc's per-population logging. pyabc reads this on first import, which
 # happens lazily inside abc_calibrate, so setting it here takes effect.

@@ -26,7 +26,7 @@ Requirements:
 ## Deliverables
 
 - `run_psa` defaulting to parallel, with `sequential` and `progress` arguments documented, and the batching interaction with the display explained.
-- An internal `heval.run._progress` reporter with the elapsed and remaining formatting.
+- An internal `heormodel.run._progress` reporter with the elapsed and remaining formatting.
 - Updated docstring example, examples, and any tutorial that shows a long run.
 
 ## Acceptance

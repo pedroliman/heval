@@ -1,6 +1,6 @@
 # 7. Parameter inputs: single sets, CSV draws, and weighted posteriors
 
-Not every analysis starts from `ParameterSet` distributions. Some run at one base-case set of values, some carry a draw matrix exported from another tool, and some carry a posterior sample with weights. All three should flow into the same run loop with no glue code, because the draw matrix is already the package's shared currency. This item adds three entry points to `heval.params`, mirroring how `as_outcomes` is the bring-your-own-outputs entry point on the outcome side.
+Not every analysis starts from `ParameterSet` distributions. Some run at one base-case set of values, some carry a draw matrix exported from another tool, and some carry a posterior sample with weights. All three should flow into the same run loop with no glue code, because the draw matrix is already the package's shared currency. This item adds three entry points to `heormodel.params`, mirroring how `as_outcomes` is the bring-your-own-outputs entry point on the outcome side.
 
 The rule that governs all three: the result is a valid draw matrix, a tidy `DataFrame` with one row per iteration, index named `iteration`, one column per scalar parameter. Once it is that, `run_psa`, `cea`, and `voi` do not care where it came from.
 
@@ -16,7 +16,7 @@ def single_draw(values: Mapping[str, float]) -> pd.DataFrame:
     ``run_psa`` for a base-case (deterministic) run.
 
     Example:
-        >>> from heval.params import single_draw
+        >>> from heormodel.params import single_draw
         >>> single_draw({"p_die": 0.1, "cost": 1000.0}).shape
         (1, 2)
     """
@@ -69,7 +69,7 @@ Resampling whole rows, never column by column, preserves the joint posterior, th
 
 ## Deliverables
 
-- `single_draw`, `read_draws`, `resample_posterior`, and `ParameterSet.at_means` in `heval.params`, added to `__all__` and the quartodoc reference.
+- `single_draw`, `read_draws`, `resample_posterior`, and `ParameterSet.at_means` in `heormodel.params`, added to `__all__` and the quartodoc reference.
 - `examples/parameter_inputs.py` showing all three: a base-case run, a CSV draw matrix, and a weighted posterior, each fed to `run_psa`.
 - A website tutorial narrating the example.
 

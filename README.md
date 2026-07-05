@@ -1,23 +1,23 @@
-# heval
+# heormodel
 
-[![CI](https://github.com/pedroliman/heval/actions/workflows/ci.yml/badge.svg)](https://github.com/pedroliman/heval/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/pedroliman/heval/branch/main/graph/badge.svg)](https://codecov.io/gh/pedroliman/heval)
-[![PyPI](https://img.shields.io/pypi/v/heval.svg)](https://pypi.org/project/heval/)
+[![CI](https://github.com/pedroliman/heormodel/actions/workflows/ci.yml/badge.svg)](https://github.com/pedroliman/heormodel/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/pedroliman/heormodel/branch/main/graph/badge.svg)](https://codecov.io/gh/pedroliman/heormodel)
+[![PyPI](https://img.shields.io/pypi/v/heormodel.svg)](https://pypi.org/project/heormodel/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Health economic evaluation in Python: parameter specification and probabilistic sampling, simulation across model types, cost-effectiveness analysis (CEA), and value-of-information (VoI) analysis for model-based HEOR and HTA work.
 
 Every model engine returns costs and effects in one standardized structure, so CEA and VoI run the same on outputs from any source. You do not need a built-in engine to start: a PSA table from a spreadsheet or a legacy simulator enters the pipeline through one call.
 
-Documentation: [pedroliman.github.io/heval](https://pedroliman.github.io/heval/)
+Documentation: [pedroliman.github.io/heormodel](https://pedroliman.github.io/heormodel/)
 
 ## Install
 
 ```bash
-pip install heval
+pip install heormodel
 ```
 
-The `calibration` extra adds ABC-SMC calibration: `pip install "heval[calibration]"`. Development uses [`uv`](https://docs.astral.sh/uv/); see [Development](#development).
+The `calibration` extra adds ABC-SMC calibration: `pip install "heormodel[calibration]"`. Development uses [`uv`](https://docs.astral.sh/uv/); see [Development](#development).
 
 ## Quickstart
 
@@ -26,9 +26,9 @@ Load a costs/effects PSA table with `as_outcomes`, then run incremental analysis
 ```python
 import numpy as np
 import pandas as pd
-from heval.run import as_outcomes
-from heval.cea import icer_table
-from heval.voi import evpi
+from heormodel.run import as_outcomes
+from heormodel.cea import icer_table
+from heormodel.voi import evpi
 
 rng = np.random.default_rng(7)
 n = 2_000
@@ -61,22 +61,22 @@ round(evpi(outcomes, wtp=30_000), 1)
 
 [`examples/des.py`](examples/des.py) builds a resource-constrained clinic with `DESModel`, a thin SimPy wrapper: patients queue for a scarce specialist, so added capacity buys QALYs by cutting waiting time, a coupling a cohort model cannot carry. Run it with `uv run python examples/des.py` after installing the `des` extra.
 
-The `examples/mdm_*.py` scripts replicate three published Sick-Sicker cost-effectiveness tutorials and match their deterministic results: a cohort state-transition model (`mdm_cohort.py`), its time-dependent version with age-varying mortality (`mdm_cohort_timedep.py`), and a microsimulation (`mdm_microsim.py`). Each has a companion page in the [replication gallery](https://pedroliman.github.io/heval/tutorials/replication-gallery.html).
+The `examples/mdm_*.py` scripts replicate three published Sick-Sicker cost-effectiveness tutorials and match their deterministic results: a cohort state-transition model (`mdm_cohort.py`), its time-dependent version with age-varying mortality (`mdm_cohort_timedep.py`), and a microsimulation (`mdm_microsim.py`). Each has a companion page in the [replication gallery](https://pedroliman.github.io/heormodel/tutorials/replication-gallery.html).
 
 ## Package layout
 
 | Subpackage | Status | Contents |
 |---|---|---|
-| `heval.params` | done | Distribution specs with mean/SE constructors; correlated sampling; draw matrices from point values, CSVs, and weighted posteriors |
-| `heval.models` | done | `Outcomes` schema, `ModelEngine` protocol; cohort state-transition, microsimulation, and discrete-event engines built |
-| `heval.run` | done | `SeedManager`, `run_psa`, `as_outcomes`, running-mean diagnostics |
-| `heval.cea` | done | ICERs, dominance, extended dominance, frontier, NMB/NHB, CEAC/CEAF |
-| `heval.dsa` | done | One-way, one-at-a-time, and full-factorial grid deterministic sensitivity designs |
-| `heval.voi` | done | EVPI; EVPPI (spline/GP metamodels); EVSI (regression; others stubbed) |
-| `heval.calibrate` | done, optional | ABC-SMC via `pyabc`; posterior as an iteration-indexed draw matrix |
-| `heval.report` | done | CE plane, CEAC/CEAF, frontier, tornado plots; provenance, run report |
+| `heormodel.params` | done | Distribution specs with mean/SE constructors; correlated sampling; draw matrices from point values, CSVs, and weighted posteriors |
+| `heormodel.models` | done | `Outcomes` schema, `ModelEngine` protocol; cohort state-transition, microsimulation, and discrete-event engines built |
+| `heormodel.run` | done | `SeedManager`, `run_psa`, `as_outcomes`, running-mean diagnostics |
+| `heormodel.cea` | done | ICERs, dominance, extended dominance, frontier, NMB/NHB, CEAC/CEAF |
+| `heormodel.dsa` | done | One-way, one-at-a-time, and full-factorial grid deterministic sensitivity designs |
+| `heormodel.voi` | done | EVPI; EVPPI (spline/GP metamodels); EVSI (regression; others stubbed) |
+| `heormodel.calibrate` | done, optional | ABC-SMC via `pyabc`; posterior as an iteration-indexed draw matrix |
+| `heormodel.report` | done | CE plane, CEAC/CEAF, frontier, tornado plots; provenance, run report |
 
-Full docs are at [pedroliman.github.io/heval](https://pedroliman.github.io/heval/). Next steps are prioritized in [`roadmap/`](roadmap/README.md); shipped changes are in [CHANGELOG.md](CHANGELOG.md); the release process is in [RELEASING.md](RELEASING.md). Prose follows [`guidance/writing_style.md`](guidance/writing_style.md).
+Full docs are at [pedroliman.github.io/heormodel](https://pedroliman.github.io/heormodel/). Next steps are prioritized in [`roadmap/`](roadmap/README.md); shipped changes are in [CHANGELOG.md](CHANGELOG.md); the release process is in [RELEASING.md](RELEASING.md). Prose follows [`guidance/writing_style.md`](guidance/writing_style.md).
 
 ## Development
 
@@ -103,7 +103,7 @@ CI (`.github/workflows/docs.yml`) rebuilds and publishes the site to GitHub Page
 ## Design notes
 
 - VoI metamodeling uses scikit-learn; `method=` leaves room for other backends.
-- `heval.calibrate` is a seventh subpackage beyond the original six; calibrated draws re-enter the pipeline as a standard draw matrix.
+- `heormodel.calibrate` is a seventh subpackage beyond the original six; calibrated draws re-enter the pipeline as a standard draw matrix.
 - Mean/SE constructors turn published estimates into sampling distributions; direct parameterisation remains available.
 - Dirichlet vectors sample as normalised independent Gammas; leave their correlation targets at zero.
 - Tornado diagrams are PSA-based (linear fits at outer percentiles); phase 1 has no deterministic engine to re-run.

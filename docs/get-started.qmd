@@ -2,34 +2,34 @@
 title: Get started
 ---
 
-This page installs `heval` and runs a first analysis on an existing PSA table. It assumes Python 3.11 or newer. For a narrated analysis, continue to the [bring your own outputs tutorial](tutorials/byo-outputs.qmd).
+This page installs `heormodel` and runs a first analysis on an existing PSA table. It assumes Python 3.11 or newer. For a narrated analysis, continue to the [bring your own outputs tutorial](tutorials/byo-outputs.qmd).
 
 ## Install
 
 With [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv add heval
+uv add heormodel
 ```
 
 Or with pip:
 
 ```bash
-pip install heval
+pip install heormodel
 ```
 
-The `calibration` extra adds ABC-SMC calibration via `pyabc`: `uv add "heval[calibration]"`.
+The `calibration` extra adds ABC-SMC calibration via `pyabc`: `uv add "heormodel[calibration]"`.
 
 ## Bring your own outputs
 
-You do not need a model engine to use `heval`. Any tidy costs/effects table with `strategy`, `iteration`, `cost`, and `qaly` columns (a spreadsheet export, a legacy simulator's output) enters the pipeline through `as_outcomes`:
+You do not need a model engine to use `heormodel`. Any tidy costs/effects table with `strategy`, `iteration`, `cost`, and `qaly` columns (a spreadsheet export, a legacy simulator's output) enters the pipeline through `as_outcomes`:
 
 ```{python}
 import numpy as np
 import pandas as pd
-from heval.run import as_outcomes
-from heval.cea import ceac, icer_table
-from heval.voi import evpi
+from heormodel.run import as_outcomes
+from heormodel.cea import ceac, icer_table
+from heormodel.voi import evpi
 
 rng = np.random.default_rng(20260704)
 n = 2_000

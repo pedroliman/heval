@@ -10,8 +10,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from heval.models import MicrosimModel, ModelEngine
-from heval.run import SeedManager, run_psa
+from heormodel.models import MicrosimModel, ModelEngine
+from heormodel.run import SeedManager, run_psa
 
 # A three-state cohort: Healthy, Sick, Dead. Constant transitions and payoffs.
 P = np.array(

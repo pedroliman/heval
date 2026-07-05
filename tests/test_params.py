@@ -5,8 +5,8 @@ import pandas as pd
 import pytest
 from scipy import stats
 
-from heval.models import Outcomes
-from heval.params import (
+from heormodel.models import Outcomes
+from heormodel.params import (
     Beta,
     Dirichlet,
     Fixed,
@@ -20,7 +20,7 @@ from heval.params import (
     resample_posterior,
     single_draw,
 )
-from heval.run import run_psa
+from heormodel.run import run_psa
 
 
 def _two_strategy_model(draws: pd.DataFrame) -> Outcomes:

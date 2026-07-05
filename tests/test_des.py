@@ -14,13 +14,13 @@ import pytest
 
 simpy = pytest.importorskip("simpy")
 
-from heval.models import (  # noqa: E402
+from heormodel.models import (  # noqa: E402
     DESModel,
     MicrosimModel,
     ModelEngine,
     queue_waits,
 )
-from heval.run import SeedManager, run_psa  # noqa: E402
+from heormodel.run import SeedManager, run_psa  # noqa: E402
 
 
 def _draws(n_iter=1):

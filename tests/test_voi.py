@@ -12,9 +12,9 @@ import pandas as pd
 import pytest
 from scipy.stats import norm
 
-from heval.models import Outcomes
-from heval.params import mix_draws
-from heval.voi import (
+from heormodel.models import Outcomes
+from heormodel.params import mix_draws
+from heormodel.voi import (
     evpi,
     evppi,
     evppi_ranking,

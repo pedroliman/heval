@@ -4,10 +4,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from heval.dsa import grid, one_at_a_time, one_way
-from heval.models import Outcomes
-from heval.report import heatmap_data, tornado_data
-from heval.run import run_psa
+from heormodel.dsa import grid, one_at_a_time, one_way
+from heormodel.models import Outcomes
+from heormodel.report import heatmap_data, tornado_data
+from heormodel.run import run_psa
 
 BASE = pd.Series({"a": 1.0, "b": 2.0, "c": 3.0})
 

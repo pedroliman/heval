@@ -2,7 +2,7 @@
 title: Discrete-event simulation engine
 ---
 
-This tutorial builds a resource-constrained model with `DESModel` and runs it through CEA and VoI. It assumes the [microsimulation tutorial](microsim.qmd), which covers the shared ideas: configure once and evaluate on draws, per-iteration seeding, and the accrual layer. The narrated version here is [`examples/des.py`](https://github.com/pedroliman/heval/blob/main/examples/des.py). A discrete-event model earns its cost when a shared, scarce resource makes entities queue, so one patient's outcome depends on the others in the system, a coupling a cohort or independent-microsimulation model cannot carry.
+This tutorial builds a resource-constrained model with `DESModel` and runs it through CEA and VoI. It assumes the [microsimulation tutorial](microsim.qmd), which covers the shared ideas: configure once and evaluate on draws, per-iteration seeding, and the accrual layer. The narrated version here is [`examples/des.py`](https://github.com/pedroliman/heormodel/blob/main/examples/des.py). A discrete-event model earns its cost when a shared, scarce resource makes entities queue, so one patient's outcome depends on the others in the system, a coupling a cohort or independent-microsimulation model cannot carry.
 
 ## The model
 
@@ -45,9 +45,9 @@ def clinic(env, patient, params, strategy, toolkit):
 The constructor takes the model; `evaluate` takes only the draw matrix. The two strategies differ only in capacity, `n_servers`, and a per-patient overhead `c_capacity` for the expanded arm. They see the same patients and service draws through common random numbers, so the incremental result reflects the capacity change, not sampling noise.
 
 ```{python}
-from heval.models import DESModel
-from heval.params import Beta, Gamma, ParameterSet
-from heval.run import SeedManager, run_psa
+from heormodel.models import DESModel
+from heormodel.params import Beta, Gamma, ParameterSet
+from heormodel.run import SeedManager, run_psa
 
 seeds = SeedManager(20260704)
 parameters = ParameterSet({
@@ -76,12 +76,12 @@ outcomes.summary().round(2)
 From here nothing is engine-specific. Expanded capacity buys QALYs by cutting the wait at the low utility, at a higher cost.
 
 ```{python}
-from heval.cea import icer_table
+from heormodel.cea import icer_table
 icer_table(outcomes).round(2)
 ```
 
 ```{python}
-from heval.voi import evpi, evppi_ranking
+from heormodel.voi import evpi, evppi_ranking
 
 WTP = 30_000.0
 print(f"EVPI at WTP {WTP:,.0f}: {evpi(outcomes, WTP):,.1f}")
@@ -91,7 +91,7 @@ evppi_ranking(outcomes, draws, WTP).round(1)
 Service time leads the EVPPI ranking: it sets how fast the queue clears, so it drives whether the extra capacity pays off. The `trace` side channel carries the event log, and `queue_waits` turns it into per-request waits without touching engine internals.
 
 ```{python}
-from heval.models import queue_waits
+from heormodel.models import queue_waits
 
 _, trace = engine.evaluate(draws.iloc[[0]], trace=True)
 (queue_waits(trace).groupby("strategy", sort=False)["wait"].mean() * 365).round(1)

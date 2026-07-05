@@ -1,0 +1,11 @@
+"""Run orchestration (`heval.run`).
+
+Seed management, the PSA run loop (serial or ``joblib``-parallel), the
+bring-your-own-outputs ingestion point, and convergence diagnostics.
+"""
+
+from heormodel.run.diagnostics import running_means
+from heormodel.run.runner import as_outcomes, run_psa
+from heormodel.run.seeds import SeedManager
+
+__all__ = ["SeedManager", "as_outcomes", "run_psa", "running_means"]

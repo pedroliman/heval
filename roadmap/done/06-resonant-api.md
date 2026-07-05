@@ -2,7 +2,7 @@
 
 Three API refinements that make the engine layer read the way health economists think. They are cosmetic but breaking, so they ship together in one release before the API stabilizes for PyPI. Nothing about the output contract, the draw matrix, or the analysis layer changes.
 
-Shipped note: the old names were removed outright, with no deprecation aliases. `heval` does not carry backward-compatibility shims unless explicitly asked, so the "thin subclasses that warn" and "raises a `TypeError`" provisions below were dropped; the rename is a clean break. The structure callback is named `model_fn`, and the callback functions in examples and tutorials are named `model`.
+Shipped note: the old names were removed outright, with no deprecation aliases. `heormodel` does not carry backward-compatibility shims unless explicitly asked, so the "thin subclasses that warn" and "raises a `TypeError`" provisions below were dropped; the rename is a clean break. The structure callback is named `model_fn`, and the callback functions in examples and tutorials are named `model`.
 
 ## Rename the engines
 
@@ -21,7 +21,7 @@ Keep the old names as thin subclasses that emit a `DeprecationWarning` pointing 
 
 ## Rename the `build` parameter
 
-`MarkovModel` takes `build=fn`, where `fn(params, strategy)` returns the `CohortSpec` (transition matrix and reward arrays) for one parameter row and one strategy. The word `build` reads as a lifecycle hook, not as "the function that produces the model". Rename it to `model_fn`: the argument holds the function that maps parameters to the model's structure, and the `_fn` suffix matches the existing `ModelFn` type in `heval.models`. The callback's signature and return type are unchanged. Apply the same name if any other engine grows an equivalent structure callback; the microsimulation `transition`/`payoffs` and DES `process` callbacks already name what they return and stay as they are.
+`MarkovModel` takes `build=fn`, where `fn(params, strategy)` returns the `CohortSpec` (transition matrix and reward arrays) for one parameter row and one strategy. The word `build` reads as a lifecycle hook, not as "the function that produces the model". Rename it to `model_fn`: the argument holds the function that maps parameters to the model's structure, and the `_fn` suffix matches the existing `ModelFn` type in `heormodel.models`. The callback's signature and return type are unchanged. Apply the same name if any other engine grows an equivalent structure callback; the microsimulation `transition`/`payoffs` and DES `process` callbacks already name what they return and stay as they are.
 
 ## One discount rate
 

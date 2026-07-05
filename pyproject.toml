@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "heval"
+name = "heormodel"
 version = "0.6.0"
 description = "Health economic evaluation in Python: PSA parameters, swappable model engines, cost-effectiveness analysis, and value of information"
 readme = "README.md"
@@ -28,9 +28,9 @@ dependencies = [
 ]
 
 [project.urls]
-Documentation = "https://pedroliman.github.io/heval/"
-Repository = "https://github.com/pedroliman/heval"
-Changelog = "https://github.com/pedroliman/heval/blob/main/CHANGELOG.md"
+Documentation = "https://pedroliman.github.io/heormodel/"
+Repository = "https://github.com/pedroliman/heormodel"
+Changelog = "https://github.com/pedroliman/heormodel/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 calibration = ["pyabc>=0.12"]
@@ -42,7 +42,7 @@ docs = ["quartodoc>=0.11", "ipykernel>=6.29,<7", "nbclient>=0.10", "nbformat>=5.
 where = ["src"]
 
 [tool.setuptools.package-data]
-heval = ["py.typed"]
+heormodel = ["py.typed"]
 
 [tool.ruff]
 line-length = 100
@@ -56,13 +56,13 @@ select = ["E", "F", "W", "I", "UP", "B", "NPY"]
 ignore_missing_imports = true
 disallow_untyped_defs = true
 warn_unused_ignores = false
-files = ["src/heval"]
+files = ["src/heormodel"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["src/heval"]
+source = ["src/heormodel"]
 
 [tool.coverage.report]
 exclude_lines = ["pragma: no cover"]

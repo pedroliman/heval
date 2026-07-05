@@ -12,9 +12,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from heval.cea import icer_table
-from heval.models import ModelEngine, Outcomes
-from heval.models.markov import CohortSpec, MarkovModel, gen_wcc
+from heormodel.cea import icer_table
+from heormodel.models import ModelEngine, Outcomes
+from heormodel.models.markov import CohortSpec, MarkovModel, gen_wcc
 
 
 def _draws(n_iter=1, **cols):

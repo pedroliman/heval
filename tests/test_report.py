@@ -5,10 +5,10 @@ import pandas as pd
 import pytest
 from matplotlib.axes import Axes
 
-from heval.cea import ceac, ceaf
-from heval.models import Outcomes
-from heval.params import Gamma, Normal, ParameterSet
-from heval.report import (
+from heormodel.cea import ceac, ceaf
+from heormodel.models import Outcomes
+from heormodel.params import Gamma, Normal, ParameterSet
+from heormodel.report import (
     PALETTE,
     RunRecord,
     capture_run,
@@ -19,7 +19,7 @@ from heval.report import (
     strategy_colors,
     tornado_data,
 )
-from heval.run import SeedManager
+from heormodel.run import SeedManager
 
 
 @pytest.fixture

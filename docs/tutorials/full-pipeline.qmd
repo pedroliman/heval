@@ -9,8 +9,8 @@ This tutorial runs the pipeline the engines will plug into: specify parameters, 
 Distributions are specified directly or from published mean and standard error. `ParameterSet.sample` returns a draw matrix whose index is the canonical iteration index; a Spearman rank correlation can be requested per parameter pair.
 
 ```{python}
-from heval.params import Beta, Gamma, Normal, ParameterSet
-from heval.run import SeedManager
+from heormodel.params import Beta, Gamma, Normal, ParameterSet
+from heormodel.run import SeedManager
 
 params = ParameterSet(
     {
@@ -32,7 +32,7 @@ An engine is anything that maps draws to `Outcomes`. A plain function satisfying
 
 ```{python}
 import pandas as pd
-from heval.models import Outcomes
+from heormodel.models import Outcomes
 
 def decision_tree(d: pd.DataFrame) -> Outcomes:
     p_treated = d["p_event"] * d["rr_treat"]
@@ -52,7 +52,7 @@ def decision_tree(d: pd.DataFrame) -> Outcomes:
 `run_psa` evaluates the model and guarantees the outcomes carry exactly the draws' index, preserving the parameter/outcome linkage VoI needs. It runs in parallel over all cores by default, printing a time-remaining readout when `stderr` is a terminal. This tutorial's run is tiny, so it passes `sequential=True` to run in-process and stay quiet.
 
 ```{python}
-from heval.run import run_psa
+from heormodel.run import run_psa
 
 outcomes = run_psa(decision_tree, draws, sequential=True)
 outcomes.summary().round(3)
@@ -62,8 +62,8 @@ outcomes.summary().round(3)
 
 ```{python}
 import numpy as np
-from heval.cea import icer_table
-from heval.voi import evpi, evppi_ranking
+from heormodel.cea import icer_table
+from heormodel.voi import evpi, evppi_ranking
 
 icer_table(outcomes).round(3)
 ```
@@ -79,7 +79,7 @@ evppi_ranking(outcomes, draws, WTP).round(2)
 `running_means` tracks the running mean of an outcome column per strategy as iterations accumulate; flat traces at the right edge suggest the iteration count is adequate for the means (VoI estimates typically need more).
 
 ```{python}
-from heval.run import running_means
+from heormodel.run import running_means
 
 running_means(outcomes).plot(xlabel="iterations", ylabel="mean cost");
 ```
