@@ -8,12 +8,13 @@ their stubs document the planned designs.
 """
 
 from heval.models.des import DESEngine, queue_waits
-from heval.models.markov import MarkovCohortEngine
+from heval.models.markov import CohortSpec, MarkovCohortEngine
 from heval.models.microsim import ContinuousTimeMicrosimEngine, DiscreteTimeMicrosimEngine
 from heval.models.outcomes import Outcomes
 from heval.models.protocol import ModelEngine, ModelFn
 
 __all__ = [
+    "CohortSpec",
     "ContinuousTimeMicrosimEngine",
     "DESEngine",
     "DiscreteTimeMicrosimEngine",

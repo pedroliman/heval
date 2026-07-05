@@ -23,7 +23,7 @@ aggregation live in the shared `heval.models._accrual` module.
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 import numpy as np
@@ -227,6 +227,14 @@ class DiscreteTimeMicrosimEngine(_MicrosimBase):
         effect: Name of the effect column (QALYs by default).
         independent_streams: Give each strategy its own population and
             transition stream instead of common random numbers.
+        duration_groups: Optional map of attribute name to a set of state
+            labels. For each entry the engine maintains a per-individual counter
+            of consecutive cycles spent in that set of states (0 on the first
+            such cycle, reset when the individual leaves the set) and passes it
+            to ``transition`` and ``payoffs`` in ``attrs``. Unlike
+            ``time_in_state``, which counts one exact state, a duration group
+            spans several states, so a sojourn that progresses (Sick to Sicker)
+            keeps counting.
 
     Example:
         >>> import numpy as np, pandas as pd
@@ -268,6 +276,7 @@ class DiscreteTimeMicrosimEngine(_MicrosimBase):
         initial_state: str | int = 0,
         effect: str = "qaly",
         independent_streams: bool = False,
+        duration_groups: Mapping[str, Sequence[str | int]] | None = None,
     ) -> None:
         super().__init__(
             states=states,
@@ -288,6 +297,10 @@ class DiscreteTimeMicrosimEngine(_MicrosimBase):
         self._cycle_length = float(cycle_length)
         self._horizon = int(horizon)
         self._half_cycle_correction = bool(half_cycle_correction)
+        self._duration_groups = {
+            name: np.array([self._state_index(s) for s in members], dtype=np.int64)
+            for name, members in (duration_groups or {}).items()
+        }
 
     def _simulate(
         self, params: pd.Series, attrs: pd.DataFrame, rng: np.random.Generator
@@ -296,11 +309,12 @@ class DiscreteTimeMicrosimEngine(_MicrosimBase):
         n_states = len(self._states)
         state = np.full(n, self._initial_index, dtype=np.int64)
         time_in_state = np.zeros(n, dtype=np.int64)
+        durations = {name: np.zeros(n, dtype=np.int64) for name in self._duration_groups}
         n_points = self._horizon + 1
         cost_grid = np.empty((n, n_points), dtype=np.float64)
         eff_grid = np.empty((n, n_points), dtype=np.float64)
         for c in range(n_points):
-            view = attrs.assign(cycle=c, time_in_state=time_in_state)
+            view = attrs.assign(cycle=c, time_in_state=time_in_state, **durations)
             cost, eff = self._payoffs(params, state, view)
             cost_grid[:, c] = cost
             eff_grid[:, c] = eff
@@ -315,6 +329,10 @@ class DiscreteTimeMicrosimEngine(_MicrosimBase):
                 new_state = self._sample_next(probs, rng)
                 moved = new_state != state
                 time_in_state = np.where(moved, 0, time_in_state + 1)
+                for name, members in self._duration_groups.items():
+                    was_in = np.isin(state, members)
+                    now_in = np.isin(new_state, members)
+                    durations[name] = np.where(now_in, np.where(was_in, durations[name] + 1, 0), 0)
                 state = new_state
         times = np.arange(n_points, dtype=np.float64) * self._cycle_length
         weights = np.ones(n_points, dtype=np.float64)

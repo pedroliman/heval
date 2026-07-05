@@ -24,6 +24,16 @@ website:
             text: Microsimulation engine
           - href: tutorials/des.qmd
             text: Discrete-event simulation
+      - text: Replications
+        menu:
+          - href: tutorials/replication-gallery.qmd
+            text: Replication gallery
+          - href: tutorials/mdm-cohort.qmd
+            text: Cohort state-transition model
+          - href: tutorials/mdm-cohort-timedep.qmd
+            text: Time-dependent cohort model
+          - href: tutorials/mdm-microsim.qmd
+            text: Microsimulation replication
       - text: Concepts
         menu:
           - href: concepts/architecture.qmd
@@ -86,13 +96,14 @@ quartodoc:
         - ParameterSet
         - mix_draws
     - title: Models (`heval.models`)
-      desc: The `Outcomes` schema every engine targets, the `ModelEngine` protocol, and the microsimulation and discrete-event engines. `MarkovCohortEngine` is a stub until its phase lands.
+      desc: The `Outcomes` schema every engine targets, the `ModelEngine` protocol, and the cohort state-transition, microsimulation, and discrete-event engines.
       package: heval.models
       contents:
         - Outcomes
         - ModelEngine
         - ModelFn
         - MarkovCohortEngine
+        - CohortSpec
         - DiscreteTimeMicrosimEngine
         - ContinuousTimeMicrosimEngine
         - DESEngine

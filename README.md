@@ -59,12 +59,14 @@ round(evpi(outcomes, wtp=30_000), 1)
 
 [`examples/des.py`](examples/des.py) builds a resource-constrained clinic with `DESEngine`, a thin SimPy wrapper: patients queue for a scarce specialist, so added capacity buys QALYs by cutting waiting time, a coupling a cohort model cannot carry. Run it with `uv run python examples/des.py` after installing the `des` extra.
 
+The `examples/mdm_*.py` scripts replicate three published Sick-Sicker cost-effectiveness tutorials and match their deterministic results: a cohort state-transition model (`mdm_cohort.py`), its time-dependent version with age-varying mortality (`mdm_cohort_timedep.py`), and a microsimulation (`mdm_microsim.py`). Each has a companion page in the [replication gallery](https://pedroliman.github.io/heval/tutorials/replication-gallery.html).
+
 ## Package layout
 
 | Subpackage | Status | Contents |
 |---|---|---|
 | `heval.params` | done | Distribution specs with mean/SE constructors; correlated sampling |
-| `heval.models` | contract done | `Outcomes` schema, `ModelEngine` protocol; microsimulation and discrete-event engines built, Markov stubbed |
+| `heval.models` | done | `Outcomes` schema, `ModelEngine` protocol; cohort state-transition, microsimulation, and discrete-event engines built |
 | `heval.run` | done | `SeedManager`, `run_psa`, `as_outcomes`, running-mean diagnostics |
 | `heval.cea` | done | ICERs, dominance, extended dominance, frontier, NMB/NHB, CEAC/CEAF |
 | `heval.voi` | done | EVPI; EVPPI (spline/GP metamodels); EVSI (regression; others stubbed) |
