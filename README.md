@@ -69,6 +69,7 @@ The `examples/mdm_*.py` scripts replicate three published Sick-Sicker cost-effec
 | `heval.models` | done | `Outcomes` schema, `ModelEngine` protocol; cohort state-transition, microsimulation, and discrete-event engines built |
 | `heval.run` | done | `SeedManager`, `run_psa`, `as_outcomes`, running-mean diagnostics |
 | `heval.cea` | done | ICERs, dominance, extended dominance, frontier, NMB/NHB, CEAC/CEAF |
+| `heval.dsa` | done | One-way, one-at-a-time, and full-factorial grid deterministic sensitivity designs |
 | `heval.voi` | done | EVPI; EVPPI (spline/GP metamodels); EVSI (regression; others stubbed) |
 | `heval.calibrate` | done, optional | ABC-SMC via `pyabc`; posterior as an iteration-indexed draw matrix |
 | `heval.report` | done | CE plane, CEAC/CEAF, frontier, tornado plots; provenance, run report |
