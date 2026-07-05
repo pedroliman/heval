@@ -22,7 +22,7 @@ Each entry links to the pull request that introduced it. Add a line under
   finish, driven by the mean throughput of finished work; it is on when
   `stderr` is a terminal and quiet otherwise, so CI logs and docs builds stay
   silent unless `progress=True` is explicit
-  ([#14](https://github.com/pedroliman/heval/pull/14)).
+  ([#15](https://github.com/pedroliman/heval/pull/15)).
 
 ## [0.6.0] - 2026-07-05
 
