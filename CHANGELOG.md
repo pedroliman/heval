@@ -10,6 +10,25 @@ Each entry links to the pull request that introduced it. Add a line under
 
 ## [Unreleased]
 
+### Added
+
+- Cohort state-transition engine: `MarkovCohortEngine` sweeps a cohort trace
+  across PSA iterations and emits `Outcomes`. Transitions may be one matrix or a
+  per-cycle array (age-varying rates); rewards accrue per state and, optionally,
+  per transition (a one-time cost of dying or disutility of onset). Supports
+  Simpson's 1/3, half-cycle, or no within-cycle correction, reusing
+  `heval.models._accrual` for discounting. `CohortSpec` carries one strategy's
+  matrices, and `gen_wcc` builds the correction weights.
+- `duration_groups` on `DiscreteTimeMicrosimEngine`: a per-individual counter of
+  consecutive cycles spent in a set of states, so a sojourn that progresses
+  (Sick to Sicker) keeps counting where `time_in_state` would reset.
+- Three replications of published Sick-Sicker cost-effectiveness tutorials, each
+  matching the source's deterministic results, with runnable scripts and website
+  tutorials: cohort state-transition (`examples/mdm_cohort.py`), time-dependent
+  cohort with age-varying mortality (`examples/mdm_cohort_timedep.py`), and
+  microsimulation (`examples/mdm_microsim.py`). A replication gallery page
+  collects them with citations.
+
 ## [0.4.0] - 2026-07-04
 
 ### Added

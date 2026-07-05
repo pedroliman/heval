@@ -239,3 +239,40 @@ class TestPopulationAndTrace:
         assert out.strategies == ["A", "B"]
         assert len(trace) == 2 * 2 * 200  # strategies x iterations x individuals
         assert set(trace.columns) == {"strategy", "iteration", "individual", "cost", "qaly"}
+
+
+class TestDurationGroups:
+    def test_counter_spans_a_set_of_states(self):
+        """A duration group counts consecutive cycles across S1 and S2 together."""
+        # deterministic path H, S1, S1, S2, S2, H, S1 via a cycle-indexed transition
+        path = ["H", "S1", "S1", "S2", "S2", "H", "S1"]
+        idx = {"H": 0, "S1": 1, "S2": 2, "D": 3}
+        seen = []
+
+        def transition(params, state, attrs, rng):
+            c = int(attrs["cycle"].iloc[0])
+            seen.append(int(attrs["sick_dur"].iloc[0]))
+            probs = np.zeros((1, 4))
+            probs[0, idx[path[c + 1]]] = 1.0
+            return probs
+
+        def payoffs(params, state, attrs):
+            return np.zeros(1), np.zeros(1)
+
+        engine = DiscreteTimeMicrosimEngine(
+            states=("H", "S1", "S2", "D"), transition=transition, payoffs=payoffs,
+            population=1, strategies={"s": {}}, horizon=len(path) - 1,
+            seed_manager=SeedManager(0), duration_groups={"sick_dur": ("S1", "S2")},
+        )
+        engine.evaluate(_draws())
+        # duration is 0 on entry to the sick complex and keeps counting through
+        # the Sick to Sicker progression, resetting only when Healthy
+        assert seen == [0, 0, 1, 2, 3, 0]  # cycles 0..5 (last cycle takes no step)
+
+    def test_absent_by_default(self):
+        def transition(params, state, attrs, rng):
+            assert "sick_dur" not in attrs.columns
+            return _transition(params, state, attrs, rng)
+
+        engine = _small_engine(transition=transition)
+        engine.evaluate(_draws())

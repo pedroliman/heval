@@ -5,7 +5,6 @@ import pandas as pd
 import pytest
 
 from heval.models import (
-    MarkovCohortEngine,
     ModelEngine,
     Outcomes,
 )
@@ -144,12 +143,6 @@ class TestSeedManager:
     def test_entropy_recorded(self):
         assert SeedManager(42).entropy == 42
         assert isinstance(SeedManager().entropy, int)
-
-
-class TestEngineStubs:
-    def test_stubs_raise_not_implemented(self):
-        with pytest.raises(NotImplementedError):
-            MarkovCohortEngine()
 
 
 class TestDiagnostics:

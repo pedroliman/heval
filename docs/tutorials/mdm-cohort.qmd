@@ -1,0 +1,82 @@
+---
+title: Cohort state-transition model
+---
+
+This tutorial reproduces a published cohort state-transition cost-effectiveness analysis with `MarkovCohortEngine`, then runs its probabilistic sensitivity analysis through the same pipeline. It assumes the [full pipeline tutorial](full-pipeline.qmd). The source is the introductory Sick-Sicker tutorial of Alarid-Escudero and others (2023); the full script is [`examples/mdm_cohort.py`](https://github.com/pedroliman/heval/blob/main/examples/mdm_cohort.py). See the [replication gallery](replication-gallery.qmd) for the companion time-dependent and microsimulation replications.
+
+## The model
+
+Four states, Healthy, Sick, Sicker, Dead, over 75 annual cycles from age 25. Four strategies compare standard of care with treatment A (improves the Sick-state utility), treatment B (slows progression from Sick to Sicker), and their combination AB. The engine takes a `build` callback returning each strategy's transition matrix and per-state cost and utility payoffs from a parameter row.
+
+```{python}
+import numpy as np
+import pandas as pd
+from heval.models import CohortSpec, MarkovCohortEngine
+
+STATES = ("H", "S1", "S2", "D")
+STRATEGIES = ("Standard of care", "Strategy A", "Strategy B", "Strategy AB")
+
+def r2p(rate):  # rate to per-cycle probability
+    return 1.0 - np.exp(-np.asarray(rate))
+
+def build(p, strategy):
+    p_HS1, p_S1H, p_S1S2 = r2p(p["r_HS1"]), r2p(p["r_S1H"]), r2p(p["r_S1S2"])
+    p_HD, p_S1D, p_S2D = r2p(p["r_HD"]), r2p(p["r_HD"] * p["hr_S1"]), r2p(p["r_HD"] * p["hr_S2"])
+    prog = r2p(p["r_S1S2"] * p["hr_S1S2_trtB"]) if "B" in strategy else p_S1S2
+    P = np.zeros((4, 4))
+    P[0, 0], P[0, 1], P[0, 3] = (1 - p_HD) * (1 - p_HS1), (1 - p_HD) * p_HS1, p_HD
+    P[1, 0], P[1, 2], P[1, 3] = (1 - p_S1D) * p_S1H, (1 - p_S1D) * prog, p_S1D
+    P[1, 1] = (1 - p_S1D) * (1 - p_S1H - prog)
+    P[2, 2], P[2, 3], P[3, 3] = 1 - p_S2D, p_S2D, 1.0
+    add = {"Standard of care": 0.0, "Strategy A": p["c_trtA"],
+           "Strategy B": p["c_trtB"], "Strategy AB": p["c_trtA"] + p["c_trtB"]}[strategy]
+    cost = np.array([p["c_H"], p["c_S1"] + add, p["c_S2"] + add, 0.0])
+    u_s1 = p["u_trtA"] if strategy in ("Strategy A", "Strategy AB") else p["u_S1"]
+    return CohortSpec(P, cost, np.array([p["u_H"], u_s1, p["u_S2"], 0.0]))
+
+engine = MarkovCohortEngine(states=STATES, strategies=STRATEGIES, build=build,
+                            n_cycles=75, start="H", half_cycle_correction="simpson")
+```
+
+## Deterministic replication
+
+Evaluating one parameter set reproduces the published cost-effectiveness table exactly. Strategy A is dominated; the frontier runs standard of care, Strategy B (ICER about 73,000 per QALY), Strategy AB (ICER about 126,000 per QALY).
+
+```{python}
+from heval.cea import icer_table
+base = dict(r_HD=0.002, r_HS1=0.15, r_S1H=0.5, r_S1S2=0.105, hr_S1=3.0, hr_S2=10.0,
+            hr_S1S2_trtB=0.6, c_H=2000.0, c_S1=4000.0, c_S2=15000.0, c_trtA=12000.0,
+            c_trtB=13000.0, u_H=1.0, u_S1=0.75, u_S2=0.5, u_trtA=0.95)
+draws0 = pd.DataFrame([base], index=pd.RangeIndex(1, name="iteration"))
+icer_table(engine.evaluate(draws0)).round(2)
+```
+
+## Probabilistic analysis
+
+The same model runs a probabilistic sensitivity analysis: the tutorial's distributions become a `ParameterSet`, and the engine, `run_psa`, and the analysis layer treat it like any other model. Within-cycle correction and discounting are unchanged.
+
+```{python}
+from heval.params import Beta, Gamma, LogNormal, ParameterSet
+from heval.run import SeedManager, run_psa
+from heval.voi import evpi
+
+params = ParameterSet({
+    "r_HD": Gamma(20, 1/10000), "r_HS1": Gamma(30, 1/200), "r_S1H": Gamma(60, 1/120),
+    "r_S1S2": Gamma(84, 1/800), "hr_S1": LogNormal(np.log(3), 0.01),
+    "hr_S2": LogNormal(np.log(10), 0.02), "hr_S1S2_trtB": LogNormal(np.log(0.6), 0.02),
+    "c_H": Gamma(100, 20.0), "c_S1": Gamma(177.8, 22.5), "c_S2": Gamma(225, 66.7),
+    "c_trtA": Gamma(73.5, 163.3), "c_trtB": Gamma(86.2, 150.8),
+    "u_H": Beta(200, 3), "u_S1": Beta(130, 45), "u_S2": Beta(230, 230), "u_trtA": Beta(300, 15),
+})
+draws = params.sample(1000, seed=SeedManager(20260705).generator())
+outcomes = run_psa(engine, draws)
+icer_table(outcomes).round(2)
+```
+
+```{python}
+print(f"EVPI at WTP 100,000: {evpi(outcomes, 100_000.0):,.0f}")
+```
+
+The mean frontier matches the deterministic ranking, and EVPI is positive because Strategy AB clears the 100,000 threshold in some draws but not others.
+
+Reference: Alarid-Escudero F, Krijkamp EM, Enns EA, Yang A, Hunink MGM, Pechlivanoglou P, Jalal H. An introductory tutorial on cohort state-transition models in R using a cost-effectiveness analysis example. Medical Decision Making. 2023;43(1):3-20.
