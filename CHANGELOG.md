@@ -54,7 +54,7 @@ Each entry links to the pull request that introduced it. Add a line under
   Tutorials; the time-dependent cohort and microsimulation replications stay
   under Replications as validation exhibits. Each tutorial's forward link,
   `get-started.qmd`, and the README follow the same order
-  ([#PRNUM](https://github.com/pedroliman/heormodel/pull/PRNUM)).
+  ([#19](https://github.com/pedroliman/heormodel/pull/19)).
 - `run_psa` runs in parallel over all cores by default (`n_jobs=-1`). Pass
   `sequential=True` for an in-process run (the readable off switch for
   debugging and reproducibility checks), or `n_jobs` for an explicit worker
