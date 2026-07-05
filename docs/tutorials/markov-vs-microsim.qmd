@@ -1,0 +1,114 @@
+---
+title: Markov vs microsimulation models
+---
+
+This tutorial builds one Sick-Sicker-style model twice, as a `MarkovModel` cohort trace and as a `MicrosimModel` individual simulation, from the same transition rates and rewards. It does two things: cross-validate the two engines against each other, and show what a microsimulation represents that a cohort model averages away. It assumes the [cohort state-transition tutorial](mdm-cohort.qmd) and the [microsimulation engine tutorial](microsim.qmd). The full script is [`examples/markov_vs_microsim.py`](https://github.com/pedroliman/heormodel/blob/main/examples/markov_vs_microsim.py).
+
+## One model, two engines
+
+The model is progressive: Healthy, Sick, Sicker, Dead over 40 annual cycles. Onset, progression, and death are competing annual hazards; each cycle's transition probabilities come from the same helper for both engines, so any difference between them is Monte Carlo noise, not a coding difference. Frailty `z` multiplies the progression and mortality hazards. The cohort runs at `z = 1`.
+
+```{python}
+import numpy as np
+import pandas as pd
+from heormodel.models import CohortSpec, MarkovModel, MicrosimModel
+from heormodel.run import SeedManager, run_psa
+
+STATES = ("H", "S1", "S2", "D")
+N_CYCLES = 40
+BASE = dict(r_HS1=0.12, r_S1S2=0.10, r_HD=0.010, hr_S1=3.0, hr_S2=10.0,
+            c_H=1_000.0, c_S1=4_000.0, c_S2=15_000.0, u_H=1.0, u_S1=0.75, u_S2=0.5)
+draws = pd.DataFrame([BASE], index=pd.RangeIndex(1, name="iteration"))
+COST = np.array([BASE["c_H"], BASE["c_S1"], BASE["c_S2"], 0.0])
+EFF = np.array([BASE["u_H"], BASE["u_S1"], BASE["u_S2"], 0.0])
+
+def hazards(p, state, z):
+    haz = np.zeros((len(state), 4))
+    h, s1, s2 = state == 0, state == 1, state == 2
+    haz[h, 1] = p["r_HS1"]; haz[h, 3] = p["r_HD"] * z[h]
+    haz[s1, 2] = p["r_S1S2"] * z[s1]; haz[s1, 3] = p["r_HD"] * p["hr_S1"] * z[s1]
+    haz[s2, 3] = p["r_HD"] * p["hr_S2"] * z[s2]
+    return haz
+
+def rows_from(haz):
+    total = haz.sum(axis=1)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        share = np.where(total[:, None] > 0, haz / total[:, None], 0.0)
+    return (1.0 - np.exp(-total))[:, None] * share
+
+def cohort_model(p, strategy):
+    P = rows_from(hazards(p, np.arange(4), np.ones(4)))
+    P[np.arange(4), np.arange(4)] += 1.0 - P.sum(axis=1)
+    P[3] = [0.0, 0.0, 0.0, 1.0]
+    return CohortSpec(P, COST, EFF)
+
+def make_pop(var):
+    def population(rng, n):
+        return pd.DataFrame({"z": np.ones(n) if var == 0 else rng.gamma(1 / var, var, n)})
+    return population
+
+def transition(p, state, attrs, rng):
+    probs = rows_from(hazards(p, state, attrs["z"].to_numpy()))
+    probs[np.arange(len(state)), state] += 1.0 - probs.sum(axis=1)
+    probs[state == 3] = [0.0, 0.0, 0.0, 1.0]
+    return probs
+
+def payoffs(p, state, attrs):
+    return COST[state], EFF[state]
+
+def microsim(n, var):
+    return MicrosimModel(
+        states=STATES, transition=transition, payoffs=payoffs, population=make_pop(var),
+        n_individuals=n, strategies={"Standard of care": {}}, horizon=N_CYCLES,
+        discount_rate=0.03, half_cycle_correction=True, seed_manager=SeedManager(1))
+
+cohort = MarkovModel(states=STATES, strategies=("Standard of care",), model_fn=cohort_model,
+    n_cycles=N_CYCLES, start="H", discount_rate=0.03, half_cycle_correction="half-cycle")
+cohort.evaluate(draws).summary().round(3)
+```
+
+## Identical assumptions converge
+
+With a memoryless, homogeneous population the microsimulation mean approaches the cohort trace as the population grows. This is the cross-validation: two independent implementations agree, so both are trusted.
+
+```{python}
+rows = [dict(n=n, **run_psa(microsim(n, 0.0), draws, sequential=True)
+             .summary().loc["Standard of care"]) for n in (2_000, 10_000, 40_000)]
+pd.DataFrame(rows).set_index("n").round(3)
+```
+
+The cohort trace gives 78,614 dollars and 11.740 QALYs. At 40,000 individuals the microsimulation lands within half a percent of both, and the gap shrinks with the population. The two engines are the same model.
+
+## Heterogeneity breaks the cohort assumption
+
+Now give each individual a frailty `z` drawn from a Gamma distribution with mean 1 and variance 0.5, multiplying the progression and mortality hazards. The mean hazard is unchanged, so the cohort model, which tracks the average person, is untouched. The microsimulation mean is not.
+
+```{python}
+het = run_psa(microsim(40_000, 0.5), draws, sequential=True).summary()
+het.round(3)
+```
+
+QALYs rise by about 8% and cost by about 2% against the cohort trace, on identical mean rates. The reason is frailty selection: an individual's survival curve bends non-linearly in the hazard, and the frail die early while the rest accumulate life-years, so the population outlives the cohort built on the average hazard. The average of a survival curve is not the survival curve of the average hazard. This gap is a property of the model, not a bug, and it is the reason to reach for a microsimulation when risk is heterogeneous.
+
+## What else the microsimulation buys
+
+The same machinery carries history. Let mortality in the sick states rise 8% per year already spent sick, a `duration_groups` counter the cohort holds only by adding tunnel states.
+
+```{python}
+def hist_transition(p, state, attrs, rng):
+    haz = hazards(p, state, attrs["z"].to_numpy())
+    haz[:, 3] *= np.where(np.isin(state, (1, 2)), 1.0 + 0.08 * attrs["tis"].to_numpy(), 1.0)
+    probs = rows_from(haz)
+    probs[np.arange(len(state)), state] += 1.0 - probs.sum(axis=1)
+    probs[state == 3] = [0.0, 0.0, 0.0, 1.0]
+    return probs
+
+hist = MicrosimModel(
+    states=STATES, transition=hist_transition, payoffs=payoffs, population=make_pop(0.5),
+    n_individuals=40_000, strategies={"Standard of care": {}}, horizon=N_CYCLES,
+    discount_rate=0.03, half_cycle_correction=True, seed_manager=SeedManager(1),
+    duration_groups={"tis": ("S1", "S2")})
+run_psa(hist, draws, sequential=True).summary().round(3)
+```
+
+The trade is plain. The cohort model is faster and exact for its assumptions. The microsimulation costs iterations but represents heterogeneity and history the cohort averages away. Neither is more correct in general; they answer under different assumptions.
