@@ -6,8 +6,8 @@ Three published Sick-Sicker cost-effectiveness tutorials reproduced with `heormo
 
 | Replication | Engine | Deterministic result |
 |---|---|---|
-| [Cohort state-transition model](mdm-cohort.qmd) | `MarkovModel` | Matches the published ICERs exactly |
-| [Time-dependent cohort model](mdm-cohort-timedep.qmd) | `MarkovModel`, per-cycle transitions | Matches the published ICERs exactly |
+| [Cohort state-transition model](mdm-cohort.qmd) | `MarkovModel` | Matches the published results exactly |
+| [Time-dependent cohort model](mdm-cohort-timedep.qmd) | `MarkovModel`, per-cycle transitions | Matches the published results exactly |
 | [Microsimulation](mdm-microsim.qmd) | `MicrosimModel`, `duration_groups` | Matches within Monte Carlo error |
 
 ## Sources

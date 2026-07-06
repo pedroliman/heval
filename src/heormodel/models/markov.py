@@ -1,13 +1,13 @@
 """Cohort state-transition (Markov) engine.
 
-`MarkovModel` evaluates a cohort state-transition model across PSA
-iterations and emits the standard `Outcomes` schema. The cohort trace is a
+`MarkovModel` evaluates a cohort state-transition model across parameter
+draws and returns the standard `Outcomes` structure. The cohort trace is a
 matrix-power sweep: the state-occupancy vector is multiplied by a transition
 matrix each cycle. Transitions may be constant or vary by cycle, which is how
 age-dependent mortality enters.
 
 The engine configures once and evaluates on draws. The constructor takes the
-model structure (states, strategies, a ``model_fn`` callback, cycle count,
+model structure (states, strategies, a ``model_fn`` function, cycle count,
 discounting, within-cycle correction); ``evaluate`` takes only the parameter
 draw matrix and returns `Outcomes` indexed by ``draws.index``. Cohort models
 are deterministic given a parameter set, so no random streams are involved.
@@ -39,7 +39,7 @@ _PROB_TOL = 1e-8
 class CohortSpec:
     """One strategy's matrices for a single parameter set.
 
-    Returned by the engine's ``model_fn`` callback. Arrays are plain ``numpy``
+    Returned by the engine's ``model_fn`` function. Arrays are plain ``numpy``
     arrays over the engine's state order.
 
     Args:

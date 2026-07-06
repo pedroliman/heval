@@ -2,11 +2,11 @@
 title: Discrete-event simulation engine
 ---
 
-This tutorial builds a resource-constrained model with `DESModel` and runs it through CEA and VoI. It assumes the [microsimulation tutorial](microsim.qmd), which covers the shared ideas: configure once and evaluate on draws, per-iteration seeding, and the accrual layer. The narrated version here is [`examples/des.py`](https://github.com/pedroliman/heormodel/blob/main/examples/des.py). A discrete-event model earns its cost when a shared, scarce resource makes entities queue, so one patient's outcome depends on the others in the system, a coupling a cohort or independent-microsimulation model cannot carry.
+This tutorial builds a resource-constrained model with `DESModel` and runs it through cost-effectiveness and value-of-information analysis. It assumes the [microsimulation tutorial](microsim.qmd), which covers the shared ideas: configure once and evaluate on draws, per-iteration seeding, and the accrual layer. The narrated version here is [`examples/des.py`](https://github.com/pedroliman/heormodel/blob/main/examples/des.py). A discrete-event model earns its cost when a shared, scarce resource makes entities queue, so one patient's outcome depends on the others in the system, a coupling a cohort or independent-microsimulation model cannot carry.
 
 ## The model
 
-A specialist clinic over a four-year horizon. Patients arrive over time and wait for a specialist, a SimPy `Resource`. While waiting, untreated disease costs `c_wait_year` per year at utility `u_wait`. Once seen, a one-off treatment cost is incurred and the patient spends the rest of the horizon treated at the higher `u_treated`. `DESModel` wraps SimPy: the environment, the process, and the resource stay your own code, and the `toolkit` adds discounted accrual, seeding, and an event log.
+A specialist clinic over a four-year horizon. Patients arrive over time and wait for a specialist, a SimPy `Resource`. While waiting, untreated disease costs `c_wait_year` per year at utility `u_wait`. Once seen, a one-off treatment cost is incurred and the patient spends the rest of the horizon treated at the higher `u_treated`. `DESModel` builds on SimPy: the environment, the process, and the resource stay your own code, and the `toolkit` adds discounted accrual, seeding, and an event log.
 
 ```{python}
 import numpy as np
@@ -38,7 +38,7 @@ def clinic(env, patient, params, strategy, toolkit):
             yield env.timeout(toolkit.rng.gamma(2.0, params["service_time"] / 2.0))
 ```
 
-`toolkit.accrue_over(start, end, cost_rate, utility_rate)` integrates and discounts a flow over an absolute interval, so billing the queueing time an entity just endured is one call after the grant. A patient still waiting at the horizon is never seen: the request loses the race and only the waiting segment is billed.
+`toolkit.accrue_over(start, end, cost_rate, utility_rate)` integrates and discounts a flow over an absolute interval, so billing the queueing time a patient just endured is one call once the specialist is granted. A patient still waiting at the horizon is never seen: the request loses the race and only the waiting segment is billed.
 
 ## Configure once, evaluate on draws
 
@@ -71,9 +71,9 @@ outcomes = run_psa(engine, draws, sequential=True)
 outcomes.summary().round(2)
 ```
 
-## CEA, VoI, and the queue
+## Cost-effectiveness, value of information, and the queue
 
-From here nothing is engine-specific. Expanded capacity buys QALYs by cutting the wait at the low utility, at a higher cost.
+From here nothing is engine-specific. Expanded capacity buys quality-adjusted life-years by cutting the wait at the low utility, at a higher cost.
 
 ```{python}
 from heormodel.cea import icer_table
@@ -88,7 +88,7 @@ print(f"EVPI at WTP {WTP:,.0f}: {evpi(outcomes, WTP):,.1f}")
 evppi_ranking(outcomes, draws, WTP).round(1)
 ```
 
-Service time leads the EVPPI ranking: it sets how fast the queue clears, so it drives whether the extra capacity pays off. The `trace` side channel carries the event log, and `queue_waits` turns it into per-request waits without touching engine internals.
+Service time leads the value-of-information ranking: it sets how fast the queue clears, so it drives whether the extra capacity pays off. The `trace` side channel carries the event log, and `queue_waits` turns it into per-request waits without touching engine internals.
 
 ```{python}
 from heormodel.models import queue_waits
@@ -99,4 +99,4 @@ _, trace = engine.evaluate(draws.iloc[[0]], trace=True)
 
 The single specialist leaves patients waiting weeks; the second clears the queue to about a day. See the [engines](../concepts/engines.qmd) concept page for where the engine sits in the contract.
 
-Next: the [full pipeline tutorial](full-pipeline.qmd) formalizes the run loop and the contract every engine plugs into, from `ParameterSet` sampling through `run_psa` to CEA and VoI.
+Next: the [full pipeline tutorial](full-pipeline.qmd) formalizes the run loop and the contract every engine plugs into, from `ParameterSet` sampling through `run_psa` to the analysis layer.

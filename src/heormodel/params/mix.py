@@ -1,4 +1,4 @@
-"""Combine parameter draw matrices from different sources into one PSA matrix.
+"""Combine parameter draw matrices from different sources into one.
 
 Applied models mix parameter sources: some columns are calibrated to
 observed targets (a posterior draw matrix), the rest come from the
@@ -23,7 +23,7 @@ def mix_draws(
     n: int | None = None,
     seed: int | np.random.Generator | None = None,
 ) -> pd.DataFrame:
-    """Combine draw matrices from different sources into one PSA matrix.
+    """Combine draw matrices from different sources into one matrix.
 
     Each source is resampled to ``n`` rows by drawing whole rows, so the
     joint structure within a source (for example, a calibrated posterior's

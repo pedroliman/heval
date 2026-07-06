@@ -42,16 +42,12 @@ website:
               text: Microsimulation replication
         - section: Concepts
           contents:
-            - href: concepts/architecture.qmd
-              text: Architecture
             - href: concepts/engines.qmd
               text: Engines
         - section: Reference & Info
           contents:
             - href: reference/index.qmd
               text: API reference
-            - href: roadmap/index.md
-              text: Roadmap
             - href: changelog.md
               text: Changelog
   navbar:
@@ -89,16 +85,10 @@ website:
             text: Time-dependent cohort model
           - href: tutorials/mdm-microsim.qmd
             text: Microsimulation replication
-      - text: Concepts
-        menu:
-          - href: concepts/architecture.qmd
-            text: Architecture
-          - href: concepts/engines.qmd
-            text: Engines
+      - href: concepts/engines.qmd
+        text: Concepts
       - href: reference/index.qmd
         text: Reference
-      - href: roadmap/index.md
-        text: Roadmap
       - href: changelog.md
         text: Changelog
     right:
@@ -139,7 +129,7 @@ quartodoc:
   render_interlinks: true
   sections:
     - title: Parameters (`heormodel.params`)
-      desc: Distribution specs, mean/SE constructors, and correlated sampling into a parameter draw matrix.
+      desc: Distributions specified directly or from mean and standard error, with correlated sampling into a parameter draw matrix.
       package: heormodel.params
       contents:
         - Distribution
@@ -156,7 +146,7 @@ quartodoc:
         - resample_posterior
         - mix_draws
     - title: Models (`heormodel.models`)
-      desc: The `Outcomes` schema every engine targets, the `ModelEngine` protocol, and the cohort state-transition, microsimulation, and discrete-event engines.
+      desc: The `Outcomes` structure every engine returns, the `ModelEngine` contract, and the cohort state-transition, microsimulation, and discrete-event engines.
       package: heormodel.models
       contents:
         - Outcomes
@@ -168,7 +158,7 @@ quartodoc:
         - DESModel
         - queue_waits
     - title: Run loop (`heormodel.run`)
-      desc: Drive a model over parameter draws, or ingest external PSA tables.
+      desc: Drive a model over parameter draws, or ingest external results tables.
       package: heormodel.run
       contents:
         - SeedManager
@@ -176,7 +166,7 @@ quartodoc:
         - as_outcomes
         - running_means
     - title: Cost-effectiveness analysis (`heormodel.cea`)
-      desc: ICERs, dominance, the efficiency frontier, net benefit, and acceptability curves.
+      desc: Incremental cost-effectiveness ratios, dominance, the efficiency frontier, net benefit, and acceptability curves.
       package: heormodel.cea
       contents:
         - icer_table
@@ -199,7 +189,7 @@ quartodoc:
         - grid
         - Design
     - title: Value of information (`heormodel.voi`)
-      desc: EVPI, EVPPI via metamodels, and EVSI estimators.
+      desc: Expected value of perfect, partial perfect, and sample information.
       package: heormodel.voi
       contents:
         - evpi
@@ -210,7 +200,7 @@ quartodoc:
         - evsi_moment_matching
         - evsi_importance_sampling
     - title: Calibration (`heormodel.calibrate`)
-      desc: ABC-SMC calibration; the posterior returns as a standard draw matrix. Requires the `calibration` extra.
+      desc: Bayesian calibration; the posterior returns as a standard draw matrix. Requires the `calibration` extra.
       package: heormodel.calibrate
       contents:
         - TargetSimulator

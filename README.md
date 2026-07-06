@@ -5,7 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/heormodel.svg)](https://pypi.org/project/heormodel/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Decision-analytic modeling for health economic evaluation and health technology assessment in Python: probabilistic parameter specification, cohort state-transition, microsimulation, and discrete-event engines, cost-effectiveness analysis, and value-of-information analysis. Every engine returns costs and effects in one standardized structure, so the analysis layer also accepts a PSA table from any external source through `as_outcomes`.
+Decision-analytic modeling for health economic evaluation and health technology assessment in Python: probabilistic parameter specification, cohort state-transition, microsimulation, and discrete-event engines, cost-effectiveness analysis, and value-of-information analysis. Every engine returns costs and effects in one standardized structure, and the analysis layer also accepts a probabilistic sensitivity analysis table from any external source through `as_outcomes`.
 
 Documentation: [pedroliman.github.io/heormodel](https://pedroliman.github.io/heormodel/)
 
@@ -15,11 +15,11 @@ Documentation: [pedroliman.github.io/heormodel](https://pedroliman.github.io/heo
 pip install heormodel
 ```
 
-Extras: `calibration` (ABC-SMC via `pyabc`), `des` (SimPy).
+Extras: `calibration` (Bayesian calibration via `pyabc`), `des` (discrete-event simulation via SimPy).
 
 ## Quickstart
 
-A three-state cohort state-transition model comparing treatment with standard care, evaluated by probabilistic sensitivity analysis. `icer_table` reports the incremental cost-effectiveness ratio; `evpi` reports the expected value of perfect information at a willingness-to-pay threshold of 50,000 per QALY.
+A three-state cohort state-transition model comparing treatment with standard care, evaluated by probabilistic sensitivity analysis. `icer_table` reports the incremental cost-effectiveness ratio (ICER); `evpi` reports the expected value of perfect information at a willingness-to-pay threshold of 50,000 per quality-adjusted life-year (QALY).
 
 ```python
 import numpy as np
@@ -65,7 +65,7 @@ round(evpi(outcomes, wtp=50_000), 1)
 # 2738.7
 ```
 
-Treatment is cost-effective at the threshold, and the positive EVPI quantifies the expected gain from resolving the remaining parameter uncertainty.
+Treatment is cost-effective at the threshold, and the positive value of perfect information quantifies the expected gain from resolving the remaining parameter uncertainty.
 
 ## Examples
 
@@ -73,29 +73,29 @@ Each script in [`examples/`](examples/) runs with `uv run python examples/<name>
 
 | Script | Shows |
 |---|---|
-| `byoo_example.py` | An external PSA table through CEA, VoI, plots, and a run report |
+| `byoo_example.py` | An external results table through the full analysis, plots, and a run report |
 | `mdm_cohort.py`, `mdm_cohort_timedep.py`, `mdm_microsim.py` | Replications of three published Sick-Sicker tutorials; see the [replication gallery](https://pedroliman.github.io/heormodel/tutorials/replication-gallery.html) |
 | `microsim.py` | An individual-level model with frailty and duration-dependent mortality |
 | `markov_vs_microsim.py` | One model as a cohort trace and a microsimulation; a cross-engine validation |
 | `des.py` | A resource-constrained clinic where added capacity buys QALYs (`des` extra) |
-| `calibration_workflow.py` | Calibrated rates mixed with literature parameters in one PSA (`calibration` extra) |
+| `calibration_workflow.py` | Calibrated rates mixed with literature parameters in one analysis (`calibration` extra) |
 | `parameter_inputs.py` | Base-case runs, draw matrices from CSV, and posterior resampling |
-| `voi_tutorial.py` | EVPI, EVPPI, and EVSI recovered against closed-form Gaussian results |
+| `voi_tutorial.py` | The three value-of-information measures recovered against closed-form results |
 
 ## Package layout
 
 | Subpackage | Contents |
 |---|---|
-| `heormodel.params` | Distribution specs with mean/SE constructors; correlated sampling; draw matrices |
-| `heormodel.models` | `Outcomes` schema; cohort state-transition, microsimulation, and discrete-event engines |
+| `heormodel.params` | Distributions specified directly or from mean and standard error; correlated sampling; draw matrices |
+| `heormodel.models` | The shared `Outcomes` structure; cohort state-transition, microsimulation, and discrete-event engines |
 | `heormodel.run` | `SeedManager`, `run_psa`, `as_outcomes`, running-mean diagnostics |
-| `heormodel.cea` | ICERs, dominance, frontier, NMB/NHB, CEAC/CEAF |
+| `heormodel.cea` | ICERs, dominance, the efficiency frontier, net benefit, acceptability curves |
 | `heormodel.dsa` | One-way, one-at-a-time, and grid deterministic sensitivity designs |
-| `heormodel.voi` | EVPI; EVPPI (spline/GP metamodels); EVSI (regression) |
-| `heormodel.calibrate` | ABC-SMC calibration; posterior as a draw matrix (optional) |
-| `heormodel.report` | CE plane, CEAC/CEAF, frontier, tornado plots; run report |
+| `heormodel.voi` | Value of perfect, partial perfect, and sample information |
+| `heormodel.calibrate` | Bayesian calibration; posterior as a draw matrix (optional) |
+| `heormodel.report` | Cost-effectiveness plane, acceptability, frontier, and tornado plots; run report |
 
-Next steps: [`roadmap/`](roadmap/README.md). Shipped changes: [CHANGELOG.md](CHANGELOG.md). Release process: [RELEASING.md](RELEASING.md). Prose style: [`guidance/writing_style.md`](guidance/writing_style.md).
+Developer documentation (the roadmap, architecture notes, and the writing style guide) lives in [`devdocs/`](devdocs/README.md). Shipped changes: [CHANGELOG.md](CHANGELOG.md). Release process: [RELEASING.md](RELEASING.md).
 
 ## Development
 
@@ -108,7 +108,7 @@ uv run pytest --doctest-modules src
 uv run ruff check . && uv run mypy
 ```
 
-The suite includes a hand-verified five-strategy dominance example (`tests/test_cea.py`) and analytic Gaussian EVPI/EVPPI/EVSI recovered within Monte Carlo error (`tests/test_voi.py`).
+The suite includes a hand-verified five-strategy dominance example (`tests/test_cea.py`) and analytic Gaussian value-of-information results recovered within Monte Carlo error (`tests/test_voi.py`).
 
 The site in `docs/` builds with [Quarto](https://quarto.org) and [quartodoc](https://machow.github.io/quartodoc/); tutorials execute at render time. With Quarto installed and `uv sync --extra docs`:
 

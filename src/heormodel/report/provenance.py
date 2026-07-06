@@ -86,7 +86,7 @@ class RunRecord:
         seed = "not recorded" if self.seed_entropy is None else str(self.seed_entropy)
         lines.append(f"- **Root seed entropy:** {seed}")
         if self.n_iterations is not None:
-            lines.append(f"- **PSA iterations:** {self.n_iterations}")
+            lines.append(f"- **Iterations:** {self.n_iterations}")
         if self.strategies:
             lines.append(f"- **Strategies:** {', '.join(self.strategies)}")
         if self.parameters:

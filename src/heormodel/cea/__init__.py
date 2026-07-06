@@ -1,6 +1,6 @@
 """Cost-effectiveness analysis (`heval.cea`).
 
-Engine-agnostic decision analysis on the standard outcome schema:
+Decision analysis on the standard outcome structure, whatever the engine:
 incremental analysis with dominance and extended dominance, the efficiency
 frontier, net monetary/health benefit, acceptability curves (CEAC), the
 acceptability frontier (CEAF), and cost-effectiveness-plane data.

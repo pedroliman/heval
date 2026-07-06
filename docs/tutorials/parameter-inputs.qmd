@@ -2,11 +2,11 @@
 title: Parameter inputs from data
 ---
 
-Not every analysis starts from `ParameterSet` distributions. Some run at one base-case set of point values, some carry a draw matrix exported from another tool, and some carry a posterior sample with weights. This tutorial covers the three `heormodel.params` entry points that turn each source into a parameter draw matrix: `single_draw` (with `ParameterSet.at_means`), `read_draws`, and `resample_posterior`. It is the narrated version of [`examples/parameter_inputs.py`](https://github.com/pedroliman/heormodel/blob/main/examples/parameter_inputs.py). It assumes you have read [bring your own outputs](byo-outputs.qmd), which is the analogue on the outcome side. The rule that governs all three: once the result is a tidy draw matrix with an `iteration` index and numeric columns, `run_psa` does not care where it came from.
+Not every analysis starts from `ParameterSet` distributions. Some run at one base-case set of point values, some carry a draw matrix exported from another tool, and some carry a posterior sample with weights. This tutorial covers the three `heormodel.params` entry points that turn each source into a parameter draw matrix: `single_draw` (with `ParameterSet.at_means`), `read_draws`, and `resample_posterior`. It is the narrated version of [`examples/parameter_inputs.py`](https://github.com/pedroliman/heormodel/blob/main/examples/parameter_inputs.py). It assumes you have read [bring your own outputs](byo-outputs.qmd), which is the analogue on the outcome side. The rule that governs all three: once the result is a draw matrix with an `iteration` index and numeric columns, `run_psa` does not care where it came from.
 
 ## A model to run
 
-Two strategies for a chronic disease, standard care versus a new drug, with cost and QALYs per iteration as simple functions of three parameters.
+Two strategies for a chronic disease, standard care versus a new drug, with cost and quality-adjusted life-years (QALYs) per iteration as simple functions of three parameters.
 
 ```{python}
 import numpy as np
@@ -41,7 +41,7 @@ params = ParameterSet(
 
 ## Base case: one set of point values
 
-`ParameterSet.at_means` wraps the analytic means as a one-row draw matrix at iteration 0, the deterministic run that sits next to the PSA. It is `single_draw(params.means().to_dict())`; call `single_draw` directly when the point values come from elsewhere.
+`ParameterSet.at_means` returns the analytic means as a one-row draw matrix at iteration 0, the deterministic run that sits next to the probabilistic analysis. It is `single_draw(params.means().to_dict())`; call `single_draw` directly when the point values come from elsewhere.
 
 ```{python}
 base = params.at_means()
@@ -50,7 +50,7 @@ run_psa(model, base).summary().round(2)
 
 ## A draw matrix from another tool
 
-`read_draws` validates a CSV path or a DataFrame as a draw matrix. It honours an explicit `iteration` column and otherwise assigns a fresh index; a non-numeric column raises rather than reaching the model. Here we write a sampled matrix to CSV to stand in for an external export, then read it back.
+`read_draws` validates a CSV path or a DataFrame as a draw matrix. It honours an explicit `iteration` column and otherwise assigns a fresh index; a non-numeric column raises an error before it reaches the model. Here we write a sampled matrix to CSV to stand in for an external export, then read it back.
 
 ```{python}
 external = params.sample(2_000, seed=1)

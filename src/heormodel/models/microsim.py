@@ -1,15 +1,15 @@
 """Individual-level (microsimulation) engine.
 
-`MicrosimModel` simulates an individual-level population per PSA iteration and
-emits the standard `Outcomes` schema. One class covers two clocks:
+`MicrosimModel` simulates an individual-level population per parameter draw and
+returns the standard `Outcomes` structure. One class covers two clocks:
 
 - ``clock="discrete"`` (default) advances every individual on a fixed cycle
   grid, sampling state transitions from per-cycle probabilities. History
   dependence enters through attribute columns the engine maintains (``cycle``
-  and ``time_in_state``). Supply a ``transition`` callback.
+  and ``time_in_state``). Supply a ``transition`` function.
 - ``clock="continuous"`` races competing time-to-event samplers, takes the
   earliest, and accrues continuously between events. No cycle grid; the horizon
-  truncates. Supply a ``hazards`` callback.
+  truncates. Supply a ``hazards`` function.
 
 The engine configures once and evaluates on draws: the constructor takes the
 model structure, and `evaluate` takes only the parameter draw matrix, returning
@@ -194,7 +194,7 @@ class _MicrosimBase:
 class MicrosimModel(_MicrosimBase):
     """Individual-level microsimulation engine, discrete- or continuous-time.
 
-    The ``clock`` argument selects the simulation kernel and which callback the
+    The ``clock`` argument selects the simulation kernel and which function the
     constructor expects.
 
     ``clock="discrete"`` vectorizes over individuals and loops over cycles. The
@@ -319,7 +319,7 @@ class MicrosimModel(_MicrosimBase):
         self._clock = clock
         if clock == "discrete":
             if transition is None:
-                raise TypeError("clock='discrete' requires a transition callback.")
+                raise TypeError("clock='discrete' requires a transition function.")
             if hazards is not None:
                 raise TypeError("hazards is only valid with clock='continuous'.")
             if horizon < 1:
@@ -334,7 +334,7 @@ class MicrosimModel(_MicrosimBase):
             }
         else:
             if hazards is None:
-                raise TypeError("clock='continuous' requires a hazards callback.")
+                raise TypeError("clock='continuous' requires a hazards function.")
             if transition is not None:
                 raise TypeError("transition is only valid with clock='discrete'.")
             if horizon <= 0:

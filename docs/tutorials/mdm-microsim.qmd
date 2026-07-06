@@ -69,6 +69,6 @@ outcomes = run_psa(
 icer_table(outcomes).round(2)
 ```
 
-The published Table 3 reports no-treatment 62,667 dollars and 15.28 QALYs, treatment 117,455 dollars and 15.79 QALYs, and an ICER of 107,986 dollars per QALY. The sampler differs from the source, so the totals agree within Monte Carlo error rather than to the dollar and converge as the population grows.
+The published Table 3 reports no-treatment 62,667 dollars and 15.28 quality-adjusted life-years (QALYs), treatment 117,455 dollars and 15.79 QALYs, and an incremental cost-effectiveness ratio of 107,986 dollars per QALY. The sampler differs from the source, so the totals agree within Monte Carlo error rather than to the dollar and converge as the population grows.
 
 Reference: Krijkamp EM, Alarid-Escudero F, Enns EA, Jalal HJ, Hunink MGM, Pechlivanoglou P. Microsimulation modeling for health decision sciences using R: a tutorial. Medical Decision Making. 2018;38(3):400-422.

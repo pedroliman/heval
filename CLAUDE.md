@@ -12,21 +12,24 @@ Guidance for Claude Code when working in this repository.
 ## Conventions
 
 - `src/` layout; the package lives in `src/heormodel`.
+- Developer documentation (the roadmap, architecture notes, and the writing style guide) lives in `devdocs/`. The website in `docs/` is user-facing only; do not add developer material to it.
 - Do not keep backward compatibility unless explicitly asked. The API is pre-1.0 and stabilizing; when a change renames or removes public names, make a clean break (update every call site) rather than adding deprecation aliases, shims, or compatibility keyword arguments.
-- All prose follows the writing style below and the full guide in `guidance/writing_style.md`.
+- All prose follows the writing style below and the full guide in `devdocs/guidance/writing_style.md`.
 - Do not mention external existing R packages in code or documentation.
 - Lint/format with `ruff`, type-check the public API with `mypy`, test with `pytest`.
 - Every public function carries a docstring with a short worked example.
 
 ## Writing style
 
-Applies to everything: README, docs, docstrings, comments, commit messages. Full guide: `guidance/writing_style.md`.
+Applies to everything: README, docs, docstrings, comments, commit messages. Full guide: `devdocs/guidance/writing_style.md`.
 
 - Excellent technical documentation is short. Every sentence earns its place; if deleting it loses nothing, delete it. Cut warm-up sentences, transitions, and closing summaries.
 - Lead with the point. One idea per sentence. Doc pages stay under 500 words.
 - Show, do not describe: a worked example, a number, or a table beats an adjective. "Matches the published ICER exactly" beats "highly accurate".
 - Write formally, as in the methods appendix of a clinical journal: precise, plain, no marketing tone, no rhetorical questions.
-- Use HEOR vocabulary: strategy, comparator, ICER, QALY, NMB, willingness-to-pay threshold, PSA, EVPI, cohort state-transition model, microsimulation, discounting, half-cycle correction.
+- Use health economics vocabulary: strategy, comparator, willingness-to-pay threshold, cohort state-transition model, microsimulation, discounting, half-cycle correction.
+- Spell out every acronym on first use per page, with the acronym in parentheses only if the page uses it again. Do not assume readers know PSA, CEA, or VoI; prefer the spelled-out term when it appears once or twice.
+- No computer science jargon in documentation. Say function, not callback; the reader is a health economist. Words like schema, protocol, instantiate, and wrapper need a plain-language substitute or a rewrite.
 - Never use filler that pattern-matches to generated text: leverage, delve, seamless, comprehensive, robust, crucial, streamline.
 - No em-dashes, no exclamation marks. Sentence case headings. Backticks for code identifiers.
 - Link to the page that covers a topic instead of restating it.
@@ -34,7 +37,7 @@ Applies to everything: README, docs, docstrings, comments, commit messages. Full
 
 ## Implementing a roadmap item
 
-When asked to implement the next roadmap priority (`roadmap/README.md`):
+When asked to implement the next roadmap priority (`devdocs/roadmap/README.md`):
 
 - Pick the top unfinished item, read its design note, and build it to the acceptance criteria stated there.
 - Update docs as you go: the changelog, the README, the roadmap status, and a website tutorial or reference entry for any new public API.

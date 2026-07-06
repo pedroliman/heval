@@ -1,6 +1,6 @@
-"""Convergence and stability diagnostics for PSA runs.
+"""Convergence diagnostics for probabilistic sensitivity analysis runs.
 
-Phase-1 skeleton: running-mean traces to judge whether the number of PSA
+Phase-1 skeleton: running-mean traces to judge whether the number of
 iterations is sufficient. Richer diagnostics (stability of ICERs and
 CEAC curves across bootstrap resamples) come with the engine phases.
 """
@@ -16,11 +16,11 @@ from heormodel.models.outcomes import Outcomes
 def running_means(outcomes: Outcomes, column: str | None = None) -> pd.DataFrame:
     """Running mean of an outcome column per strategy, by iteration count.
 
-    Flat traces at the right edge indicate the PSA has stabilised for that
+    Flat traces at the right edge indicate the analysis has stabilised for that
     outcome; drifting traces call for more iterations.
 
     Args:
-        outcomes: Standard PSA outcomes.
+        outcomes: Outcomes from a probabilistic sensitivity analysis.
         column: Outcome column (default: cost).
 
     Returns:

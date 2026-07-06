@@ -1,6 +1,6 @@
 """Run orchestration (`heval.run`).
 
-Seed management, the PSA run loop (serial or ``joblib``-parallel), the
+Seed management, the probabilistic run loop (serial or ``joblib``-parallel),
 bring-your-own-outputs ingestion point, and convergence diagnostics.
 """
 

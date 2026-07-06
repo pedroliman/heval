@@ -129,7 +129,7 @@ def abc_calibrate(
 
     Returns:
         A `CalibrationResult` whose ``posterior`` plugs directly into
-        the PSA pipeline.
+        the probabilistic analysis.
 
     Example:
         >>> from heormodel.calibrate import abc_calibrate  # doctest: +SKIP

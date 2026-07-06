@@ -3,7 +3,7 @@ title: heormodel
 author: Pedro Nascimento de Lima
 ---
 
-Health economic evaluation in Python: parameter sampling, simulation across model types, cost-effectiveness analysis, and value-of-information analysis for model-based HEOR and HTA work.
+Health economic evaluation in Python: parameter sampling, simulation across model types, cost-effectiveness analysis, and value-of-information analysis for model-based health technology assessment.
 
 ## Install
 
@@ -11,11 +11,11 @@ Health economic evaluation in Python: parameter sampling, simulation across mode
 pip install heormodel
 ```
 
-The `calibration` extra adds ABC-SMC calibration: `pip install "heormodel[calibration]"`.
+The `calibration` extra adds Bayesian calibration: `pip install "heormodel[calibration]"`.
 
 ## Quickstart
 
-A probabilistic sensitivity analysis (PSA) table from any source enters the pipeline through one call, `as_outcomes`. From the resulting object, run incremental cost-effectiveness analysis and value of information:
+A probabilistic sensitivity analysis table from any source enters the analysis through one call, `as_outcomes`. From the resulting object, run incremental cost-effectiveness analysis and value of information:
 
 ```{python}
 import numpy as np
@@ -38,7 +38,7 @@ outcomes = as_outcomes(df)
 icer_table(outcomes).round(1)
 ```
 
-The `icer_table` orders strategies by cost and reports the ICER along the efficiency frontier; the `status` column flags dominated (`D`) and extended-dominated (`ED`) strategies. EVPI reads off the same object:
+The `icer_table` orders strategies by cost and reports incremental cost-effectiveness ratios along the efficiency frontier; the `status` column flags dominated (`D`) and extended-dominated (`ED`) strategies. The expected value of perfect information reads off the same object:
 
 ```{python}
 print(f"EVPI at WTP 30,000: {evpi(outcomes, wtp=30_000):,.1f}")
@@ -46,16 +46,16 @@ print(f"EVPI at WTP 30,000: {evpi(outcomes, wtp=30_000):,.1f}")
 
 ## How it fits together
 
-One parameter object flows through swappable model engines into a shared analysis layer. Every engine returns costs and effects in one standardized structure, `Outcomes`, indexed by `(strategy, iteration)`, so `icer_table`, `ceac`, and `evpi` behave the same whether the numbers come from a spreadsheet export, a decision tree callable, or a future engine. You do not need an engine to start: bring your own PSA table, as the quickstart does.
+One parameter object flows through swappable model engines into a shared analysis layer. Every engine returns costs and effects in one standardized structure, `Outcomes`, indexed by `(strategy, iteration)`, so `icer_table`, `ceac`, and `evpi` behave the same whether the numbers come from a spreadsheet export, a decision tree function, or a future engine. You do not need an engine to start: bring your own table, as the quickstart does.
 
-[Architecture](concepts/architecture.qmd) covers the schema and the shared iteration index that EVPPI and EVSI rely on.
+[Engines](concepts/engines.qmd) covers the contract every engine satisfies and the shared iteration index that the value-of-information estimators rely on.
 
 ## Where to go next
 
 - [Get started](get-started.qmd): install and run your first analysis.
-- [Bring your own outputs](tutorials/byo-outputs.qmd): an external PSA table through CEA, VoI, plots, and a run report.
+- [Bring your own outputs](tutorials/byo-outputs.qmd): an external results table through cost-effectiveness analysis, value of information, plots, and a run report.
 - [Markov cohort model](tutorials/mdm-cohort.qmd): the standard state-transition model, then the [microsimulation engine](tutorials/microsim.qmd) as the step up in detail.
-- [Full pipeline](tutorials/full-pipeline.qmd): parameters, `run_psa`, CEA, and VoI end to end.
-- [Calibration workflow](tutorials/calibration-workflow.qmd): calibrate some parameters, take the rest from the literature, mix both with `mix_draws`, then run CEA and VoI.
+- [Full pipeline](tutorials/full-pipeline.qmd): parameters, `run_psa`, cost-effectiveness analysis, and value of information end to end.
+- [Calibration workflow](tutorials/calibration-workflow.qmd): calibrate some parameters, take the rest from the literature, mix both with `mix_draws`, then run the same analyses.
 - [API reference](reference/index.qmd): every public function, generated from docstrings.
-- [Roadmap](roadmap/index.md) and [changelog](changelog.md): what is planned and what has shipped.
+- [Changelog](changelog.md): what has shipped.

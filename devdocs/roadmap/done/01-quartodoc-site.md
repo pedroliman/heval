@@ -41,4 +41,4 @@ docs/
 - The site builds clean in CI from a fresh checkout.
 - Every public symbol exported by the subpackage `__init__.py` files appears in the reference.
 - Tutorials execute during the build and their outputs render.
-- Site prose follows `guidance/writing_style.md`.
+- Site prose follows `devdocs/guidance/writing_style.md`.

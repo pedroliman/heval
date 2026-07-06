@@ -30,12 +30,16 @@ Applies to everything written in this repository: README, roadmap, docstrings, c
 
 Use the field's terms:
 
-- strategy, comparator, willingness-to-pay threshold, ICER, QALY, net monetary benefit (NMB), net health benefit (NHB), efficiency frontier, dominance, extended dominance, CEAC, CEAF
-- probabilistic sensitivity analysis (PSA), parameter draw, iteration
+- strategy, comparator, willingness-to-pay threshold, incremental cost-effectiveness ratio (ICER), quality-adjusted life-year (QALY), net monetary benefit, net health benefit, efficiency frontier, dominance, extended dominance, cost-effectiveness acceptability curve
+- probabilistic sensitivity analysis, parameter draw, iteration
 - cohort model, state-transition model, microsimulation, discrete-event simulation, cycle, half-cycle correction, discounting, time horizon
-- calibration target, prior, posterior, EVPI, EVPPI, EVSI
+- calibration target, prior, posterior, expected value of perfect information (EVPI), expected value of partial perfect information (EVPPI), expected value of sample information (EVSI)
 
-Avoid vocabulary that pattern-matches to generated text and does not belong in HEOR writing: leverage, delve, seamless, comprehensive, robust (unless statistical robustness is meant), crucial, empower, journey, cutting-edge, holistic, streamline, unlock.
+Spell out every acronym on first use per page, with the acronym in parentheses only if the page uses it again. Do not assume readers know PSA, CEA, or VoI; when a term appears once or twice, use the words instead of the acronym.
+
+No computer science jargon in documentation. The reader is a health economist who codes, not a software engineer. Say function, not callback or callable; say table, not schema or frame; describe what a thing does instead of naming the design pattern (protocol, wrapper, decorator, factory). Python names visible in code (`DataFrame`, `dict`) are fine inside backticks.
+
+Avoid vocabulary that pattern-matches to generated text and does not belong in health economics writing: leverage, delve, seamless, comprehensive, robust (unless statistical robustness is meant), crucial, empower, journey, cutting-edge, holistic, streamline, unlock.
 
 Do not mention external existing R packages anywhere.
 
