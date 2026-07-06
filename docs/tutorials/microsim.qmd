@@ -2,7 +2,7 @@
 title: Microsimulation engine
 ---
 
-This tutorial builds an individual-level model with `MicrosimModel` and runs it through CEA and VoI. It assumes the [Markov cohort model](mdm-cohort.qmd), which runs a model through `run_psa` and the analysis layer. The narrated version here is [`examples/microsim.py`](https://github.com/pedroliman/heormodel/blob/main/examples/microsim.py). A microsimulation earns its cost when outcomes depend on individual history or heterogeneity, which a cohort average cannot carry.
+This tutorial builds an individual-level model with `MicrosimModel` and runs it through cost-effectiveness and value-of-information analysis. It assumes the [Markov cohort model](mdm-cohort.qmd), which runs a model through `run_psa` and the analysis layer. The narrated version here is [`examples/microsim.py`](https://github.com/pedroliman/heormodel/blob/main/examples/microsim.py). A microsimulation earns its cost when outcomes depend on individual history or heterogeneity, which a cohort average cannot carry.
 
 ## The model
 
@@ -53,7 +53,7 @@ def payoffs(params, state, attrs):
 
 ## Configure once, evaluate on draws
 
-The constructor takes the model structure; `evaluate` takes only the draw matrix. Strategies are parameter-override dicts merged into each iteration's draw, so the two arms differ by one flag the model reads. The two strategies share one population through common random numbers (the engine default), so the incremental result reflects the treatment effect rather than sampling noise.
+The constructor takes the model structure; `evaluate` takes only the draw matrix. Each strategy is a set of parameter overrides merged into each iteration's draw, so the two arms differ by one flag the model reads. The two strategies share one population through common random numbers (the engine default), so the incremental result reflects the treatment effect rather than sampling noise.
 
 ```{python}
 from heormodel.models import MicrosimModel
@@ -85,9 +85,9 @@ outcomes.summary().round(3)
 
 `run_psa` runs the engine like any other model, and enforces the same contract: the outcome iteration index equals `draws.index`. Because each iteration draws a stream keyed by its index, the result is identical whether the run is parallel or sequential. Runs are parallel by default; this small one passes `sequential=True` to stay in-process.
 
-## CEA and VoI
+## Cost-effectiveness and value of information
 
-From here nothing is engine-specific. At a willingness-to-pay near the base-case ICER the decision is genuinely uncertain, so EVPI is positive and the EVPPI ranking is informative.
+From here nothing is engine-specific. At a willingness-to-pay threshold near the base-case incremental cost-effectiveness ratio the decision is genuinely uncertain, so the expected value of perfect information is positive and the per-parameter ranking is informative.
 
 ```{python}
 from heormodel.cea import icer_table
@@ -140,7 +140,7 @@ The two agree to under 1% at 60,000 individuals, and the gap shrinks with the po
 
 ## Continuous time
 
-`MicrosimModel(clock="continuous")` shares this constructor shape. Instead of per-cycle probabilities, `hazards` returns sampled times to each competing event; the engine races them, advances to the earliest, and accrues continuously between events. On constant hazards it reproduces the exponential cohort solution. See the [engines](../concepts/engines.qmd) concept page for where both fit in the contract.
+`MicrosimModel(clock="continuous")` is set up the same way. Instead of per-cycle probabilities, `hazards` returns sampled times to each competing event; the engine races them, advances to the earliest, and accrues continuously between events. On constant hazards it reproduces the exponential cohort solution. See the [engines](../concepts/engines.qmd) concept page for where both fit in the contract.
 
 Next: [Markov vs microsimulation models](markov-vs-microsim.qmd) builds this microsimulation and a cohort twin from the same rates, cross-validates them, and shows what the individual model carries that the cohort averages away.
 ```

@@ -2,7 +2,7 @@
 title: Calibration workflow
 ---
 
-This tutorial mixes two parameter sources in one analysis: some parameters are calibrated to observed data, the rest come from the literature. Both feed one PSA that flows through CEA and VoI. It builds on the [full pipeline tutorial](full-pipeline.qmd) and is the narrated version of [`examples/calibration_workflow.py`](https://github.com/pedroliman/heormodel/blob/main/examples/calibration_workflow.py). Calibration needs the `calibration` extra: `uv pip install 'heormodel[calibration]'`.
+This tutorial mixes two parameter sources in one analysis: some parameters are calibrated to observed data, the rest come from the literature. Both feed one probabilistic sensitivity analysis that flows through cost-effectiveness and value-of-information analysis. It builds on the [full pipeline tutorial](full-pipeline.qmd) and is the narrated version of [`examples/calibration_workflow.py`](https://github.com/pedroliman/heormodel/blob/main/examples/calibration_workflow.py). Calibration needs the `calibration` extra: `uv pip install 'heormodel[calibration]'`.
 
 ## The disease model
 
@@ -46,7 +46,7 @@ def occupancy(onset, progression):
 
 ## Calibrate the rates
 
-`abc_calibrate` runs ABC-SMC against the registry targets and returns an iteration-indexed posterior draw matrix. The targets here were generated from onset 0.02 and progression 0.05, so calibration has a known answer to recover.
+`abc_calibrate` runs approximate Bayesian computation (sequential Monte Carlo) against the registry targets and returns an iteration-indexed posterior draw matrix. The targets here were generated from onset 0.02 and progression 0.05, so calibration has a known answer to recover.
 
 ```{python}
 import os
@@ -109,9 +109,9 @@ draws = mix_draws(posterior, lit_draws, n=N, seed=rng_mix)
 list(draws.columns)
 ```
 
-## Run, then CEA and VoI
+## Run, then analyse
 
-From here the pipeline is source-agnostic: the decision model runs over the mixed draws, and CEA and VoI treat every column alike.
+From here the workflow does not depend on the source: the decision model runs over the mixed draws, and the analyses treat every column alike.
 
 ```{python}
 from heormodel.models import Outcomes

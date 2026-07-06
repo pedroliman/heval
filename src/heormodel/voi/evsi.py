@@ -2,7 +2,7 @@
 
 Implemented now: the nonparametric-regression estimator (Strong, Oakley,
 Brennan & Breeze, 2015, Medical Decision Making 35:570-583): simulate a
-summary statistic of the proposed study once per PSA iteration (from that
+summary statistic of the proposed study once per parameter draw (from that
 iteration's parameter draw), regress net benefit on the summary, and read
 EVSI off the fitted conditional means.
 
@@ -33,7 +33,7 @@ def simulate_summaries(
     *,
     seed: int | np.random.Generator | None = None,
 ) -> pd.DataFrame:
-    """Simulate one study dataset summary per PSA iteration.
+    """Simulate one study dataset summary per parameter draw.
 
     Args:
         draws: Parameter draw matrix (rows = iterations).
@@ -72,8 +72,8 @@ def evsi_regression(
     """EVSI by nonparametric regression on simulated study summaries.
 
     Args:
-        outcomes: Standard PSA outcomes.
-        summaries: Simulated study summaries, one row per PSA iteration,
+        outcomes: Outcomes from a probabilistic sensitivity analysis.
+        summaries: Simulated study summaries, one row per iteration,
             aligned on the outcomes' iteration index (see
             `simulate_summaries`).
         wtp: Willingness to pay per unit of effect.

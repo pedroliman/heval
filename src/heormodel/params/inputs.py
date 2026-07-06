@@ -25,7 +25,7 @@ def single_draw(values: Mapping[str, float]) -> pd.DataFrame:
     """Wrap one named set of parameter values as a one-row draw matrix.
 
     The row's iteration index is 0, so the result flows straight into
-    `heval.run.run_psa` for a base-case (deterministic) run alongside the PSA.
+    `heval.run.run_psa` for a base-case (deterministic) run alongside the probabilistic analysis.
 
     Args:
         values: Parameter names mapped to point values, for example a

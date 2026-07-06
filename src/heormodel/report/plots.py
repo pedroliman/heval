@@ -63,10 +63,10 @@ def plot_ce_plane(
     effect: str | None = None,
     ax: Axes | None = None,
 ) -> Axes:
-    """Scatter of incremental cost vs incremental effect per PSA iteration.
+    """Scatter of incremental cost vs incremental effect per iteration.
 
     Args:
-        outcomes: Standard PSA outcomes.
+        outcomes: Outcomes from a probabilistic sensitivity analysis.
         comparator: Reference strategy (default: the first).
         wtp: If given, draw the willingness-to-pay threshold line.
         effect: Effect column (default: primary).
@@ -271,12 +271,12 @@ def tornado_data(
     effect: str | None = None,
     quantiles: tuple[float, float] = (0.025, 0.975),
 ) -> pd.DataFrame:
-    """One-way sensitivity of NMB to each parameter, from a PSA or a DSA.
+    """One-way sensitivity of net monetary benefit, probabilistic or deterministic.
 
-    With a parameter draw matrix (the PSA path), fits a univariate linear
+    With a parameter draw matrix (the probabilistic path), fits a univariate linear
     regression of the strategy's NMB (or incremental NMB versus
     ``comparator``) on each parameter and evaluates it at the parameter's
-    outer ``quantiles``. This estimates a one-way analysis from the PSA.
+    outer ``quantiles``. This estimates a one-way analysis from the probabilistic draws.
 
     With a `heval.dsa` ``(design, descriptor)`` pair from `one_way` or
     `one_at_a_time` (the DSA path), reads the NMB at each parameter's lowest

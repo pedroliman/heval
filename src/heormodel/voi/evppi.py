@@ -36,7 +36,7 @@ def evppi(
     """EVPPI for a parameter (or parameter group) at one willingness to pay.
 
     Args:
-        outcomes: Standard PSA outcomes.
+        outcomes: Outcomes from a probabilistic sensitivity analysis.
         draws: Parameter draw matrix whose index equals the outcomes'
             iteration index (the shared-index contract).
         params: Column name(s) in ``draws`` to value jointly.

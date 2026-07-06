@@ -16,11 +16,11 @@ def ceac(
 ) -> pd.DataFrame:
     """Cost-effectiveness acceptability curve for every strategy.
 
-    For each willingness-to-pay value, the probability (share of PSA
+    For each willingness-to-pay value, the probability (share of
     iterations) that each strategy has the highest net monetary benefit.
 
     Args:
-        outcomes: Standard PSA outcomes.
+        outcomes: Outcomes from a probabilistic sensitivity analysis.
         wtp: Grid of willingness-to-pay values.
         effect: Effect column (default: the primary effect).
 
@@ -88,7 +88,7 @@ def ce_plane(
     """Incremental cost and effect per iteration versus a comparator.
 
     Args:
-        outcomes: Standard PSA outcomes.
+        outcomes: Outcomes from a probabilistic sensitivity analysis.
         comparator: Reference strategy (default: the first strategy).
         effect: Effect column (default: the primary effect).
 

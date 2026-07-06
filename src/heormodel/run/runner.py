@@ -2,12 +2,12 @@
 
 Two first-class entry points:
 
-- `run_psa` evaluates a model engine (or plain callable) over the
+- `run_psa` evaluates a model engine (or plain function) over the
   parameter draw matrix, optionally in parallel via ``joblib``, and
   guarantees the returned outcomes carry the draws' iteration index.
-- `as_outcomes` normalises a bring-your-own-outputs PSA table (from
+- `as_outcomes` normalises a bring-your-own-outputs table (from
   any external simulator or spreadsheet export) into the standard
-  `Outcomes` schema so it can flow straight
+  `Outcomes` structure so it can flow straight
   into `heval.cea` and `heval.voi` without touching an engine.
 """
 
@@ -33,7 +33,7 @@ def as_outcomes(
     cost: str = "cost",
     effect: str = "qaly",
 ) -> Outcomes:
-    """Normalise any costs/effects PSA table into the standard outcome schema.
+    """Normalise any costs/effects table into the standard outcome structure.
 
     This is the bring-your-own-outputs entry point: feed a tidy table from
     any source directly into the analysis layer.
@@ -42,7 +42,7 @@ def as_outcomes(
         source: An `Outcomes` (returned unchanged), a tidy long
             ``DataFrame``, or a path to a CSV file of one.
         strategy: Column holding the strategy label.
-        iteration: Column holding the PSA iteration.
+        iteration: Column holding the iteration index.
         cost: Column holding the cost per iteration.
         effect: Column holding the effect (QALYs by default).
 

@@ -37,7 +37,7 @@ def icer_table(source: Outcomes | pd.DataFrame, *, effect: str | None = None) ->
     """Full incremental analysis: dominance, extended dominance, and ICERs.
 
     Args:
-        source: PSA `Outcomes` (means are taken per strategy) or a
+        source: probabilistic `Outcomes` (means are taken per strategy) or a
             per-strategy mean table indexed by strategy with columns
             ``cost`` and the effect column.
         effect: Effect column name (defaults to the outcomes' primary

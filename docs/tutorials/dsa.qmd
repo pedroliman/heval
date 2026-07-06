@@ -2,9 +2,9 @@
 title: Deterministic sensitivity analysis
 ---
 
-Probabilistic sensitivity analysis answers how uncertain a decision is; deterministic sensitivity analysis (DSA) answers which parameters move the result and by how much. This tutorial runs the deterministic forms on the same Sick-Sicker cohort model the [cohort tutorial](mdm-cohort.qmd) uses for its PSA, so the two read as a pair. It assumes that tutorial. The full script is [`examples/dsa.py`](https://github.com/pedroliman/heormodel/blob/main/examples/dsa.py).
+Probabilistic sensitivity analysis answers how uncertain a decision is; deterministic sensitivity analysis (DSA) answers which parameters move the result and by how much. This tutorial runs the deterministic forms on the same Sick-Sicker cohort model the [cohort tutorial](mdm-cohort.qmd) uses for its probabilistic analysis, so the two read as a pair. It assumes that tutorial. The full script is [`examples/dsa.py`](https://github.com/pedroliman/heormodel/blob/main/examples/dsa.py).
 
-`heormodel.dsa` builds scenario designs that run through `run_psa` unchanged: a design is a draw matrix whose rows are scenarios instead of random draws, paired with a descriptor naming what each scenario varied. Nothing in the run loop or the `Outcomes` schema changes.
+`heormodel.dsa` builds scenario designs that run through `run_psa` unchanged: a design is a draw matrix whose rows are scenarios instead of random draws, paired with a descriptor naming what each scenario varied. Nothing in the run loop or the `Outcomes` structure changes.
 
 ## The model and base case
 
@@ -62,7 +62,7 @@ nb = nmb(run_psa(engine, design), WTP)
 
 ## One-at-a-time tornado
 
-`one_at_a_time` sweeps each parameter between its low and high in turn, the union of one-way sweeps with the base case included once. `tornado_data` reads the `(design, descriptor)` pair directly, taking the net monetary benefit at each parameter's low and high value. It returns the same table its PSA form does, so `plot_tornado` is unchanged.
+`one_at_a_time` sweeps each parameter between its low and high in turn, the union of one-way sweeps with the base case included once. `tornado_data` reads the `(design, descriptor)` pair directly, taking the net monetary benefit at each parameter's low and high value. It returns the same table its probabilistic form does, so `plot_tornado` is unchanged.
 
 ```{python}
 from heormodel.dsa import one_at_a_time
@@ -92,6 +92,6 @@ heatmap_data(gnb["Strategy AB"] - gnb["Standard of care"], gdesc,
              x="c_trtA", y="c_trtB").round(0)
 ```
 
-The grid center reproduces the one-way sweep's base value, since both hold the other parameters at base. Where PSA integrates over the joint distribution, DSA holds everything else fixed and reads one axis at a time.
+The grid center reproduces the one-way sweep's base value, since both hold the other parameters at base. Where the probabilistic analysis integrates over the joint distribution, the deterministic analysis holds everything else fixed and reads one axis at a time.
 
 Next: the [replication gallery](replication-gallery.qmd) collects the published models these engines reproduce.

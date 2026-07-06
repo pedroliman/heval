@@ -3,7 +3,7 @@
 Approximate Bayesian computation via ``pyabc`` (optional dependency):
 translate ``heval`` priors, calibrate a simulator to observed targets, and
 get back a posterior parameter draw matrix that flows into the standard
-PSA pipeline through the shared iteration index.
+probabilistic analysis through the shared iteration index.
 """
 
 from heormodel.calibrate.abc import (

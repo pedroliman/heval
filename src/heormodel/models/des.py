@@ -1,7 +1,7 @@
 """Discrete-event simulation engine, a thin wrapper around SimPy.
 
-`DESModel` runs a SimPy model once per PSA iteration and strategy and emits the
-standard `Outcomes` schema. It is not a new discrete-event kernel: the SimPy
+`DESModel` runs a SimPy model once per parameter draw and strategy and returns
+the standard `Outcomes` structure. It is not a new discrete-event kernel: the SimPy
 ``Environment``, the process functions, and the ``Resource`` objects stay the
 user's own code. `heval` adds only what SimPy leaves out for a health economic
 model:
@@ -51,7 +51,7 @@ ResourceFn = Callable[[Any, pd.Series, str], Mapping[str, Any]]
 ProcessFn = Callable[..., Any]
 StrategySpec = Mapping[str, Mapping[str, Any]]
 
-# Event-log column names, the schema of the optional trace side channel.
+# Event-log column names, the columns of the optional trace side channel.
 _LOG_COLS = ("strategy", "iteration", "entity", "t", "event", "state", "resource")
 
 

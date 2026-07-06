@@ -2,7 +2,7 @@
 title: Get started
 ---
 
-This page installs `heormodel` and runs a first analysis on an existing PSA table. It assumes Python 3.11 or newer. For a narrated analysis, continue to the [bring your own outputs tutorial](tutorials/byo-outputs.qmd).
+This page installs `heormodel` and runs a first analysis on an existing probabilistic sensitivity analysis table. It assumes Python 3.11 or newer. For a narrated analysis, continue to the [bring your own outputs tutorial](tutorials/byo-outputs.qmd).
 
 ## Install
 
@@ -18,11 +18,11 @@ Or with pip:
 pip install heormodel
 ```
 
-The `calibration` extra adds ABC-SMC calibration via `pyabc`: `uv add "heormodel[calibration]"`.
+The `calibration` extra adds Bayesian calibration via `pyabc`: `uv add "heormodel[calibration]"`.
 
 ## Bring your own outputs
 
-You do not need a model engine to use `heormodel`. Any tidy costs/effects table with `strategy`, `iteration`, `cost`, and `qaly` columns (a spreadsheet export, a legacy simulator's output) enters the pipeline through `as_outcomes`:
+You do not need a model engine to use `heormodel`. Any costs/effects table with `strategy`, `iteration`, `cost`, and `qaly` columns (a spreadsheet export, a legacy simulator's output) enters the analysis through `as_outcomes`:
 
 ```{python}
 import numpy as np
@@ -45,7 +45,7 @@ outcomes = as_outcomes(df)          # accepts a DataFrame or a CSV path
 icer_table(outcomes).round(1)
 ```
 
-The incremental analysis reports ICERs along the efficiency frontier; the `status` column marks dominated (`D`) and extended-dominated (`ED`) strategies, and here all three are non-dominated (`ND`). From the same object, acceptability curves and value of information:
+The incremental analysis reports incremental cost-effectiveness ratios along the efficiency frontier; the `status` column marks dominated (`D`) and extended-dominated (`ED`) strategies, and here all three are non-dominated (`ND`). From the same object, acceptability curves and value of information:
 
 ```{python}
 curves = ceac(outcomes, np.linspace(0, 100_000, 41))
@@ -60,6 +60,6 @@ print(f"EVPI at WTP 50,000: {evpi(outcomes, wtp=50_000):,.1f}")
 
 ## Next steps
 
-- [Bring your own outputs](tutorials/byo-outputs.qmd): the same wedge, expanded to plots, EVPPI ranking, and a run report.
-- [Markov cohort model](tutorials/mdm-cohort.qmd): the standard state-transition model, run through the same pipeline. The [microsimulation engine](tutorials/microsim.qmd) is the step up in detail after it.
-- [Architecture](concepts/architecture.qmd): the `Outcomes` schema and the shared iteration index.
+- [Bring your own outputs](tutorials/byo-outputs.qmd): the same wedge, expanded to plots, a value-of-information ranking, and a run report.
+- [Markov cohort model](tutorials/mdm-cohort.qmd): the standard state-transition model, run through the same analysis. The [microsimulation engine](tutorials/microsim.qmd) is the step up in detail after it.
+- [Engines](concepts/engines.qmd): the contract every engine satisfies.

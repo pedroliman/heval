@@ -1,8 +1,8 @@
 """Model engines behind an output contract (`heval.models`).
 
 The durable pieces here are `Outcomes`, the standardized
-(strategy, iteration) outcome schema, and `ModelEngine`, the
-protocol every engine satisfies. The engines are `MarkovModel`
+(strategy, iteration) outcome structure, and `ModelEngine`, the
+contract every engine satisfies. The engines are `MarkovModel`
 (cohort state-transition), `MicrosimModel` (individual-level, discrete- or
 continuous-time via ``clock``), and `DESModel` (discrete-event, wrapping
 SimPy).

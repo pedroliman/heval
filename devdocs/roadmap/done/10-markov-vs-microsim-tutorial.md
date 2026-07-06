@@ -19,7 +19,7 @@ The tutorial states the trade plainly. The cohort model is faster and exact for 
 ## Deliverables
 
 - `examples/markov_vs_microsim.py`: builds both models, runs the convergence sweep, adds frailty, prints the cohort-versus-microsim comparison table, and saves the convergence plot and the heterogeneity comparison.
-- A website tutorial narrating it, placed between the Markov and microsimulation tutorials (item 11), following `guidance/writing_style.md`.
+- A website tutorial narrating it, placed between the Markov and microsimulation tutorials (item 11), following `devdocs/guidance/writing_style.md`.
 
 ## Acceptance
 

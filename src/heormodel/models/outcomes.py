@@ -1,4 +1,4 @@
-"""The standardized outcome schema: the integration contract of ``heval``.
+"""The standardized outcome structure: the integration contract of ``heval``.
 
 Every model engine, and every bring-your-own-outputs table, is normalised
 into an `Outcomes` object: a tidy ``DataFrame`` indexed by
@@ -25,7 +25,7 @@ ITERATION_LEVEL = "iteration"
 
 
 class Outcomes:
-    """PSA outcomes per strategy per iteration, in the standard schema.
+    """Probabilistic sensitivity analysis outcomes per strategy per iteration.
 
     Args:
         data: DataFrame indexed by a two-level ``MultiIndex`` named
@@ -99,7 +99,7 @@ class Outcomes:
         Args:
             df: Long table with one row per (strategy, iteration).
             strategy: Column in ``df`` holding the strategy label.
-            iteration: Column in ``df`` holding the PSA iteration.
+            iteration: Column in ``df`` holding the iteration index.
             cost: Column in ``df`` holding the cost per iteration.
             effect: Column in ``df`` holding the effect (QALYs by default).
 
@@ -162,7 +162,7 @@ class Outcomes:
 
     @property
     def n_iterations(self) -> int:
-        """Number of PSA iterations."""
+        """Number of iterations."""
         return len(self._iterations)
 
     @property

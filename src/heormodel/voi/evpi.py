@@ -1,4 +1,4 @@
-"""Expected value of perfect information, directly from the PSA."""
+"""Expected value of perfect information from the probabilistic analysis."""
 
 from __future__ import annotations
 
@@ -21,11 +21,11 @@ def evpi(
     """Expected value of perfect information per decision.
 
     EVPI is the expected NMB gain from resolving **all** uncertainty:
-    ``E[max_d NMB_d] - max_d E[NMB_d]``, estimated directly from the PSA
+    ``E[max_d NMB_d] - max_d E[NMB_d]``, estimated directly from the
     iterations.
 
     Args:
-        outcomes: Standard PSA outcomes.
+        outcomes: Outcomes from a probabilistic sensitivity analysis.
         wtp: A willingness-to-pay value or grid.
         effect: Effect column (default: the primary effect).
 

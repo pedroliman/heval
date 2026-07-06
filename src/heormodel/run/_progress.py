@@ -1,4 +1,4 @@
-"""Minimal time-remaining reporter for the PSA run loop.
+"""Minimal time-remaining reporter for the probabilistic run loop.
 
 Writes a single-line completed-count and time-remaining readout to
 ``stderr`` as experiments finish. An experiment is one unit of work the

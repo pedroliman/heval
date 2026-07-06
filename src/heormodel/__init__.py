@@ -2,13 +2,13 @@
 
 One parameter draw matrix flows through swappable model engines into a
 shared analysis layer. Engines differ internally but share a contract on
-their outputs, the `Outcomes` schema indexed by
+their outputs, the `Outcomes` structure indexed by
 ``(strategy, iteration)``, which makes cost-effectiveness and
 value-of-information analysis engine-agnostic. Outputs from any external
 model enter the same pipeline via `as_outcomes`.
 
 Subpackages:
-    - `heval.params`: distributions and correlated PSA sampling
+    - `heval.params`: distributions and correlated probabilistic sampling
     - `heval.models`: engines behind the output contract
     - `heval.run`: seeds, run loop, bring-your-own-outputs ingestion
     - `heval.cea`: incremental analysis, frontier, NMB/NHB, CEAC/CEAF

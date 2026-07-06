@@ -2,7 +2,7 @@
 
 A `ParameterSet` maps parameter names to distribution specs and
 produces the **parameter draw matrix**: a tidy ``pandas.DataFrame`` with one
-row per PSA iteration (index named ``"iteration"``) and one column per scalar
+row per iteration (index named ``"iteration"``) and one column per scalar
 parameter. That matrix is the shared currency of the package: model engines
 consume it, and value-of-information analyses trace outcomes back to it
 through the shared iteration index.
@@ -129,7 +129,7 @@ class ParameterSet:
         return _nearest_correlation(r)
 
     def sample(self, n: int, seed: int | np.random.Generator | None = None) -> pd.DataFrame:
-        """Draw the parameter matrix for ``n`` PSA iterations.
+        """Draw the parameter matrix for ``n`` iterations.
 
         Uses a Gaussian copula: correlated standard normals are mapped to
         uniforms and pushed through each marginal quantile function, so
@@ -189,7 +189,7 @@ class ParameterSet:
         """Wrap the analytic means as a one-row base-case draw matrix.
 
         Equivalent to ``single_draw(self.means().to_dict())``: the
-        deterministic run at point values that sits next to the PSA.
+        deterministic run at point values that sits next to the probabilistic analysis.
 
         Example:
             >>> from heormodel.params import Fixed, ParameterSet

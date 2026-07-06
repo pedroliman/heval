@@ -11,7 +11,7 @@ def nmb(outcomes: Outcomes, wtp: float, *, effect: str | None = None) -> pd.Data
     """Net monetary benefit per iteration and strategy: ``wtp * effect - cost``.
 
     Args:
-        outcomes: Standard PSA outcomes.
+        outcomes: Outcomes from a probabilistic sensitivity analysis.
         wtp: Willingness to pay per unit of effect.
         effect: Effect column (default: the primary effect).
 

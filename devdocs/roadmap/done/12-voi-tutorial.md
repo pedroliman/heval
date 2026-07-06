@@ -25,7 +25,7 @@ The tutorial closes on interpretation: EVPI as the ceiling on research value, EV
 ## Deliverables
 
 - `examples/voi_tutorial.py` reproducing the chosen analysis, printing the EVPI, the EVPPI ranking, and any EVSI, next to the published values.
-- A website tutorial narrating it, placed after the full-pipeline tutorial, following `guidance/writing_style.md`.
+- A website tutorial narrating it, placed after the full-pipeline tutorial, following `devdocs/guidance/writing_style.md`.
 
 ## Acceptance
 

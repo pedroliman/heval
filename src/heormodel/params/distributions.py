@@ -7,7 +7,7 @@ sampling and moments for convenience.
 
 Method-of-moments constructors (``from_mean_se``) build the distribution
 that matches a published point estimate and standard error, the everyday
-workflow when parameterising a PSA from the literature.
+workflow when parameterising a probabilistic sensitivity analysis from the literature.
 """
 
 from __future__ import annotations
