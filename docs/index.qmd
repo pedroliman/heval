@@ -5,8 +5,6 @@ author: Pedro Nascimento de Lima
 
 Health economic evaluation in Python: parameter sampling, simulation across model types, cost-effectiveness analysis, and value-of-information analysis for model-based HEOR and HTA work.
 
-**Version:** 0.6.0
-
 ## Install
 
 ```bash
