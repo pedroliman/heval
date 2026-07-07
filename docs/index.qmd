@@ -15,21 +15,26 @@ The `calibration` extra adds Bayesian calibration: `pip install "heormodel[calib
 
 ## Quickstart
 
-A three-state Markov cohort state-transition model comparing treatment with standard care, evaluated by probabilistic sensitivity analysis:
+A three-state Markov cohort state-transition model comparing standard care with two treatments of different efficacy and cost, evaluated by probabilistic sensitivity analysis:
 
 ```{python}
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from heormodel.models import CohortSpec, MarkovModel
 from heormodel.params import Beta, Gamma, ParameterSet
 from heormodel.run import SeedManager, run_psa
-from heormodel.cea import icer_table
-from heormodel.report import plot_frontier
+from heormodel.cea import ceac, ceaf, icer_table
+from heormodel.report import plot_ce_plane, plot_ceac
 from heormodel.voi import evpi
+
+WTP = 50_000.0
 
 
 def model(p, strategy):
-    p_progress = p["p_progress"] * (p["rr_treat"] if strategy == "Treatment" else 1.0)
+    rr = {"Standard care": 1.0, "Treatment A": p["rr_a"], "Treatment B": p["rr_b"]}[strategy]
+    add_cost = {"Standard care": 0.0, "Treatment A": p["c_a"], "Treatment B": p["c_b"]}[strategy]
+    p_progress = p["p_progress"] * rr
     # Transition matrix. Rows: current state. Columns: next state.
     P = np.array([
         [1 - p_progress - p["p_die"], p_progress, p["p_die"]],
@@ -37,37 +42,50 @@ def model(p, strategy):
         [0.0, 0.0, 1.0],
     ])
     cost = np.array([0.0, p["c_sick"], 0.0])
-    if strategy == "Treatment":
-        cost[:2] += p["c_treat"]
+    cost[:2] += add_cost
     return CohortSpec(P, cost, np.array([1.0, p["u_sick"], 0.0]))
 
 
 engine = MarkovModel(states=("Healthy", "Sick", "Dead"),
-                     strategies=("Standard care", "Treatment"),
+                     strategies=("Standard care", "Treatment A", "Treatment B"),
                      model_fn=model, n_cycles=40)
 
 params = ParameterSet({
-    "p_progress": Beta(20, 180), "rr_treat": Beta(60, 40),
+    "p_progress": Beta(20, 180), "rr_a": Beta(75, 25), "rr_b": Beta(45, 55),
     "p_die": Beta(5, 995), "p_die_sick": Beta(50, 450),
-    "c_sick": Gamma(100, 250.0), "c_treat": Gamma(100, 80.0),
+    "c_sick": Gamma(100, 250.0), "c_a": Gamma(100, 20.0), "c_b": Gamma(100, 110.0),
     "u_sick": Beta(150, 50),
 })
 
-draws = params.sample(1_000, seed=SeedManager(1).generator())
+draws = params.sample(2_000, seed=SeedManager(1).generator())
 outcomes = run_psa(engine, draws)
 icer_table(outcomes).round(1)
 ```
 
-The `icer_table` orders strategies by cost and reports incremental cost-effectiveness ratios along the efficiency frontier; the `status` column flags dominated (`D`) and extended-dominated (`ED`) strategies. `plot_frontier` draws the same frontier from mean cost and effect per strategy:
+The `icer_table` orders strategies by cost and reports incremental cost-effectiveness ratios along the efficiency frontier; the `status` column flags dominated (`D`) and extended-dominated (`ED`) strategies. All three strategies sit on the frontier here, with Treatment A entering near 11,000 per quality-adjusted life-year (QALY) and Treatment B near 52,000. `plot_ce_plane` scatters every iteration's incremental cost and effect against standard care, and `plot_ceac` reports the share of iterations in which each strategy has the highest net benefit, across a grid of willingness-to-pay thresholds:
 
 ```{python}
-plot_frontier(outcomes);
+grid = np.linspace(0, 100_000, 41)
+ceac_df = ceac(outcomes, grid)
+ceaf_df = ceaf(outcomes, grid)
+
+fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+plot_ce_plane(outcomes, comparator="Standard care", wtp=WTP, ax=axes[0])
+plot_ceac(ceac_df, ceaf_df=ceaf_df, ax=axes[1])
+fig.tight_layout()
 ```
 
-The expected value of perfect information reads off the same object:
+At a willingness-to-pay threshold of 50,000, the acceptability curves cross: the choice between Treatment A and Treatment B is close, so the expected value of perfect information (EVPI) is high there. Swept across the threshold, EVPI peaks near each ICER on the frontier, sharpest where the decision is closest:
 
 ```{python}
-print(f"EVPI at WTP 50,000: {evpi(outcomes, wtp=50_000):,.1f}")
+evpi_curve = evpi(outcomes, grid)
+print(f"EVPI at WTP {WTP:,.0f}: {evpi(outcomes, WTP):,.1f}")
+
+fig2, ax2 = plt.subplots()
+ax2.plot(grid, evpi_curve.to_numpy(), color="#333333", lw=2)
+ax2.set_xlabel("Willingness to pay")
+ax2.set_ylabel("EVPI per person")
+fig2.tight_layout()
 ```
 
 ## How it fits together
