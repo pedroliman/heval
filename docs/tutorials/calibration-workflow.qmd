@@ -44,7 +44,7 @@ def occupancy(onset, progression):
     return m[:, 0, 0], m[:, 0, 1]
 ```
 
-## Calibrate the rates
+## Calibrating the rates
 
 `abc_calibrate` runs approximate Bayesian computation (sequential Monte Carlo) against the registry targets and returns an iteration-indexed posterior draw matrix. The targets here were generated from onset 0.02 and progression 0.05, so calibration has a known answer to recover.
 
@@ -98,7 +98,7 @@ literature = ParameterSet(
 lit_draws = literature.sample(N, seed=rng_lit)
 ```
 
-## Mix the two sources
+## Mixing the two sources
 
 `mix_draws` joins the sources into one matrix. It resamples whole rows within each source, so the posterior's joint correlation survives, and resamples sources independently, so no correlation is invented across them.
 

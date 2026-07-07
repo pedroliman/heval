@@ -40,7 +40,7 @@ def clinic(env, patient, params, strategy, toolkit):
 
 `toolkit.accrue_over(start, end, cost_rate, utility_rate)` integrates and discounts a flow over an absolute interval, so billing the queueing time a patient just endured is one call once the specialist is granted. A patient still waiting at the horizon is never seen: the request loses the race and only the waiting segment is billed.
 
-## Configure once, evaluate on draws
+## Configuring once, evaluating on draws
 
 The constructor takes the model; `evaluate` takes only the draw matrix. The two strategies differ only in capacity, `n_servers`, and a per-patient overhead `c_capacity` for the expanded arm. They see the same patients and service draws through common random numbers, so the incremental result reflects the capacity change, not sampling noise.
 
