@@ -26,6 +26,8 @@ After that opening, structure every section the same way:
 
 Do not narrate self-evident code line by line ("first we import pandas, then we define a function"), and do not let the drive for brevity turn an explanation, or the opening statement of purpose, into a fragment or a bare action list. A tutorial section that is a few sentences longer because it explains a genuinely non-obvious choice is better than one that hits a word target by cutting that explanation.
 
+Only explain what you can actually verify. A "why" sentence earns its place when it follows directly from the code, the model's math, or an output you have checked, not from a plausible-sounding guess about the author's intent. Do not invent a rationale for a modeling choice (why this correlation, why this parameter value) unless the source material or the code supports it; if the real reason is not known, describe what the code does and stop. Do not reach for an interpretive aphorism to make a result sound more insightful than it is (a restated inequality dressed up as a conclusion, a clever-sounding turn of phrase you have not derived step by step). If you are not certain a sentence is both correct and useful, cut it rather than leave it in on the chance it reads well.
+
 ## Punctuation and formatting
 
 - No em-dashes. Use a comma, a colon, parentheses, or a new sentence.
@@ -69,6 +71,7 @@ Do not mention external existing R packages anywhere.
 - Active voice by default: "the engine returns `Outcomes`".
 - State limitations plainly. "Ties are broken by first occurrence" beats hedging or silence.
 - No rhetorical questions, no triads for rhythm ("fast, simple, and powerful"), no closing summaries that restate the section.
+- Use the plain, literal word over an idiom or figure of speech chosen to sound polished. Say "the model type to use", not "the engine to reach for"; say "is worth its cost", not "pays off"; say "exceeds the threshold", not "clears the threshold". If a phrase takes a second read to parse, or sounds like it is trying to be memorable rather than clear, replace it with the literal wording.
 
 ## Docstrings
 
