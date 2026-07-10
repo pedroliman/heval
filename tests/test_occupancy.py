@@ -100,8 +100,8 @@ class TestEventTrace:
         return MicrosimModel(
             states=("alive", "dead"),
             clock="continuous",
-            hazards=hazards,
-            payoffs=payoffs,
+            event_times=hazards,
+            state_costs_and_utilities=payoffs,
             population=population,
             strategies={"care": {}},
             horizon=50.0,
@@ -140,8 +140,8 @@ class TestEventTrace:
 
         engine = MicrosimModel(
             states=("alive", "dead"),
-            transition=transition,
-            payoffs=payoffs,
+            transition_probabilities=transition,
+            state_costs_and_utilities=payoffs,
             population=50_000,
             strategies={"care": {}},
             horizon=10,

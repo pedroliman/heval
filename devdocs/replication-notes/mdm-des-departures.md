@@ -1,6 +1,6 @@
 # Reconciling the discrete-event Sick-Sicker replication with the published figures
 
-This note records how `examples/mdm_des.py` and its tutorial reproduce the published figures of Lopez-Mendez, Goldhaber-Fiebert, and Alarid-Escudero (Medical Decision Making 2026;46(5):533-548), and where the replication still differs from the companion R code. The design note [`roadmap/13-des-sicksicker-replication.md`](../roadmap/13-des-sicksicker-replication.md) states the modeling intent; this note is the reconciliation against the companion source code, read from the authors' public repository.
+This note records how the `examples/mdm_des` package and its tutorial reproduce the published figures of Lopez-Mendez, Goldhaber-Fiebert, and Alarid-Escudero (Medical Decision Making 2026;46(5):533-548), and where the replication still differs from the companion R code. The design note [`roadmap/13-des-sicksicker-replication.md`](../roadmap/13-des-sicksicker-replication.md) states the modeling intent; this note is the reconciliation against the companion source code, read from the authors' public repository.
 
 Reproducing the figures means matching the companion code rather than the Table 1 specification, because on two points the companion code departs from its own Table 1, and those two points move the published figures. The replication reproduces both. A third difference, the random-number seeding, is left as the framework's per-iteration reproducibility guarantee; it changes the Monte Carlo error structure, not the expected figures.
 
@@ -8,7 +8,7 @@ The base-case cost-effectiveness analysis and every epidemiological outcome (sur
 
 ## Matched: two companion behaviors that move the published figures
 
-### 1. Transition rewards accrue over the preceding sojourn
+### 1. Transition amounts accrue over the preceding sojourn
 
 Table 1 defines `ic_HS1`, `ic_D`, and `du_HS1` as one-time amounts ("increase in cost when transitioning"). The companion `cea_fn` does not pay them once. It adds each to the annual flow of the sojourn that ends in the transition, then multiplies by the discounted length of that sojourn:
 
@@ -19,7 +19,7 @@ dt_all[, Disc_total_cost := Total_cost_ep * v_dwc_t12]   # v_dwc_t12 = discounte
 
 So a $2,000 cost of dying enters as $2,000 per year over the final sojourn, which averages about 14 years in Sicker, and a $1,000 onset cost enters as $1,000 per year over the Healthy sojourn before onset.
 
-The replication reproduces this from the event history rather than through an engine feature, since the convention is specialized to this cost function. After the run, `transition_rewards` in `examples/mdm_des.py` takes `evaluate(trace="events")`, and for every event multiplies the transition reward by the discounted sojourn integral over `[start, time]`, where the start is the individual's previous event time, then averages per individual and adds the result to the strategy's cost and effect. A continuous-time Markov chain closed form in `tests/test_mdm_des.py` confirms the arithmetic: a reward that accrues over the sojourn enters state `i`'s effective flow as the reward times its transition rate over the state's total exit rate.
+The replication reproduces this from the event history rather than through an engine feature, since the convention is specialized to this cost function. After the run, `transition_costs_and_utilities` in `examples/mdm_des/transitions.py` takes `evaluate(trace="events")`, and for every event multiplies the one-time amount by the discounted sojourn integral over `[start, time]`, where the start is the individual's previous event time, then averages per individual and adds the result to the strategy's cost and effect. A continuous-time Markov chain closed form in `tests/test_mdm_des.py` confirms the arithmetic: an amount that accrues over the sojourn enters state `i`'s effective flow as the amount times its transition rate over the state's total exit rate.
 
 Effect: expected costs sit about $20,000 per strategy above a once-at-event accounting (the dominant term is the death cost accrued over the long Sicker sojourn). The base case runs about $128,000 for standard of care up to $285,000 for strategy AB, matching the published figure 4A axis; a once-at-event accounting would run about $107,000 to $265,000.
 
@@ -38,7 +38,7 @@ The companion draws its parameter sets with `generate_psa_params_DES`, then merg
 
 The Weibull scale is the consequential one: it carries the progression uncertainty that the bivariate lognormal in `generate_psa_params_DES` was built to express, correlated with the shape. Because only the shape varies, the progression hazard barely moves across draws, and the treatment-B comparison that hinges on it carries little parameter uncertainty. The treated Sick utility is a subtler case: the companion applies it as `u_S1 + du_trtA` with `du_trtA` fixed at 0.20, so the drawn `u_trtA` is never read and the treated utility varies only through the shared `u_S1`.
 
-The replication holds all six fixed. In `parameter_set`, `r_S1S2_scale`, `c_trtA`, `c_trtB`, `ic_HS1`, and `ic_D` are `Fixed` at their base values, and `payoffs` models the treated Sick utility as `u_S1 + 0.20` rather than a drawn `u_trtA`. With the scale fixed, only the Weibull shape varies, so no scale-shape correlation applies.
+The replication holds all six fixed. In `parameter_set`, `r_S1S2_scale`, `c_trtA`, `c_trtB`, `ic_HS1`, and `ic_D` are `Fixed` at their base values, and the `state_costs_and_utilities` function models the treated Sick utility as `u_S1 + 0.20` rather than a drawn `u_trtA`. With the scale fixed, only the Weibull shape varies, so no scale-shape correlation applies.
 
 Effect: the acceptability curves are near step functions and the expected value of perfect information (EVPI) peaks are small (published figure 4D reports about $2,600 and $750 per person), because the strategy comparisons carry little uncertainty. Drawing every Table 1 distribution instead would raise the decision uncertainty and the EVPI several times over.
 

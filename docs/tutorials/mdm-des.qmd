@@ -2,231 +2,136 @@
 title: Discrete-event simulation replication
 ---
 
-This tutorial shows how to reproduce the published figures of the continuous-time Sick-Sicker discrete-event simulation of Lopez-Mendez and others (2026): competing time-to-event transitions with age-dependent mortality from a life table, a Weibull hazard on time spent Sick, transition rewards accrued over the preceding sojourn, epidemiological outcomes read from the event history, and a probabilistic analysis with expected loss curves. Reproducing the figures means matching the companion R code rather than the Table 1 specification on two points: transition rewards accrue over the sojourn that ends in each transition, and six parameters the companion draws but never reads are held at their base case. Both are explained where they arise. Full script: [`examples/mdm_des.py`](https://github.com/pedroliman/heormodel/blob/main/examples/mdm_des.py).
+This tutorial shows how to reproduce the published figures of the continuous-time Sick-Sicker discrete-event simulation of Lopez-Mendez and others (2026): competing time-to-event transitions with age-dependent mortality from a life table, a Weibull hazard on time spent Sick, transition costs and utilities accrued over the preceding sojourn, epidemiological outcomes read from the event history, and a probabilistic analysis with expected loss curves.
 
-## Choosing the engine
+The model is large enough that its parts live in separate files under [`examples/mdm_des/`](https://github.com/pedroliman/heormodel/tree/main/examples/mdm_des), one concern per module. This page imports those building blocks and shows how they compose, describing each by what it takes in and returns rather than by its internals. Reproducing the figures means matching the companion R code rather than the Table 1 specification on two points, both handled inside the building blocks: transition amounts accrue over the sojourn that ends in each transition, and six parameters the companion draws but never reads are held at their base case.
 
-The article's simulation kernel samples a latent arrival time for every permitted transition out of the current state, takes the earliest, moves the individual, and repeats until death or the horizon. That is the continuous clock of `MicrosimModel`: a discrete-event simulation without resource constraints is a continuous-time individual state-transition model, and the [engines page](../concepts/engines.qmd) places it among the other model types. `DESModel` (the [discrete-event tutorial](des.qmd)) is the engine for processes with queues and capacity limits, which the article treats as an extension beyond this example.
+## The building blocks
 
-## Specifying competing time-to-event transitions
+The folder separates the model into modules the run script and this tutorial share:
 
-The model runs from age 25 to 100 over four states: Healthy (H), Sick (S1), Sicker (S2), and Dead (D). Background mortality comes from a US 2015 life table as a `LifeTable`, which samples the years until death conditional on current age by inverting the cumulative hazard, under a hazard ratio of 3 in S1 and 10 in S2. Because the engine redraws every competing time at each state entry, the death time always reflects the age and state the individual is in, and the Weibull progression draw needs no truncation: time in state is zero at the moment it is drawn.
+| Module | Provides | Takes in and returns |
+|---|---|---|
+| `mortality` | `load_life_table` | a CSV path to age-specific rates in, a `LifeTable` out |
+| `model` | `build_engine` | the life table, model structure, horizon, discount rate, and population in, a configured continuous-clock `MicrosimModel` out |
+| `parameters` | `states`, `strategies`, `base_case`, `parameter_set` | no input, the model structure and the probabilistic distributions out |
+| `transitions` | `with_transition_costs_and_utilities`, `costs_and_utilities_model` | outcomes and the event history in, outcomes with the sojourn-accrued transition amounts out |
+| `outcomes` | `survival_and_prevalence`, `dwell_times` | the event history in, epidemiological curves and mean sojourns out |
 
-```{python}
-import numpy as np
-import pandas as pd
-from heormodel.models import LifeTable, MicrosimModel
+The engine calls two functions the `model` module builds: `event_times`, which returns the sampled time to each competing transition from the current state, and `state_costs_and_utilities`, which returns the annual cost and utility of each state. The article's next-event kernel is exactly the continuous clock of `MicrosimModel`: sample a latent time for each permitted transition, take the earliest, move, repeat. Because competing times are redrawn at every state entry, the Weibull progression draw needs no truncation and each death time reflects the individual's current age and state.
 
-STATES = ("H", "S1", "S2", "D")
-AGE_START = 25.0
-HORIZON = 75.0
-
-# US all-cause mortality rate, ages 25 to 99 (period life table, total population)
-MORT = np.array([
-    0.001014, 0.000999, 0.00107, 0.001087, 0.001162, 0.001167, 0.001213, 0.001289, 0.001331,
-    0.001375, 0.00142, 0.00149, 0.00155, 0.001616, 0.001657, 0.001747, 0.001902, 0.002052,
-    0.002173, 0.002395, 0.002559, 0.002807, 0.003023, 0.003349, 0.003712, 0.004085, 0.00449,
-    0.004905, 0.005364, 0.005806, 0.006253, 0.006775, 0.007395, 0.007895, 0.008418, 0.008974,
-    0.009666, 0.010456, 0.011384, 0.011838, 0.012667, 0.013593, 0.0147, 0.015732, 0.01734,
-    0.018758, 0.020967, 0.022917, 0.024913, 0.026767, 0.029707, 0.032412, 0.035982, 0.039238,
-    0.043595, 0.048727, 0.053735, 0.059911, 0.066618, 0.074051, 0.08219, 0.090754, 0.103968,
-    0.115093, 0.124341, 0.137872, 0.154177, 0.172393, 0.1941, 0.212654, 0.243752, 0.259087,
-    0.287781, 0.316429, 0.339149])
-MORTALITY = LifeTable(ages=np.arange(25, 100, dtype=float), rates=MORT)
-```
-
-The `hazards` function returns the sampled time to each destination, with `inf` where a transition cannot occur. The article parameterizes the Weibull progression hazard in proportional-hazards form, so treatment B scales it by multiplying the scale parameter by its hazard ratio; sampling converts to the equivalent accelerated-failure-time scale, `scale ** (-1 / shape)`.
+First make the example package importable and load its pieces.
 
 ```{python}
-def hazards(p, state, attrs, rng):
-    n = len(state)
-    times = np.full((n, 4), np.inf)
-    age = AGE_START + attrs["time"].to_numpy()
-    h = state == 0
-    if h.any():
-        times[h, 1] = rng.exponential(1.0 / p["r_HS1"], int(h.sum()))
-        times[h, 3] = MORTALITY.sample_time_to_death(rng, age[h])
-    s1 = state == 1
-    if s1.any():
-        times[s1, 0] = rng.exponential(1.0 / p["r_S1H"], int(s1.sum()))
-        scale_ph = p["r_S1S2_scale"] * (p["hr_S1S2_trtB"] if p["trtB"] else 1.0)
-        aft_scale = scale_ph ** (-1.0 / p["r_S1S2_shape"])
-        times[s1, 2] = aft_scale * rng.weibull(p["r_S1S2_shape"], int(s1.sum()))
-        times[s1, 3] = MORTALITY.sample_time_to_death(rng, age[s1], hazard_ratio=p["hr_S1"])
-    s2 = state == 2
-    if s2.any():
-        times[s2, 3] = MORTALITY.sample_time_to_death(rng, age[s2], hazard_ratio=p["hr_S2"])
-    return times
-```
+import pathlib
+import sys
 
-## Attaching flows and transition rewards
+here = pathlib.Path.cwd()
+examples = next(
+    p / "examples" for p in [here, *here.parents] if (p / "examples" / "mdm_des").is_dir()
+)
+sys.path.insert(0, str(examples))
 
-State costs and utilities accrue as annual flows between events, discounted continuously. Sick and Sicker patients cannot be told apart in practice, so a strategy's treatment cost applies in both disease states; treatment A raises the Sick utility by a fixed 0.20, and treatment B only slows progression.
-
-```{python}
-def payoffs(p, state, attrs):
-    n = len(state)
-    cost, util = np.zeros(n), np.zeros(n)
-    on_a, on_b = bool(p["trtA"]), bool(p["trtB"])
-    tx = on_a * p["c_trtA"] + on_b * p["c_trtB"]
-    h = state == 0
-    cost[h], util[h] = p["c_H"], p["u_H"]
-    s1 = state == 1
-    cost[s1] = p["c_S1"] + tx
-    util[s1] = (p["u_S1"] + 0.20) if on_a else p["u_S1"]
-    s2 = state == 2
-    cost[s2] = p["c_S2"] + tx
-    util[s2] = p["u_S2"]
-    return cost, util
-```
-
-The transition rewards, a cost and a utility decrement at disease onset and a cost of dying, are not paid at the event. The companion code adds each to the annual flow of the sojourn that ends in the transition, then multiplies by the discounted length of that sojourn, so the cost of dying enters as its amount per year over the whole final sojourn. That is a specialized accounting convention rather than a general engine feature, so it is reconstructed from the event history after the run: for each transition, the reward accrues over the sojourn `[start, time]`, where the start is the individual's previous event time.
-
-```{python}
-def transition_rewards(events, draws, n_individuals):
-    ev = events.sort_values(["strategy", "iteration", "individual", "time"])
-    start = ev.groupby(["strategy", "iteration", "individual"])["time"].shift(fill_value=0.0)
-    stop = ev["time"].to_numpy()
-    disc_years = (np.exp(-0.03 * start.to_numpy()) - np.exp(-0.03 * stop)) / 0.03
-    p = draws.loc[ev["iteration"].to_numpy()]
-    onset = (ev["from_state"].to_numpy() == "H") & (ev["to_state"].to_numpy() == "S1")
-    death = ev["to_state"].to_numpy() == "D"
-    cost_rate = onset * p["ic_HS1"].to_numpy() + death * p["ic_D"].to_numpy()
-    util_rate = -(onset * p["du_HS1"].to_numpy())
-    contrib = pd.DataFrame({
-        "strategy": ev["strategy"].to_numpy(), "iteration": ev["iteration"].to_numpy(),
-        "cost": cost_rate * disc_years, "qaly": util_rate * disc_years,
-    })
-    return contrib.groupby(["strategy", "iteration"])[["cost", "qaly"]].sum() / n_individuals
-
-def with_transition_rewards(outcomes, events, draws, n_individuals):
-    totals = transition_rewards(events, draws, n_individuals)
-    data = outcomes.data.add(totals.reindex(outcomes.data.index, fill_value=0.0), fill_value=0.0)
-    return Outcomes(data, effect=outcomes.effect)
+from mdm_des import (
+    base_case, build_engine, costs_and_utilities_model, dwell_times,
+    load_life_table, parameter_set, states, strategies,
+    survival_and_prevalence, with_transition_costs_and_utilities,
+)
 ```
 
 ## Reproducing the base case
 
-One run at the article's Table 1 point estimates gives the deterministic cost-effectiveness analysis. The article publishes its results as figures rather than a table, so the check is structural: strategy A must be dominated (treatment A buys quality of life in S1 but no survival, at almost treatment B's cost), and the frontier must run standard of care, then B, then AB. 25,000 individuals keep this page fast; the full script uses 100,000. Because treatment A raises the Sick utility by a fixed 0.20, there is no separate treated-utility base value.
+The base case is one run at the article's Table 1 point estimates. `load_life_table` reads the US 2015 mortality rates from the CSV shipped with the example, and `build_engine` assembles the continuous-clock engine from the life table and the model structure. Evaluating with `trace="events"` returns both the standard outcomes and the event history, one row per transition.
+
+The transition amounts are not in the engine's per-year valuation. The companion code adds each (the onset cost and disutility, and the cost of dying) to the annual flow of the sojourn that ends in the transition, then multiplies by the discounted sojourn length, so the cost of dying enters as its amount per year over the whole final sojourn. `with_transition_costs_and_utilities` reconstructs that from the event history and folds it into the outcomes. 25,000 individuals keep this page fast; the full script uses 100,000.
 
 ```{python}
 from heormodel.cea import icer_table
-from heormodel.models import Outcomes
 from heormodel.params import single_draw
 from heormodel.run import SeedManager
 
-BASE = dict(
-    r_HS1=0.15, r_S1H=0.5, r_S1S2_scale=0.08, r_S1S2_shape=1.1,
-    hr_S1=3.0, hr_S2=10.0, hr_S1S2_trtB=0.6,
-    c_H=2000.0, c_S1=4000.0, c_S2=15000.0, c_trtA=12000.0, c_trtB=13000.0,
-    u_H=1.0, u_S1=0.75, u_S2=0.5,
-    du_HS1=0.01, ic_HS1=1000.0, ic_D=2000.0,
-)
-STRATEGIES = {
-    "Standard of care": {"trtA": 0.0, "trtB": 0.0},
-    "Strategy A": {"trtA": 1.0, "trtB": 0.0},
-    "Strategy B": {"trtA": 0.0, "trtB": 1.0},
-    "Strategy AB": {"trtA": 1.0, "trtB": 1.0},
-}
-
-def build_engine(seed_manager, population):
-    return MicrosimModel(
-        states=STATES, clock="continuous", hazards=hazards, payoffs=payoffs,
-        population=population, strategies=STRATEGIES, horizon=HORIZON,
-        discount_rate=0.03, seed_manager=seed_manager)
-
+age_start, horizon, discount_rate = 25.0, 75.0, 0.03
+state_labels, strategy_defs = states(), strategies()
+life_table = load_life_table(examples / "mdm_des" / "data" / "us_mortality_2015.csv")
 seeds = SeedManager(2)
-engine = build_engine(seeds, 25_000)
-base = single_draw(BASE)
+
+engine = build_engine(
+    life_table=life_table, states=state_labels, strategies=strategy_defs,
+    age_start=age_start, horizon=horizon, discount_rate=discount_rate,
+    population=25_000, seed_manager=seeds,
+)
+base = single_draw(base_case())
 outcomes, events = engine.evaluate(base, trace="events")
-outcomes = with_transition_rewards(outcomes, events, base, 25_000)
+outcomes = with_transition_costs_and_utilities(
+    outcomes, events, base, n_individuals=25_000, discount_rate=discount_rate
+)
 icer_table(outcomes).round(2)
 ```
 
-The frontier runs standard of care, then B at about 59,000 dollars per quality-adjusted life-year (QALY), then AB at about 99,000; A is dominated. The costs, near 128,000 dollars for standard of care up to 285,000 for AB, match the article's figure 4A, because the transition rewards accrue over the preceding sojourn: the cost of dying, paid over the long final sojourn, adds about 20,000 dollars per strategy that a once-at-death payment would not.
+The frontier runs standard of care, then B at about 59,000 dollars per quality-adjusted life-year (QALY), then AB at about 99,000; A is dominated. The costs, near 128,000 dollars for standard of care up to 285,000 for AB, match the article's figure 4A, because the transition amounts accrue over the preceding sojourn: the cost of dying, paid over the long final sojourn, adds about 20,000 dollars per strategy that a once-at-death payment would not.
 
 ## Reading epidemiological outcomes from the event history
 
-`evaluate` with `trace="events"` returns the event history, one row per transition, and `state_occupancy` turns it into the proportion of the population in each state over time. From that table the article's figure 3 follows: survival is one minus the dead-state column, and the prevalence of disease among the alive is the summed disease columns over survival. Strategies A and standard of care share transition dynamics, as do B and AB, so their curves coincide (the engine's common random numbers make them identical, not merely close).
+`survival_and_prevalence` turns the event history into the article's figure 3: it counts state occupancy over time, then returns survival (one minus the dead-state occupancy) and the prevalence of disease among the alive, each a table indexed by time with one column per strategy. Strategies A and standard of care share transition dynamics, as do B and AB, so their curves coincide.
 
 ```{python}
 from matplotlib import pyplot as plt
-from heormodel.models import state_occupancy
 from heormodel.report import strategy_colors
 
-grid = np.linspace(0.0, HORIZON, 151)
-occ = state_occupancy(events, states=STATES, initial_state="H",
-                      n_individuals=25_000, times=grid).droplevel("iteration")
-alive = 1.0 - occ["D"]
-surv = alive.unstack("strategy")[list(STRATEGIES)]
-prev = (occ[["S1", "S2"]].sum(axis=1) / alive).unstack("strategy")[list(STRATEGIES)]
+survival, prevalence = survival_and_prevalence(
+    events, states=state_labels, strategies=strategy_defs, initial_state="H",
+    dead_state="D", disease_states=("S1", "S2"), n_individuals=25_000, horizon=horizon,
+)
 
-colors = strategy_colors(list(STRATEGIES))
+colors = strategy_colors(list(strategy_defs))
 dashes = {"Strategy A": (4, 2), "Strategy AB": (4, 2)}
 fig, axes = plt.subplots(1, 2, figsize=(9, 3.4))
-for ax, curves, title in ((axes[0], surv, "Survival"), (axes[1], prev, "Prevalence of S1 and S2")):
+for ax, curves, title in ((axes[0], survival, "Survival"), (axes[1], prevalence, "Prevalence of S1 and S2")):
     for s in curves.columns:
-        ax.plot(AGE_START + curves.index, curves[s], lw=1.8, color=colors[s],
+        ax.plot(age_start + curves.index, curves[s], lw=1.8, color=colors[s],
                 label=s, dashes=dashes.get(s, (None, None)))
     ax.set_xlabel("Age (years)"); ax.set_ylabel("Proportion"); ax.set_title(title)
 axes[0].legend(frameon=False, fontsize=8)
 plt.show()
 ```
 
-Treatment B raises survival by slowing progression into the high-mortality Sicker state, and its prevalence curve peaks near 0.38 against 0.46 under standard of care, both matching the article's figure 3. Dwell times need no new machinery: each completed sojourn is the gap between consecutive event times within an individual.
+The example's `plot_epidemiology` writes this same figure to a file for the run script. Treatment B raises survival by slowing progression into the high-mortality Sicker state, and its prevalence curve peaks lower than standard of care, both matching the article's figure 3. `dwell_times` reads the mean completed sojourn per state directly from the event history.
 
 ```{python}
-ev = events.sort_values(["strategy", "individual", "time"])
-entered = ev.groupby(["strategy", "individual"])["time"].shift(fill_value=0.0)
-ev = ev.assign(dwell=ev["time"] - entered)
-ev.groupby(["strategy", "from_state"])["dwell"].mean().unstack("from_state").round(2)
+dwell_times(events).round(2)
 ```
 
 Individuals spend about 6 years per stay in Healthy, under 2 in Sick, and about 14 in Sicker; B and AB delay entry into Sicker, so those sojourns start older and end sooner, as in the article's figure 3C.
 
 ## Running the probabilistic analysis
 
-The probabilistic analysis draws gamma for the remaining rates and costs, beta for utilities, and lognormal for the hazard ratios. Six parameters the companion draws but never reads are held fixed to match its figures: the Weibull progression scale, both treatment costs, both transition costs, and the treated-utility increment (the Sick utility is `u_S1 + 0.20` regardless of any drawn value). With the scale fixed, only the Weibull shape varies, so the progression hazard barely moves across draws and no scale-shape correlation applies. The article runs 1,000 parameter sets of 100,000 individuals each; 400 sets of 2,500 individuals keep this page fast (the full script runs all 1,000), and common random numbers absorb most of the extra Monte Carlo noise in the strategy comparisons.
+`parameter_set` returns the probabilistic distributions. Six parameters the companion draws but never reads are held fixed there to match its figures: the Weibull progression scale, both treatment costs, both transition costs, and the treated-utility increment. With the scale fixed, only the Weibull shape varies, so the progression hazard barely moves across draws.
 
-The engine is wrapped as a `draws -> Outcomes` model so `run_psa` folds in the sojourn-accrued transition rewards on every iteration; one draw per experiment keeps each worker's event history small.
+The transition amounts must be added on every iteration, so `costs_and_utilities_model` wraps the engine as a `draws -> Outcomes` function that evaluates with the event history and folds the amounts in. `run_psa` drives that wrapper over the draw matrix; one draw per experiment keeps each worker's event history small. The article runs 1,000 parameter sets of 100,000 individuals each; 300 sets of 2,500 individuals keep this page fast.
 
 ```{python}
-from heormodel.params import Beta, Fixed, Gamma, LogNormal, ParameterSet
 from heormodel.run import run_psa
 
-params = ParameterSet(
-    {
-        "r_HS1": Gamma(30.0, 1.0 / 200.0),
-        "r_S1H": Gamma(60.0, 1.0 / 120.0),
-        "r_S1S2_scale": Fixed(0.08),
-        "r_S1S2_shape": LogNormal.from_mean_se(1.10, 0.05),
-        "hr_S1": LogNormal(np.log(3.0), 0.01),
-        "hr_S2": LogNormal(np.log(10.0), 0.02),
-        "hr_S1S2_trtB": LogNormal(np.log(0.6), 0.02),
-        "c_H": Gamma(100.0, 20.0), "c_S1": Gamma(177.8, 22.5), "c_S2": Gamma(225.0, 66.7),
-        "c_trtA": Fixed(12000.0), "c_trtB": Fixed(13000.0),
-        "u_H": Beta(200.0, 3.0), "u_S1": Beta(130.0, 45.0), "u_S2": Beta(230.0, 230.0),
-        "du_HS1": Beta(11.0, 1088.0), "ic_HS1": Fixed(1000.0), "ic_D": Fixed(2000.0),
-    },
+params = parameter_set()
+draws = params.sample(300, seed=seeds.generator())
+model = costs_and_utilities_model(
+    build_engine(
+        life_table=life_table, states=state_labels, strategies=strategy_defs,
+        age_start=age_start, horizon=horizon, discount_rate=discount_rate,
+        population=2_500, seed_manager=seeds,
+    ),
+    n_individuals=2_500, discount_rate=discount_rate,
 )
-
-def reward_adjusted_model(engine, n_individuals):
-    def model(draws):
-        outcomes, events = engine.evaluate(draws, trace="events")
-        return with_transition_rewards(outcomes, events, draws, n_individuals)
-    return model
-
-draws = params.sample(400, seed=seeds.generator())
-psa = run_psa(reward_adjusted_model(build_engine(seeds, 2_500), 2_500), draws, batch_size=1)
+psa = run_psa(model, draws, batch_size=1)
 icer_table(psa).round(2)
 ```
 
 The probabilistic means keep the base-case ordering. The acceptability curves, the frontier, and the expected loss curves then summarize decision uncertainty over a willingness-to-pay grid at the article's 1,000-dollar steps.
 
 ```{python}
+import numpy as np
 from heormodel.cea import ceac, ceaf, expected_loss
 from heormodel.report import plot_ceac, plot_expected_loss
-from heormodel.voi import evpi
 
 wtp = np.arange(0.0, 200_001.0, 1_000.0)
 fig, axes = plt.subplots(1, 2, figsize=(9.5, 3.6))
@@ -236,15 +141,17 @@ axes[0].legend(frameon=False, fontsize=7); axes[1].legend(frameon=False, fontsiz
 plt.show()
 ```
 
-At a willingness-to-pay of zero, each strategy's expected loss is its mean extra cost over standard of care, about 157,000 dollars for AB, 90,000 for A, and 75,000 for B, the same anchors as the article's figure 4C. The frontier switches strategy where the lowest curve changes, and the expected value of perfect information (EVPI) equals that lower envelope.
+The expected value of perfect information (EVPI) equals the lower envelope of the expected loss curves, so it reads straight off the same money scale. The frontier switches strategy where the lowest curve changes.
 
 ```{python}
+from heormodel.voi import evpi
+
 evpi_curve = evpi(psa, wtp)
 front = ceaf(psa, wtp)
 switches = front["strategy"].ne(front["strategy"].shift()) & front.index.to_series().gt(0)
 [(float(w), round(float(evpi_curve.loc[w]))) for w in front.index[switches]]
 ```
 
-The frontier switches from standard of care to B near 61,000 dollars per QALY and from B to AB near 99,000, the two thresholds where the article's figure 4 also places its EVPI peaks. Holding the six companion-fixed parameters at base case keeps the strategy comparisons near-certain, so the acceptability curves are close to step functions and the EVPI peaks are small, matching the published figure 4D within Monte Carlo error. The one departure left in place is that the companion drives every parameter set from a single shared random-number stream, while this run keeps the framework's per-iteration seeding; both are unbiased, and a larger population per draw shrinks the difference.
+The frontier switches from standard of care to B near 61,000 dollars per QALY and from B to AB near 99,000, the two thresholds where the article's figure 4 also places its EVPI peaks. Holding the six companion-fixed parameters at base case keeps the strategy comparisons near-certain, so the acceptability curves are close to step functions and the EVPI peaks are small, matching the published figure 4D within Monte Carlo error. The one departure left in place is that the companion drives every parameter set from a single shared random-number stream, while this run keeps the framework's per-iteration seeding; both are unbiased, and a larger population per draw shrinks the difference. See [`devdocs/replication-notes/mdm-des-departures.md`](https://github.com/pedroliman/heormodel/blob/main/devdocs/replication-notes/mdm-des-departures.md) for the full accounting.
 
 Reference: Lopez-Mendez M, Goldhaber-Fiebert JD, Alarid-Escudero F. A tutorial on discrete event simulation models using a cost-effectiveness analysis example in R. Medical Decision Making. 2026;46(5):533-548.
