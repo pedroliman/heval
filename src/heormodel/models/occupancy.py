@@ -1,4 +1,4 @@
-"""State occupancy, survival, and prevalence from an event history."""
+"""State occupancy over time from an individual-level event history."""
 
 from __future__ import annotations
 
@@ -30,6 +30,10 @@ def state_occupancy(
     initial state and the population size are explicit arguments rather than
     read from the log.
 
+    Survival is one minus the dead-state column, and prevalence among the
+    alive is the summed disease-state columns divided by that survival, both
+    one-line derivations of this table.
+
     Args:
         events: Event history with columns ``strategy``, ``iteration``,
             ``individual``, ``time``, ``from_state``, ``to_state``, as
@@ -46,7 +50,7 @@ def state_occupancy(
 
     Example:
         >>> import pandas as pd
-        >>> from heormodel.epi import state_occupancy
+        >>> from heormodel.models import state_occupancy
         >>> events = pd.DataFrame({
         ...     "strategy": "care", "iteration": 0, "individual": [0, 0, 1],
         ...     "time": [1.0, 3.0, 2.0], "from_state": ["H", "S", "H"],
@@ -90,56 +94,3 @@ def state_occupancy(
     if not frames:
         raise ValueError("events is empty.")
     return pd.concat(frames)
-
-
-def survival(occupancy: pd.DataFrame, *, dead_state: str) -> pd.Series:
-    """Probability of being alive at each time, from a state occupancy table.
-
-    Args:
-        occupancy: Output of `state_occupancy`.
-        dead_state: Label of the absorbing death state.
-
-    Example:
-        >>> import pandas as pd
-        >>> from heormodel.epi import state_occupancy, survival
-        >>> events = pd.DataFrame({
-        ...     "strategy": "care", "iteration": 0, "individual": [0],
-        ...     "time": [1.0], "from_state": ["H"], "to_state": ["D"]})
-        >>> occ = state_occupancy(events, states=("H", "D"),
-        ...     initial_state="H", n_individuals=2, times=[2.0])
-        >>> survival(occ, dead_state="D").tolist()
-        [0.5]
-    """
-    return (1.0 - occupancy[dead_state]).rename("survival")
-
-
-def prevalence(
-    occupancy: pd.DataFrame, *, states: Sequence[str], dead_state: str
-) -> pd.Series:
-    """Proportion of the alive in the given disease states at each time.
-
-    Prevalence conditions on being alive, the epidemiological definition, so
-    it is the summed occupancy of the disease states divided by the survival
-    probability. Times where no one is alive return ``NaN``.
-
-    Args:
-        occupancy: Output of `state_occupancy`.
-        states: Disease state labels to count as prevalent.
-        dead_state: Label of the absorbing death state.
-
-    Example:
-        >>> import pandas as pd
-        >>> from heormodel.epi import prevalence, state_occupancy
-        >>> events = pd.DataFrame({
-        ...     "strategy": "care", "iteration": 0, "individual": [0, 1],
-        ...     "time": [1.0, 1.5], "from_state": ["H", "H"],
-        ...     "to_state": ["S", "D"]})
-        >>> occ = state_occupancy(events, states=("H", "S", "D"),
-        ...     initial_state="H", n_individuals=4, times=[2.0])
-        >>> prevalence(occ, states=("S",), dead_state="D").tolist()
-        [0.3333333333333333]
-    """
-    alive = 1.0 - occupancy[dead_state]
-    sick = occupancy[list(states)].sum(axis=1)
-    values = np.divide(sick, alive, out=np.full(len(alive), np.nan), where=alive > 0)
-    return pd.Series(values, index=occupancy.index, name="prevalence")

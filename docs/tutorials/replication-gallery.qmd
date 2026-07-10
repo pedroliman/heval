@@ -9,9 +9,9 @@ This page collects four published Sick-Sicker cost-effectiveness tutorials, repr
 | [Cohort state-transition model](mdm-cohort.qmd) | `MarkovModel` | Matches the published results exactly |
 | [Time-dependent cohort model](mdm-cohort-timedep.qmd) | `MarkovModel`, per-cycle transitions | Matches the published results exactly |
 | [Microsimulation](mdm-microsim.qmd) | `MicrosimModel`, `duration_groups` | Matches within Monte Carlo error |
-| [Discrete-event simulation](mdm-des.qmd) | `MicrosimModel`, continuous clock | Matches the published figures, with two documented divergences |
+| [Discrete-event simulation](mdm-des.qmd) | `MicrosimModel`, continuous clock | Matches the published figures within Monte Carlo error |
 
-The discrete-event source publishes figures rather than result tables. Its page reproduces the epidemiological curves and the frontier structure, and explains the two places the numbers depart from the published figures: transition rewards paid once at the event rather than accrued over the preceding sojourn, and a probabilistic analysis that draws every published distribution.
+The discrete-event source publishes figures rather than result tables. Its page reproduces the epidemiological curves, the cost axis, and the frontier structure of the published figures, matching the companion code on the two points that move the numbers: transition rewards accrued over the sojourn that ends in each transition, and six parameters the companion draws but never reads held at their base case.
 
 ## Sources
 

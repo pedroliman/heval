@@ -1,4 +1,4 @@
-"""Tests for the event-history trace and the epidemiological outcome helpers."""
+"""Tests for the event-history trace and the state-occupancy helper."""
 
 from __future__ import annotations
 
@@ -6,9 +6,21 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from heormodel.epi import prevalence, state_occupancy, survival
-from heormodel.models import MicrosimModel
+from heormodel.models import MicrosimModel, state_occupancy
 from heormodel.run import SeedManager
+
+
+def _survival(occ: pd.DataFrame, dead_state: str) -> pd.Series:
+    """Survival is one minus the dead-state occupancy (the tutorial derivation)."""
+    return 1.0 - occ[dead_state]
+
+
+def _prevalence(occ: pd.DataFrame, states, dead_state: str) -> pd.Series:
+    """Prevalence among the alive: summed disease occupancy over survival."""
+    alive = 1.0 - occ[dead_state]
+    sick = occ[list(states)].sum(axis=1)
+    values = np.divide(sick, alive, out=np.full(len(alive), np.nan), where=alive > 0)
+    return pd.Series(values, index=occ.index)
 
 
 def _draws(n_iter=1):
@@ -48,15 +60,15 @@ class TestStateOccupancy:
             _hand_log(), states=("H", "S", "D"), initial_state="H",
             n_individuals=4, times=[2.5],
         )
-        assert survival(occ, dead_state="D").tolist() == [0.75]
-        assert prevalence(occ, states=("S",), dead_state="D").iloc[0] == pytest.approx(1 / 3)
+        assert _survival(occ, dead_state="D").tolist() == [0.75]
+        assert _prevalence(occ, states=("S",), dead_state="D").iloc[0] == pytest.approx(1 / 3)
 
     def test_prevalence_nan_when_no_one_alive(self):
         events = _hand_log()
         occ = state_occupancy(
             events, states=("H", "S", "D"), initial_state="H", n_individuals=2, times=[10.0]
         )
-        assert np.isnan(prevalence(occ, states=("S",), dead_state="D").iloc[0])
+        assert np.isnan(_prevalence(occ, states=("S",), dead_state="D").iloc[0])
 
     def test_rejects_unknown_states_and_missing_columns(self):
         with pytest.raises(ValueError, match="not listed in states"):
@@ -106,7 +118,7 @@ class TestEventTrace:
             events, states=("alive", "dead"), initial_state="alive",
             n_individuals=20_000, times=[5.0, 10.0, 20.0],
         )
-        surv = survival(occ, dead_state="dead")
+        surv = _survival(occ, dead_state="dead")
         for t in (5.0, 10.0, 20.0):
             assert surv.loc[("care", 0, t)] == pytest.approx(np.exp(-0.1 * t), abs=0.01)
 

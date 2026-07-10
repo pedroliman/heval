@@ -13,20 +13,23 @@ Each entry links to the pull request that introduced it. Add a line under
 ### Added
 
 - Continuous-time Sick-Sicker replication (roadmap item 13): `examples/mdm_des.py`
-  and a website tutorial reproduce the discrete-event simulation tutorial of
-  Lopez-Mendez, Goldhaber-Fiebert, and Alarid-Escudero (Medical Decision Making
-  2026;46(5):533-548) on the continuous clock of `MicrosimModel`, with the base
-  case, epidemiological outcomes, and a 1,000-set probabilistic analysis with
-  acceptability, expected loss, and EVPI curves. Four framework additions carry
-  it: `heormodel.models.LifeTable` samples time to death from piecewise-constant
+  and a website tutorial reproduce the published figures of the discrete-event
+  simulation tutorial of Lopez-Mendez, Goldhaber-Fiebert, and Alarid-Escudero
+  (Medical Decision Making 2026;46(5):533-548) on the continuous clock of
+  `MicrosimModel`, with the base case, epidemiological outcomes, and a 1,000-set
+  probabilistic analysis with acceptability, expected loss, and EVPI curves. It
+  matches the companion code on the two points that move the numbers: each
+  transition reward accrues over the sojourn that ends in it (reconstructed from
+  the event history), and six parameters the companion draws but never reads are
+  held at their base case. Three framework additions carry it:
+  `heormodel.models.LifeTable` samples time to death from piecewise-constant
   age-specific mortality rates by exact cumulative-hazard inversion under a
-  hazard ratio; `MicrosimModel` accepts `transition_payoffs` (one-time costs and
-  effects discounted at the event time, continuous clock) and returns the event
-  history via `evaluate(trace="events")` on either clock; `heormodel.epi` turns
-  that history into state occupancy, survival, and prevalence; and
-  `heormodel.cea.expected_loss` with `heormodel.report.plot_expected_loss` adds
-  expected loss curves whose minimum equals EVPI. A test cross-validates the
-  replication's all-exponential variant against the continuous-time Markov chain
+  hazard ratio; `MicrosimModel` returns the event history via
+  `evaluate(trace="events")` on either clock, which `heormodel.models.state_occupancy`
+  turns into state occupancy over time; and `heormodel.cea.expected_loss` with
+  `heormodel.report.plot_expected_loss` adds expected loss curves whose minimum
+  equals EVPI. A test cross-validates the replication's all-exponential variant,
+  including the sojourn-accrued rewards, against the continuous-time Markov chain
   closed form ([#27](https://github.com/pedroliman/heormodel/pull/27)).
 
 - Value-of-information tutorial: `examples/voi_tutorial.py` and a website tutorial

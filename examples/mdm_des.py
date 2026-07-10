@@ -1,7 +1,7 @@
 """Replicate the continuous-time Sick-Sicker DES of Lopez-Mendez and others (2026).
 
-Reproduces the discrete-event simulation (DES) of Lopez-Mendez, Goldhaber-Fiebert,
-and Alarid-Escudero, "A Tutorial on Discrete Event Simulation Models Using a
+Reproduces the published figures of Lopez-Mendez, Goldhaber-Fiebert, and
+Alarid-Escudero, "A Tutorial on Discrete Event Simulation Models Using a
 Cost-Effectiveness Analysis Example in R," Medical Decision Making
 2026;46(5):533-548: the Sick-Sicker model in continuous time from age 25 to 100,
 with age-dependent background mortality from a US 2015 life table, a Weibull
@@ -9,6 +9,18 @@ hazard on time spent Sick for progression, recovery, four strategies, transition
 rewards, a cost-effectiveness analysis, epidemiological outcomes, and a
 probabilistic analysis with acceptability curves, expected loss curves, and the
 expected value of perfect information.
+
+This example reproduces the companion R code's behavior on the two points that
+move the numbers, not the Table 1 specification. First, each one-time transition
+reward (onset cost, onset disutility, cost of dying) accrues as an annual flow
+over the sojourn that ends in that transition rather than a lump sum at the
+event, which is what the companion cost function computes; the accrual is
+reconstructed here from the event history. Second, six Table 1 parameters the
+companion draws but never reads are held at their base case. The one remaining
+departure, a single random-number stream shared across all parameter sets, is
+the framework's per-iteration seeding guarantee and is left in place, so the
+probabilistic results match the published figures within Monte Carlo error.
+See devdocs/replication-notes/mdm-des-departures.md for the full accounting.
 
 The engine is the continuous clock of `MicrosimModel`, whose competing
 time-to-event kernel is the article's next-event algorithm: sample a latent
@@ -37,9 +49,8 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from heormodel.cea import ceac, ceaf, expected_loss, icer_table
-from heormodel.epi import prevalence, state_occupancy, survival
-from heormodel.models import LifeTable, MicrosimModel
-from heormodel.params import Beta, Gamma, LogNormal, ParameterSet, single_draw
+from heormodel.models import LifeTable, MicrosimModel, Outcomes, state_occupancy
+from heormodel.params import Beta, Fixed, Gamma, LogNormal, ParameterSet, single_draw
 from heormodel.report import (
     capture_run,
     plot_ceac,
@@ -56,6 +67,7 @@ OUT = HERE / "output"
 STATES = ("H", "S1", "S2", "D")
 AGE_START, AGE_END = 25.0, 100.0
 HORIZON = AGE_END - AGE_START
+DISCOUNT_RATE = 0.03
 N_BASE = 100_000  # individuals in the base case, matching the article
 N_PSA_DRAWS = 1_000  # parameter sets, matching the article
 N_PSA_IND = 10_000  # individuals per parameter set (the article uses 100,000)
@@ -78,12 +90,14 @@ MORTALITY_BY_AGE = np.array([
 MORTALITY = LifeTable(ages=np.arange(25, 100, dtype=float), rates=MORTALITY_BY_AGE)
 
 # Base-case values from the article's Table 1 (c_trtB follows the text and the
-# distribution mean, $13,000; the table's $12,000 entry is a misprint).
+# distribution mean, $13,000; the table's $12,000 entry is a misprint). Treatment
+# A raises the Sick utility by a fixed 0.20 increment, so there is no separate
+# treated-utility base value.
 BASE = dict(
     r_HS1=0.15, r_S1H=0.5, r_S1S2_scale=0.08, r_S1S2_shape=1.1,
     hr_S1=3.0, hr_S2=10.0, hr_S1S2_trtB=0.6,
     c_H=2000.0, c_S1=4000.0, c_S2=15000.0, c_trtA=12000.0, c_trtB=13000.0,
-    u_H=1.0, u_S1=0.75, u_S2=0.5, u_trtA=0.95,
+    u_H=1.0, u_S1=0.75, u_S2=0.5,
     du_HS1=0.01, ic_HS1=1000.0, ic_D=2000.0,
 )
 
@@ -136,25 +150,59 @@ def payoffs(p: pd.Series, state: np.ndarray, attrs: pd.DataFrame) -> tuple[np.nd
     cost[h], util[h] = p["c_H"], p["u_H"]
     s1 = state == 1
     cost[s1] = p["c_S1"] + tx_cost
-    util[s1] = p["u_trtA"] if on_a else p["u_S1"]
+    # Treatment A raises the Sick utility by a fixed 0.20, matching the companion.
+    util[s1] = (p["u_S1"] + 0.20) if on_a else p["u_S1"]
     s2 = state == 2
     cost[s2] = p["c_S2"] + tx_cost
     util[s2] = p["u_S2"]
     return cost, util
 
 
-def transition_payoffs(
-    p: pd.Series, state_from: np.ndarray, state_to: np.ndarray, attrs: pd.DataFrame
-) -> tuple[np.ndarray, np.ndarray]:
-    """One-time rewards: onset cost and disutility, and a cost of dying."""
-    n = len(state_from)
-    cost = np.zeros(n)
-    eff = np.zeros(n)
-    onset = (state_from == 0) & (state_to == 1)
-    cost[onset] = p["ic_HS1"]
-    eff[onset] = -p["du_HS1"]
-    cost[state_to == 3] += p["ic_D"]
-    return cost, eff
+def transition_rewards(
+    events: pd.DataFrame, draws: pd.DataFrame, n_individuals: int
+) -> pd.DataFrame:
+    """Mean per-person transition reward, accrued over the sojourn that ends in it.
+
+    The companion cost function adds each one-time reward (the onset cost and
+    disutility, and the cost of dying) to the annual flow of the sojourn that
+    ends in the transition, then multiplies by the discounted length of that
+    sojourn. This reconstructs that arithmetic from the event history: for every
+    event, the reward enters as a per-year rate over the sojourn ``[start,
+    time]``, discounted, so a $2,000 cost of dying enters as $2,000 per year over
+    the final sojourn rather than a lump sum at death. The per-person mean is
+    returned as a cost and a QALY column to add to each strategy's outcomes.
+    """
+    ev = events.sort_values(["strategy", "iteration", "individual", "time"])
+    start = ev.groupby(["strategy", "iteration", "individual"])["time"].shift(fill_value=0.0)
+    stop = ev["time"].to_numpy()
+    # Discounted sojourn length, the companion's v_dwc: the integral of the
+    # continuous discount factor over the sojourn that the transition ends.
+    disc_years = (np.exp(-DISCOUNT_RATE * start.to_numpy()) - np.exp(-DISCOUNT_RATE * stop)) / (
+        DISCOUNT_RATE
+    )
+    p = draws.loc[ev["iteration"].to_numpy()]
+    onset = (ev["from_state"].to_numpy() == "H") & (ev["to_state"].to_numpy() == "S1")
+    death = ev["to_state"].to_numpy() == "D"
+    cost_rate = onset * p["ic_HS1"].to_numpy() + death * p["ic_D"].to_numpy()
+    util_rate = -(onset * p["du_HS1"].to_numpy())
+    contrib = pd.DataFrame(
+        {
+            "strategy": ev["strategy"].to_numpy(),
+            "iteration": ev["iteration"].to_numpy(),
+            "cost": cost_rate * disc_years,
+            "qaly": util_rate * disc_years,
+        }
+    )
+    return contrib.groupby(["strategy", "iteration"])[["cost", "qaly"]].sum() / n_individuals
+
+
+def with_transition_rewards(
+    outcomes: Outcomes, events: pd.DataFrame, draws: pd.DataFrame, n_individuals: int
+) -> Outcomes:
+    """Add the sojourn-accrued transition rewards to an outcomes panel."""
+    totals = transition_rewards(events, draws, n_individuals)
+    data = outcomes.data.add(totals.reindex(outcomes.data.index, fill_value=0.0), fill_value=0.0)
+    return Outcomes(data, effect=outcomes.effect)
 
 
 def build_engine(seed_manager: SeedManager, population: int) -> MicrosimModel:
@@ -164,28 +212,46 @@ def build_engine(seed_manager: SeedManager, population: int) -> MicrosimModel:
         clock="continuous",
         hazards=hazards,
         payoffs=payoffs,
-        transition_payoffs=transition_payoffs,
         population=population,
         strategies=STRATEGIES,
         horizon=HORIZON,
-        discount_rate=0.03,
+        discount_rate=DISCOUNT_RATE,
         seed_manager=seed_manager,
     )
 
 
-def parameter_set() -> ParameterSet:
-    """The article's Table 1 distributions.
+def reward_adjusted_model(engine: MicrosimModel, n_individuals: int):
+    """Wrap the engine as a ``draws -> Outcomes`` model that adds transition rewards.
 
-    The article draws the Weibull scale and shape from a bivariate lognormal
-    with means (0.08, 1.10), standard deviations (0.02, 0.05), and correlation
-    0.5; two lognormal marginals with Spearman correlation 0.5 through the
-    Gaussian-copula sampler reproduce it up to the rank-to-linear conversion.
+    ``run_psa`` drives this closure over the draw matrix: it evaluates the engine
+    with the event history, folds in the sojourn-accrued transition rewards, and
+    returns the standard outcomes, so the reward accrual runs inside the same
+    per-iteration seeding the framework guarantees.
+    """
+
+    def model(draws: pd.DataFrame) -> Outcomes:
+        outcomes, events = engine.evaluate(draws, trace="events")
+        return with_transition_rewards(outcomes, events, draws, n_individuals)
+
+    return model
+
+
+def parameter_set() -> ParameterSet:
+    """The probabilistic parameters, matching the companion code's active draws.
+
+    The companion draws all of Table 1 but merges six columns into its model
+    under names the model does not read, so it runs them at base case: the
+    Weibull progression scale, both treatment costs, both transition costs, and
+    the treated-utility increment (Sick utility is ``u_S1 + 0.20`` regardless of
+    the drawn value). Those six are held fixed here. With the scale fixed, only
+    the Weibull shape varies, so the progression hazard barely moves across
+    draws and no scale-shape correlation applies.
     """
     return ParameterSet(
         {
             "r_HS1": Gamma(30.0, 1.0 / 200.0),
             "r_S1H": Gamma(60.0, 1.0 / 120.0),
-            "r_S1S2_scale": LogNormal.from_mean_se(0.08, 0.02),
+            "r_S1S2_scale": Fixed(0.08),
             "r_S1S2_shape": LogNormal.from_mean_se(1.10, 0.05),
             "hr_S1": LogNormal(np.log(3.0), 0.01),
             "hr_S2": LogNormal(np.log(10.0), 0.02),
@@ -193,17 +259,15 @@ def parameter_set() -> ParameterSet:
             "c_H": Gamma(100.0, 20.0),
             "c_S1": Gamma(177.8, 22.5),
             "c_S2": Gamma(225.0, 66.7),
-            "c_trtA": Gamma(73.5, 163.3),
-            "c_trtB": Gamma(86.2, 150.8),
+            "c_trtA": Fixed(12000.0),
+            "c_trtB": Fixed(13000.0),
             "u_H": Beta(200.0, 3.0),
             "u_S1": Beta(130.0, 45.0),
             "u_S2": Beta(230.0, 230.0),
-            "u_trtA": Beta(300.0, 15.0),
             "du_HS1": Beta(11.0, 1088.0),
-            "ic_HS1": Gamma(25.0, 40.0),
-            "ic_D": Gamma(100.0, 20.0),
+            "ic_HS1": Fixed(1000.0),
+            "ic_D": Fixed(2000.0),
         },
-        correlation={("r_S1S2_scale", "r_S1S2_shape"): 0.5},
     )
 
 
@@ -213,10 +277,11 @@ def plot_epi(events: pd.DataFrame) -> None:
     occ = state_occupancy(
         events, states=STATES, initial_state="H", n_individuals=N_BASE, times=grid
     ).droplevel("iteration")
-    surv = survival(occ, dead_state="D").unstack("strategy")[list(STRATEGIES)]
-    prev = prevalence(occ, states=("S1", "S2"), dead_state="D").unstack("strategy")[
-        list(STRATEGIES)
-    ]
+    # Survival is one minus dead-state occupancy; prevalence among the alive is
+    # the summed disease occupancy over survival.
+    alive = 1.0 - occ["D"]
+    surv = alive.unstack("strategy")[list(STRATEGIES)]
+    prev = (occ[["S1", "S2"]].sum(axis=1) / alive).unstack("strategy")[list(STRATEGIES)]
     colors = strategy_colors(list(STRATEGIES))
     # A shares SoC's transition dynamics and AB shares B's, so their curves
     # coincide; dashes keep both members of each pair visible.
@@ -253,9 +318,12 @@ def main() -> None:
     OUT.mkdir(exist_ok=True)
     seeds = SeedManager(2)
 
-    # Base case: one deterministic run with the event history.
+    # Base case: one deterministic run with the event history. The transition
+    # rewards accrue over the preceding sojourn, added from that history.
     engine = build_engine(seeds, N_BASE)
-    outcomes, events = engine.evaluate(single_draw(BASE), trace="events")
+    base = single_draw(BASE)
+    outcomes, events = engine.evaluate(base, trace="events")
+    outcomes = with_transition_rewards(outcomes, events, base, N_BASE)
     print(f"Base case, {N_BASE:,} individuals per strategy, ages 25 to 100:")
     print(icer_table(outcomes).round(2).to_string())
     print(
@@ -271,10 +339,14 @@ def main() -> None:
     # Probabilistic analysis: the article's 1,000 parameter sets. 10,000
     # individuals per set (rather than the article's 100,000) keeps the run
     # near two minutes; common random numbers absorb most of the extra
-    # per-set Monte Carlo noise in the incremental comparisons.
+    # per-set Monte Carlo noise in the incremental comparisons. The engine is
+    # wrapped so each iteration adds its sojourn-accrued transition rewards.
+    # One draw per experiment keeps each worker's event history small.
     params = parameter_set()
     draws = params.sample(N_PSA_DRAWS, seed=seeds.generator())
-    psa = run_psa(build_engine(seeds, N_PSA_IND), draws)
+    psa = run_psa(
+        reward_adjusted_model(build_engine(seeds, N_PSA_IND), N_PSA_IND), draws, batch_size=1
+    )
     print(f"\nProbabilistic analysis, {N_PSA_DRAWS:,} parameter sets:")
     print(icer_table(psa).round(2).to_string())
 
@@ -305,14 +377,14 @@ def main() -> None:
     )
     print(
         f"\nThe acceptability frontier switches at {switch_points} dollars per QALY,"
-        f"\nwith EVPI peaks (dollars per person) of {at_switches}."
-        "\nThe article's figure 4 shows the same two switch points; its EVPI peaks"
-        "\nare smaller because the companion analysis holds six parameters at base"
-        "\ncase (the Weibull progression scale, both treatment costs, both"
-        "\ntransition costs, and the treatment-A utility increment), while this"
-        "\nreplication draws every Table 1 parameter. Its cost axis also sits about"
-        "\n20,000 dollars higher per strategy because it accrues the one-time"
-        "\ntransition rewards over the preceding sojourn. See"
+        f"\nwith EVPI peaks (dollars per person) of {at_switches}, matching the two"
+        "\nswitch points and the small EVPI peaks of the article's figure 4. Holding"
+        "\nthe six companion-fixed parameters at base case (the Weibull progression"
+        "\nscale, both treatment costs, both transition costs, and the treatment-A"
+        "\nutility increment) keeps the strategy comparisons near-certain. The only"
+        "\nremaining difference is Monte Carlo error: the companion drives every"
+        "\nparameter set from one shared random-number stream, while this run keeps"
+        "\nthe framework's per-iteration seeding. See"
         "\ndevdocs/replication-notes/mdm-des-departures.md for the full accounting."
     )
 

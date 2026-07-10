@@ -144,7 +144,7 @@ class _MicrosimBase:
                 ``"events"`` returns the event history instead: one row per
                 state change with columns ``strategy``, ``iteration``,
                 ``individual``, ``time``, ``from_state``, and ``to_state``,
-                the input to `heormodel.epi.state_occupancy`.
+                the input to `heormodel.models.state_occupancy`.
 
         Returns:
             `Outcomes`, or ``(Outcomes, trace)`` when ``trace`` is set.
@@ -247,13 +247,6 @@ class MicrosimModel(_MicrosimBase):
             destination state. Use ``inf`` where a transition cannot occur,
             including a state's own column and every column of an absorbing
             state.
-        transition_payoffs: Continuous clock only. Optional
-            ``fn(params, state_from, state_to, attrs) -> (cost, effect)``,
-            each shape ``(n,)``: one-time amounts paid when an individual
-            moves from ``state_from`` to ``state_to``, discounted at the event
-            time. Transition costs of onset or death and one-time utility
-            decrements live here rather than in the per-year ``payoffs``
-            flows. Rows for individuals with no event are ignored.
         population: Attribute sampler ``fn(rng, n) -> DataFrame`` for
             heterogeneity, or an ``int`` count for a featureless population.
             ``None`` uses ``n_individuals`` with no attributes.
@@ -312,8 +305,6 @@ class MicrosimModel(_MicrosimBase):
         clock: str = "discrete",
         transition: Callable[..., NDArray[np.float64]] | None = None,
         hazards: Callable[..., NDArray[np.float64]] | None = None,
-        transition_payoffs: Callable[..., tuple[NDArray[np.float64], NDArray[np.float64]]]
-        | None = None,
         population: PopulationSpec = None,
         cycle_length: float = 1.0,
         horizon: float = 60,
@@ -346,8 +337,6 @@ class MicrosimModel(_MicrosimBase):
                 raise TypeError("clock='discrete' requires a transition function.")
             if hazards is not None:
                 raise TypeError("hazards is only valid with clock='continuous'.")
-            if transition_payoffs is not None:
-                raise TypeError("transition_payoffs is only valid with clock='continuous'.")
             if horizon < 1:
                 raise ValueError("horizon must be at least one cycle.")
             self._transition = transition
@@ -366,7 +355,6 @@ class MicrosimModel(_MicrosimBase):
             if horizon <= 0:
                 raise ValueError("horizon must be positive.")
             self._hazards = hazards
-            self._transition_payoffs = transition_payoffs
             self._horizon = float(horizon)
             self._max_events = int(max_events)
 
@@ -512,15 +500,6 @@ class MicrosimModel(_MicrosimBase):
                 ev_time.append((clock + segment)[idx])
                 ev_from.append(state[idx])
                 ev_to.append(dest[idx])
-            if self._transition_payoffs is not None and event.any():
-                one_cost, one_eff = self._transition_payoffs(params, state, dest, view)
-                one_cost = np.asarray(one_cost, dtype=np.float64)
-                one_eff = np.asarray(one_eff, dtype=np.float64)
-                if one_cost.shape != (n,) or one_eff.shape != (n,):
-                    raise ValueError(f"transition_payoffs must return two arrays of shape {(n,)}.")
-                at_event = np.exp(-self._discount_rate * (clock + segment))
-                cost_total += np.where(event, one_cost * at_event, 0.0)
-                eff_total += np.where(event, one_eff * at_event, 0.0)
             clock = np.where(active, clock + segment, clock)
             state = np.where(event, dest, state)
             active = event

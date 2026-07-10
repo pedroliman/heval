@@ -113,7 +113,7 @@ quartodoc:
         - resample_posterior
         - mix_draws
     - title: Models (`heormodel.models`)
-      desc: The `Outcomes` structure every engine returns, the `ModelEngine` contract, and the cohort state-transition, microsimulation, and discrete-event engines.
+      desc: The `Outcomes` structure every engine returns, the `ModelEngine` contract, the cohort state-transition, microsimulation, and discrete-event engines, and state occupancy over time from an event history.
       package: heormodel.models
       contents:
         - Outcomes
@@ -124,6 +124,7 @@ quartodoc:
         - MicrosimModel
         - DESModel
         - queue_waits
+        - state_occupancy
         - LifeTable
     - title: Run loop (`heormodel.run`)
       desc: Drive a model over parameter draws, or ingest external results tables.
@@ -149,13 +150,6 @@ quartodoc:
         - STATUS_D
         - STATUS_ED
         - STATUS_ND
-    - title: Epidemiological outcomes (`heormodel.epi`)
-      desc: State occupancy, survival, and prevalence computed from an engine's event history.
-      package: heormodel.epi
-      contents:
-        - state_occupancy
-        - survival
-        - prevalence
     - title: Deterministic sensitivity analysis (`heormodel.dsa`)
       desc: One-way, one-at-a-time, and full-factorial grid scenario designs that run through the standard loop and feed tornado and heatmap reports.
       package: heormodel.dsa
