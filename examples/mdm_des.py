@@ -307,11 +307,13 @@ def main() -> None:
         f"\nThe acceptability frontier switches at {switch_points} dollars per QALY,"
         f"\nwith EVPI peaks (dollars per person) of {at_switches}."
         "\nThe article's figure 4 shows the same two switch points; its EVPI peaks"
-        "\nare smaller because the companion analysis holds the treatment costs,"
-        "\ntransition rewards, and the treatment-A utility increment at base-case"
-        "\nvalues, while this replication draws every Table 1 parameter. Its cost"
-        "\naxis also sits about 20,000 dollars higher per strategy because it"
-        "\naccrues the one-time transition rewards over the preceding sojourn."
+        "\nare smaller because the companion analysis holds six parameters at base"
+        "\ncase (the Weibull progression scale, both treatment costs, both"
+        "\ntransition costs, and the treatment-A utility increment), while this"
+        "\nreplication draws every Table 1 parameter. Its cost axis also sits about"
+        "\n20,000 dollars higher per strategy because it accrues the one-time"
+        "\ntransition rewards over the preceding sojourn. See"
+        "\ndevdocs/replication-notes/mdm-des-departures.md for the full accounting."
     )
 
     record = capture_run(
