@@ -31,23 +31,23 @@ class ModelEngine(Protocol):
     1. The returned `Outcomes` iteration index equals ``draws.index``
        (same values, same order); this preserves the parameter/outcome
        linkage required by EVPPI and EVSI.
-    2. Every strategy is evaluated on every iteration (a balanced panel);
+    2. Every intervention is evaluated on every iteration (a balanced panel);
        the `Outcomes` constructor enforces this.
 
     Example:
         >>> import pandas as pd
         >>> from heormodel.models import ModelEngine, Outcomes
-        >>> class TwoStrategyModel:
+        >>> class TwoInterventionModel:
         ...     def evaluate(self, draws: pd.DataFrame) -> Outcomes:
         ...         costs = pd.DataFrame({"A": draws["c"], "B": draws["c"] * 2})
         ...         effects = pd.DataFrame({"A": draws["e"], "B": draws["e"] * 1.5})
         ...         return Outcomes.from_wide(costs, effects)
-        >>> isinstance(TwoStrategyModel(), ModelEngine)
+        >>> isinstance(TwoInterventionModel(), ModelEngine)
         True
     """
 
     def evaluate(self, draws: pd.DataFrame) -> Outcomes:
-        """Evaluate all strategies for every row of the draw matrix."""
+        """Evaluate all interventions for every row of the draw matrix."""
         ...
 
 

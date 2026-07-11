@@ -3,7 +3,7 @@
 One parameter draw matrix flows through swappable model engines into a
 shared analysis layer. Engines differ internally but share a contract on
 their outputs, the `Outcomes` structure indexed by
-``(strategy, iteration)``, which makes cost-effectiveness and
+``(intervention, iteration)``, which makes cost-effectiveness and
 value-of-information analysis engine-agnostic. Outputs from any external
 model enter the same pipeline via `as_outcomes`.
 
@@ -22,7 +22,7 @@ Subpackages:
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _version
 
-from heormodel.models import ModelEngine, ModelFn, Outcomes, Strategy
+from heormodel.models import Intervention, ModelEngine, ModelFn, Outcomes
 from heormodel.params import ParameterSet, mix_draws
 from heormodel.run import RunResult, SeedManager, as_outcomes, run_psa
 
@@ -38,7 +38,7 @@ __all__ = [
     "ParameterSet",
     "RunResult",
     "SeedManager",
-    "Strategy",
+    "Intervention",
     "__version__",
     "as_outcomes",
     "mix_draws",

@@ -24,7 +24,7 @@ import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed, effective_n_jobs
 
-from heormodel.models.outcomes import ITERATION_LEVEL, STRATEGY_LEVEL, Outcomes
+from heormodel.models.outcomes import INTERVENTION_LEVEL, ITERATION_LEVEL, Outcomes
 from heormodel.models.protocol import EngineResult, ModelEngine, ModelFn, StochasticEngine
 from heormodel.run._progress import ProgressReporter, resolve_enabled
 from heormodel.run.seeds import SeedManager
@@ -40,7 +40,7 @@ class RunResult:
     old ``(outcomes, trace)`` tuple.
 
     Args:
-        outcomes: The `Outcomes` panel, indexed by ``(strategy, iteration)``.
+        outcomes: The `Outcomes` panel, indexed by ``(intervention, iteration)``.
         events: The state-change or resource history, or ``None``.
         individuals: Per-individual accruals, or ``None``.
     """
@@ -53,10 +53,11 @@ class RunResult:
 def as_outcomes(
     source: Outcomes | pd.DataFrame | str | Path,
     *,
-    strategy: str = "strategy",
+    intervention: str = "intervention",
     iteration: str = "iteration",
     cost: str = "cost",
     effect: str = "qaly",
+    comparator: str | None = None,
 ) -> Outcomes:
     """Normalise any costs/effects table into the standard outcome structure.
 
@@ -66,17 +67,19 @@ def as_outcomes(
     Args:
         source: An `Outcomes` (returned unchanged), a tidy long
             ``DataFrame``, or a path to a CSV file of one.
-        strategy: Column holding the strategy label.
+        intervention: Column holding the intervention label.
         iteration: Column holding the iteration index.
         cost: Column holding the cost per iteration.
         effect: Column holding the effect (QALYs by default).
+        comparator: Name of the reference intervention, or ``None``. Ignored
+            when ``source`` is already an `Outcomes`.
 
     Example:
         >>> import pandas as pd
         >>> from heormodel.run import as_outcomes
-        >>> df = pd.DataFrame({"strategy": ["A", "B"], "iteration": [0, 0],
+        >>> df = pd.DataFrame({"intervention": ["A", "B"], "iteration": [0, 0],
         ...                    "cost": [1.0, 2.0], "qaly": [0.5, 0.7]})
-        >>> as_outcomes(df).strategies
+        >>> as_outcomes(df).interventions
         ['A', 'B']
     """
     if isinstance(source, Outcomes):
@@ -84,7 +87,12 @@ def as_outcomes(
     if isinstance(source, (str, Path)):
         source = pd.read_csv(source)
     return Outcomes.from_tidy(
-        source, strategy=strategy, iteration=iteration, cost=cost, effect=effect
+        source,
+        intervention=intervention,
+        iteration=iteration,
+        cost=cost,
+        effect=effect,
+        comparator=comparator,
     )
 
 
@@ -122,11 +130,12 @@ def _split_batches(draws: pd.DataFrame, workers: int, batch_size: int | None) ->
 
 def _reassemble(partials: list[Outcomes], draws: pd.DataFrame) -> Outcomes:
     """Stitch per-batch outcomes back into one panel on the draw index."""
-    strategies = partials[0].strategies
+    interventions = partials[0].interventions
     effect = partials[0].effect
+    comparator = partials[0].comparator
     for p in partials[1:]:
-        if p.strategies != strategies:
-            raise ValueError("Model returned inconsistent strategies across batches.")
+        if p.interventions != interventions:
+            raise ValueError("Model returned inconsistent interventions across batches.")
     data = pd.concat([p.data for p in partials])
     if data.index.duplicated().any():
         raise ValueError(
@@ -134,9 +143,9 @@ def _reassemble(partials: list[Outcomes], draws: pd.DataFrame) -> Outcomes:
             "iteration index does not match its input draws."
         )
     full_index = pd.MultiIndex.from_product(
-        [strategies, draws.index], names=[STRATEGY_LEVEL, ITERATION_LEVEL]
+        [interventions, draws.index], names=[INTERVENTION_LEVEL, ITERATION_LEVEL]
     )
-    return Outcomes(data.reindex(full_index), effect=effect)
+    return Outcomes(data.reindex(full_index), effect=effect, comparator=comparator)
 
 
 def _concat_logs(frames: list[pd.DataFrame | None]) -> pd.DataFrame | None:

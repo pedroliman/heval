@@ -4,16 +4,16 @@ This page explains the two guarantees that hold everywhere in `heormodel`: one s
 
 ## The outcome structure is the integration point
 
-`Outcomes` is a table indexed by `(strategy, iteration)` with a `cost` column, a primary effect column (`qaly` by default), and optionally more numeric columns carried as disaggregated components. Every engine returns this structure, every analysis consumes it, and none reaches into engine internals.
+`Outcomes` is a table indexed by `(intervention, iteration)` with a `cost` column, a primary effect column (`qaly` by default), and optionally more numeric columns carried as disaggregated components. Every engine returns this structure, every analysis consumes it, and none reaches into engine internals.
 
-The constructor validates the contract so analyses do not have to: a balanced panel (every strategy evaluated on every iteration), unique `(strategy, iteration)` pairs, numeric columns, and no NaN or infinite values.
+The constructor validates the contract so analyses do not have to: a balanced panel (every intervention evaluated on every iteration), unique `(intervention, iteration)` pairs, numeric columns, and no NaN or infinite values.
 
 ```python
 import pandas as pd
 from heormodel.models import Outcomes
 
 tidy = pd.DataFrame({
-    "strategy": ["A", "A", "B", "B"],
+    "intervention": ["A", "A", "B", "B"],
     "iteration": [0, 1, 0, 1],
     "cost": [100.0, 110.0, 200.0, 190.0],
     "qaly": [1.0, 1.1, 1.4, 1.3],
@@ -22,7 +22,7 @@ out = Outcomes.from_tidy(tidy)
 out.summary()
 ```
 
-Three constructors cover the common shapes: `from_tidy` for long tables (the bring-your-own-outputs entry point, also reachable as `as_outcomes`), `from_wide` for paired iterations-by-strategies cost and effect tables, and `Outcomes` itself for a table already in this form.
+Three constructors cover the common shapes: `from_tidy` for long tables (the bring-your-own-outputs entry point, also reachable as `as_outcomes`), `from_wide` for paired iterations-by-interventions cost and effect tables, and `Outcomes` itself for a table already in this form.
 
 Because the analysis layer sees only this structure, cost-effectiveness and value-of-information analysis do not depend on the engine: `icer_table`, `ceac`, and `evpi` work identically on outcomes from a spreadsheet export, a decision tree function, or a future microsimulation engine.
 
@@ -48,8 +48,8 @@ outcomes.iterations.equals(draws.index)
 
 `run_psa` rejects duplicated draw indices and re-checks the index on the way out, including after parallel batches are reassembled. If you bypass `run_psa` and pair a draw matrix with external outcomes, keeping the indices aligned is your responsibility; `evppi` will refuse mismatched indices.
 
-## Strategies, and the value objects not yet built
+## Interventions, and the value objects not yet built
 
-Every engine names its arms the same way: `strategies` is a sequence of names or `Strategy(name, overrides)` objects, and every model function receives the strategy name so an arm can branch on it. `Strategy` is the one shared value object the engines carry today. Two others were considered and deferred: `Timeline` (a cycle grid or a continuous horizon with its correction) and `Population` (size, attribute sampler, initial state). Their structural benefit, a single home for vocabulary shared across engines, pays off mainly when a fifth engine arrives; until then the flat keyword constructors read better in the two-state docstring examples. Add them when the engine roster grows, reusing them across engines rather than re-spelling the concepts.
+Every engine names its arms the same way: `interventions` is a sequence of names or `Intervention(name, decision_levers)` objects, and every model function receives the intervention name so an arm can branch on it. `Intervention` also carries an `is_comparator` flag marking the PICOTS comparator (the reference arm), which each engine reads at construction and carries onto the `Outcomes` it returns as `Outcomes.comparator`; `heormodel.cea.ce_plane` and the tornado plots fall back to it when their own `comparator` argument is omitted. `Intervention` is the one shared value object the engines carry today. Two others were considered and deferred: `Timeline` (a cycle grid or a continuous horizon with its correction) and `Population` (size, attribute sampler, initial state). Their structural benefit, a single home for vocabulary shared across engines, pays off mainly when a fifth engine arrives; until then the flat keyword constructors read better in the two-state docstring examples. Add them when the engine roster grows, reusing them across engines rather than re-spelling the concepts.
 
 Next: [engines](https://pedroliman.github.io/heormodel/concepts/engines.html) describes what `ModelEngine` requires and what a contract on outputs means in practice.

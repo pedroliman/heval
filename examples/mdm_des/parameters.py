@@ -1,4 +1,4 @@
-"""The model's states, strategies, base-case values, and probabilistic parameters.
+"""The model's states, interventions, base-case values, and probabilistic parameters.
 
 Each is a function that returns its value, so the run script passes them to the
 model building blocks rather than reading module-level constants.
@@ -10,7 +10,7 @@ from typing import Any
 
 import numpy as np
 
-from heormodel.models import Strategy
+from heormodel.models import Intervention
 from heormodel.params import Beta, Fixed, Gamma, LogNormal, ParameterSet
 
 
@@ -19,18 +19,18 @@ def states() -> tuple[str, ...]:
     return ("H", "S1", "S2", "D")
 
 
-def strategies() -> list[Strategy]:
-    """The four strategies as the treatment scenario knobs the model reads.
+def interventions() -> list[Intervention]:
+    """The four interventions as the treatment scenario knobs the model reads.
 
     Treatment A raises the Sick utility; treatment B slows the Sick-to-Sicker
-    progression. Each `Strategy` sets the two knobs the event-time and valuation
+    progression. Each `Intervention` sets the two knobs the event-time and valuation
     functions read, matching the companion code's parameterisation of the arms.
     """
     return [
-        Strategy("Standard of care", {"trtA": 0.0, "trtB": 0.0}),
-        Strategy("Strategy A", {"trtA": 1.0, "trtB": 0.0}),
-        Strategy("Strategy B", {"trtA": 0.0, "trtB": 1.0}),
-        Strategy("Strategy AB", {"trtA": 1.0, "trtB": 1.0}),
+        Intervention("Standard of care", {"trtA": 0.0, "trtB": 0.0}),
+        Intervention("Intervention A", {"trtA": 1.0, "trtB": 0.0}),
+        Intervention("Intervention B", {"trtA": 0.0, "trtB": 1.0}),
+        Intervention("Intervention AB", {"trtA": 1.0, "trtB": 1.0}),
     ]
 
 

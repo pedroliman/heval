@@ -15,8 +15,8 @@ BASE = pd.Series({"a": 1.0, "b": 2.0, "c": 3.0})
 def linear_model(draws: pd.DataFrame) -> Outcomes:
     """A closed-form model: cost and effect are linear in the parameters.
 
-    Strategy ``T`` costs ``10*a + 5*b`` and yields ``0.1*a + 0.2*c`` QALYs;
-    strategy ``S`` is the fixed comparator at the origin.
+    Intervention ``T`` costs ``10*a + 5*b`` and yields ``0.1*a + 0.2*c`` QALYs;
+    intervention ``S`` is the fixed comparator at the origin.
     """
     idx = draws.index
     cost = pd.DataFrame(
@@ -109,7 +109,7 @@ class TestTornadoFromDsa:
         design, descriptor = one_at_a_time(BASE, {"a": (0.0, 4.0), "b": (0.0, 4.0)})
         outcomes = run_psa(linear_model, design).outcomes
         wtp = 50.0
-        td = tornado_data(outcomes, (design, descriptor), wtp=wtp, strategy="T", comparator="S")
+        td = tornado_data(outcomes, (design, descriptor), wtp=wtp, intervention="T", comparator="S")
         assert set(td.index) == {"a", "b"}
         # d(NMB)/da = 0.1*50 - 10 = -5 per unit; span over [0,4] = 20.
         # d(NMB)/db = -5 per unit; span over [0,4] = 20. Equal spans.
@@ -120,4 +120,4 @@ class TestTornadoFromDsa:
         design, descriptor = grid(BASE, {"a": [0.0, 1.0], "b": [1.0, 2.0]})
         outcomes = run_psa(linear_model, design).outcomes
         with pytest.raises(ValueError, match="one-way"):
-            tornado_data(outcomes, (design, descriptor), wtp=50.0, strategy="T")
+            tornado_data(outcomes, (design, descriptor), wtp=50.0, intervention="T")

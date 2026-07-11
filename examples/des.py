@@ -10,10 +10,10 @@ disease costs ``c_wait_year`` per year and holds utility at ``u_wait``. Once
 seen, a one-off treatment cost is incurred, and the patient spends the rest of
 the horizon treated at the higher ``u_treated`` with a follow-up cost rate.
 
-Two strategies differ only in capacity. Standard staffing runs one specialist;
+Two interventions differ only in capacity. Standard staffing runs one specialist;
 expanded staffing runs two at a per-patient overhead ``c_capacity``. More
 capacity cuts the queue, so patients spend less time at the low waiting utility.
-Both strategies see the same patients and the same service draws through common
+Both interventions see the same patients and the same service draws through common
 random numbers (the engine default), so the incremental result reflects the
 capacity change, not sampling noise. `DESModel.evaluate` conforms to the model
 contract, so `run_psa`, `heormodel.cea`, and `heormodel.voi` treat it like any engine.
@@ -37,7 +37,7 @@ import pandas as pd
 import simpy
 
 from heormodel.cea import ceac, ceaf, icer_table
-from heormodel.models import DESModel, Strategy, queue_waits
+from heormodel.models import DESModel, Intervention, queue_waits
 from heormodel.params import Beta, Gamma, ParameterSet
 from heormodel.report import capture_run, plot_ce_plane, plot_ceac, plot_frontier
 from heormodel.run import SeedManager, run_psa
@@ -58,8 +58,8 @@ def patients(rng: np.random.Generator, n: int) -> pd.DataFrame:
     return pd.DataFrame({"arrival": np.cumsum(rng.exponential(1.0 / ARRIVAL_RATE, n))})
 
 
-def resources(env: simpy.Environment, params: pd.Series, strategy: str) -> dict[str, Any]:
-    """One specialist resource whose capacity is the strategy's staffing level."""
+def resources(env: simpy.Environment, params: pd.Series, intervention: str) -> dict[str, Any]:
+    """One specialist resource whose capacity is the intervention's staffing level."""
     return {"specialist": simpy.Resource(env, capacity=int(params["n_servers"]))}
 
 
@@ -67,7 +67,7 @@ def clinic(
     env: simpy.Environment,
     patient: pd.Series,
     params: pd.Series,
-    strategy: str,
+    intervention: str,
     toolkit: Any,
 ) -> Any:
     """One patient: arrive, queue for a specialist, be treated, follow up."""
@@ -124,9 +124,9 @@ def main() -> None:
         population=patients,
         n_individuals=N_PATIENTS,
         resources=resources,
-        strategies=[
-            Strategy("Standard capacity", {"n_servers": 1, "c_capacity": 0.0}),
-            Strategy("Expanded capacity", {"n_servers": 2}),
+        interventions=[
+            Intervention("Standard capacity", {"n_servers": 1, "c_capacity": 0.0}),
+            Intervention("Expanded capacity", {"n_servers": 2}),
         ],
         horizon=HORIZON,
     )
@@ -145,7 +145,7 @@ def main() -> None:
     # Queueing report from the trace, one iteration at the posterior mean draw.
     trace = run_psa(engine, draws.iloc[[0]], seed=seeds.entropy, collect="events").events
     waits = queue_waits(trace)
-    mean_wait = waits.groupby("strategy", sort=False)["wait"].mean() * 365.0
+    mean_wait = waits.groupby("intervention", sort=False)["wait"].mean() * 365.0
     print("\nMean queue wait (days), first iteration:")
     print(mean_wait.round(1).to_string())
 

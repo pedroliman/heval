@@ -25,12 +25,12 @@ def transition_costs_and_utilities(
 
     Input: the event history from ``run_psa(engine, draws, collect="events")``,
     the draw matrix (for the onset and death amounts per iteration), the population size, and
-    the annual discount rate. Output: a DataFrame indexed by ``(strategy,
-    iteration)`` with a ``cost`` and a ``qaly`` column to add to each strategy's
+    the annual discount rate. Output: a DataFrame indexed by ``(intervention,
+    iteration)`` with a ``cost`` and a ``qaly`` column to add to each intervention's
     outcomes.
     """
-    ev = events.sort_values(["strategy", "iteration", "individual", "time"])
-    start = ev.groupby(["strategy", "iteration", "individual"])["time"].shift(fill_value=0.0)
+    ev = events.sort_values(["intervention", "iteration", "individual", "time"])
+    start = ev.groupby(["intervention", "iteration", "individual"])["time"].shift(fill_value=0.0)
     stop = ev["time"].to_numpy()
     # Discounted sojourn length: the integral of the continuous discount factor
     # over the sojourn that this transition ends.
@@ -44,13 +44,13 @@ def transition_costs_and_utilities(
     utility_rate = -(onset * row_params["du_HS1"].to_numpy())
     contribution = pd.DataFrame(
         {
-            "strategy": ev["strategy"].to_numpy(),
+            "intervention": ev["intervention"].to_numpy(),
             "iteration": ev["iteration"].to_numpy(),
             "cost": cost_rate * discounted_years,
             "qaly": utility_rate * discounted_years,
         }
     )
-    grouped = contribution.groupby(["strategy", "iteration"])[["cost", "qaly"]].sum()
+    grouped = contribution.groupby(["intervention", "iteration"])[["cost", "qaly"]].sum()
     return grouped / n_individuals
 
 

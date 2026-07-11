@@ -117,7 +117,7 @@ def _occupancy(onset: np.ndarray, progression: np.ndarray) -> tuple[np.ndarray, 
 
 
 def disease_model(draws: pd.DataFrame) -> Outcomes:
-    """Map the mixed draw matrix to per-strategy costs and QALYs.
+    """Map the mixed draw matrix to per-intervention costs and QALYs.
 
     Standard care lets the disease progress at the calibrated rate.
     Treatment scales the progression hazard by ``rr_progression``, extending
@@ -213,7 +213,7 @@ def main() -> None:
         OUT / "ceac_calib.png", dpi=150, bbox_inches="tight"
     )
     plot_frontier(outcomes).figure.savefig(OUT / "frontier_calib.png", dpi=150, bbox_inches="tight")
-    td = tornado_data(outcomes, draws, WTP, strategy="Treatment", comparator="Standard care")
+    td = tornado_data(outcomes, draws, WTP, intervention="Treatment", comparator="Standard care")
     plot_tornado(td).figure.savefig(OUT / "tornado_calib.png", dpi=150, bbox_inches="tight")
 
     calibrated = {name: "ABC posterior" for name in posterior.columns}

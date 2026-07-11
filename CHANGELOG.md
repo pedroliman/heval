@@ -10,6 +10,22 @@ Each entry links to the pull request that introduced it. Add a line under
 
 ## [Unreleased]
 
+### Changed
+
+- Renamed the package's arm vocabulary to PICOTS terms (Population,
+  Intervention, Comparator, Outcomes, Timing, Setting): `Strategy` is now
+  `Intervention` everywhere (the `interventions=` constructor argument, the
+  `intervention` outcome index level, `Outcomes.interventions`, and every
+  model-function callback's second argument), and `Strategy.overrides` is now
+  `Intervention.decision_levers`. `Intervention` gained an `is_comparator`
+  flag: at most one intervention in a sequence may set it, and
+  `heormodel.models._interventions.comparator_of` reads it back. Every
+  engine resolves the flag at construction and carries the comparator name on
+  the `Outcomes` it returns (`Outcomes.comparator`); `heormodel.cea.ce_plane`
+  and `heormodel.report.plot_ce_plane` fall back to it, then to the first
+  intervention, when their own `comparator` argument is omitted. No
+  deprecated aliases: every call site must switch to the new names.
+
 ### Added
 
 - Continuous-time Sick-Sicker replication (roadmap item 13):
@@ -42,7 +58,7 @@ Each entry links to the pull request that introduced it. Add a line under
 - Value-of-information tutorial: `examples/voi_tutorial.py` and a website tutorial
   run EVPI, EVPPI, and EVSI end to end on the Gaussian linear decision model that
   anchors the regression VoI literature (Strong, Oakley & Brennan, 2014; Strong,
-  Oakley, Brennan & Breeze, 2015), framed as a two-strategy cost-effectiveness
+  Oakley, Brennan & Breeze, 2015), framed as a two-intervention cost-effectiveness
   decision at 30,000 per QALY. Its incremental net benefit is Normal, so EVPI,
   per-parameter EVPPI, and the EVSI of a proposed effect study have closed forms
   via the unit normal loss integral. Every estimate lands within about one percent
@@ -107,18 +123,18 @@ Each entry links to the pull request that introduced it. Add a line under
 
 ### Changed
 
-- The `Strategy` value object, and one canonical spelling for strategies
-  ([#28](https://github.com/pedroliman/heormodel/issues/28)). `strategies=` now
-  accepts a sequence of names or `Strategy(name, overrides={})` objects
-  everywhere; a bare string is shorthand for an override-free strategy. The
-  name-to-overrides mapping form is removed, so there is exactly one canonical
-  spelling plus the string shorthand. The microsimulation examples and tutorials
-  now branch on the strategy name for the treatment arm instead of encoding it
-  as an `{"on_treatment": 1.0}` pseudo-parameter, which kept a float flag out of
-  the `ParameterSet` where `evppi_ranking` and the deterministic sensitivity
-  builders could not see it. Overrides stay for genuine numeric scenario knobs
-  such as a discrete-event server count. `Timeline` and `Population` value
-  objects are deferred until a new engine lands (noted in
+- The `Intervention` value object, and one canonical spelling for interventions
+  ([#28](https://github.com/pedroliman/heormodel/issues/28)). `interventions=` now
+  accepts a sequence of names or `Intervention(name, decision_levers={})` objects
+  everywhere; a bare string is shorthand for a decision-lever-free intervention.
+  The name-to-decision-levers mapping form is removed, so there is exactly one
+  canonical spelling plus the string shorthand. The microsimulation examples and
+  tutorials now branch on the intervention name for the treatment arm instead of
+  encoding it as an `{"on_treatment": 1.0}` pseudo-parameter, which kept a float
+  flag out of the `ParameterSet` where `evppi_ranking` and the deterministic
+  sensitivity builders could not see it. Decision levers stay for genuine numeric
+  scenario knobs such as a discrete-event server count. `Timeline` and
+  `Population` value objects are deferred until a new engine lands (noted in
   `devdocs/architecture.md`).
 
 - The runner owns execution, a clean break with no aliases
@@ -162,12 +178,12 @@ Each entry links to the pull request that introduced it. Add a line under
     `cycle_correction="half_cycle"`, sharing the string with `MarkovModel`.
   - `DESModel`: `entities` is now `population` and `n_entities` is now
     `n_individuals`, matching `MicrosimModel`.
-  - Every engine accepts `strategies` as either a sequence of names or a
-    name-to-overrides mapping, and every user-supplied model function receives
-    the strategy name. Microsimulation callbacks gain it as their second
-    argument: `transition_probabilities(params, strategy, state, attrs, rng)`,
-    `state_rewards(params, strategy, state, attrs)`, and
-    `event_times(params, strategy, state, attrs, rng)`.
+  - Every engine accepts `interventions` as either a sequence of names or a
+    name-to-decision-levers mapping, and every user-supplied model function receives
+    the intervention name. Microsimulation callbacks gain it as their second
+    argument: `transition_probabilities(params, intervention, state, attrs, rng)`,
+    `state_rewards(params, intervention, state, attrs)`, and
+    `event_times(params, intervention, state, attrs, rng)`.
   - A discrete-event `process` reads the run's horizon back as `toolkit.horizon`
     instead of duplicating it as a module constant.
   The replication examples reproduce their published numbers unchanged, since
@@ -206,7 +222,7 @@ Each entry links to the pull request that introduced it. Add a line under
   per-cycle array (age-varying rates); rewards accrue per state and, optionally,
   per transition (a one-time cost of dying or disutility of onset). Supports
   Simpson's 1/3, half-cycle, or no within-cycle correction, reusing
-  `heormodel.models._accrual` for discounting. `CohortSpec` carries one strategy's
+  `heormodel.models._accrual` for discounting. `CohortSpec` carries one intervention's
   matrices, and `gen_wcc` builds the correction weights
   ([#9](https://github.com/pedroliman/heormodel/pull/9)).
 - `duration_groups` on `DiscreteTimeMicrosimEngine`: a per-individual counter of
@@ -229,7 +245,7 @@ Each entry links to the pull request that introduced it. Add a line under
   per-entity toolkit for discounted cost and utility accrual, per-iteration
   seeding from a `SeedManager` so results do not depend on `n_jobs`, and an
   optional event log. It reuses `heormodel.models._accrual` and uses common random
-  numbers across strategies by default, staying coherent with the
+  numbers across interventions by default, staying coherent with the
   microsimulation engines ([#8](https://github.com/pedroliman/heormodel/pull/8)).
 - `heormodel.models.queue_waits`: derive per-request waiting times from a `DESEngine`
   trace, so queueing reports come from the event log rather than engine
@@ -249,7 +265,7 @@ Each entry links to the pull request that introduced it. Add a line under
   transitions and heterogeneity, and `ContinuousTimeMicrosimEngine` races
   competing time-to-event samplers between events. Both emit the standard
   `Outcomes` schema, seed each iteration from a `SeedManager` so results do not
-  depend on `n_jobs`, and use common random numbers across strategies by
+  depend on `n_jobs`, and use common random numbers across interventions by
   default ([#7](https://github.com/pedroliman/heormodel/pull/7)).
 - `heormodel.models._accrual`: shared cost and utility accrual, discounting, and
   aggregation to `Outcomes`, used by both engines and reserved for the

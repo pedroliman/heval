@@ -3,7 +3,7 @@
 This reproduces the Gaussian linear decision model that anchors the
 regression value-of-information literature (Strong, Oakley & Brennan, 2014,
 Medical Decision Making 34:311-326; Strong, Oakley, Brennan & Breeze, 2015,
-Medical Decision Making 35:570-583). Two strategies, standard care and a new
+Medical Decision Making 35:570-583). Two interventions, standard care and a new
 drug, differ by an uncertain incremental effect ``dq`` (QALYs) and an
 uncertain incremental cost ``dc``, both Normal. For that model the
 incremental net benefit is Normal, so EVPI, per-parameter EVPPI, and the EVSI
@@ -38,7 +38,7 @@ N = 100_000
 
 
 def new_drug(draws: pd.DataFrame) -> Outcomes:
-    """Two strategies differing by the drawn incremental cost and effect."""
+    """Two interventions differing by the drawn incremental cost and effect."""
     zero = np.zeros(len(draws))
     costs = pd.DataFrame({"Standard care": zero, "New drug": draws["dc"]}, index=draws.index)
     effects = pd.DataFrame({"Standard care": zero, "New drug": draws["dq"]}, index=draws.index)

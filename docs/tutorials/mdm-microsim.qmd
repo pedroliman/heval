@@ -19,7 +19,7 @@ STATES = ("H", "S1", "S2", "D")
 def population(rng, n):
     return pd.DataFrame({"x": rng.uniform(0.95, 1.05, n)})
 
-def transition_probabilities(p, strategy, state, attrs, rng):
+def transition_probabilities(p, intervention, state, attrs, rng):
     n = len(state); probs = np.zeros((n, 4))
     mult = 1.0 + (attrs["dur"].to_numpy() + 1.0) * p["rp_S1S2"]
     r_HD = -np.log(1 - p["p_HD"])
@@ -35,9 +35,9 @@ def transition_probabilities(p, strategy, state, attrs, rng):
     probs[state == 3, 3] = 1.0
     return probs
 
-def state_rewards(p, strategy, state, attrs):
+def state_rewards(p, intervention, state, attrs):
     n = len(state); cost = np.zeros(n); util = np.zeros(n)
-    dur, x, tx = attrs["dur"].to_numpy(), attrs["x"].to_numpy(), strategy == "Treatment"
+    dur, x, tx = attrs["dur"].to_numpy(), attrs["x"].to_numpy(), intervention == "Treatment"
     tx_cost = p["c_Trt"] if tx else 0.0
     util[state == 0] = p["u_H"]; cost[state == 0] = p["c_H"]
     s1 = state == 1
@@ -48,7 +48,7 @@ def state_rewards(p, strategy, state, attrs):
     return cost, util
 ```
 
-## Running the base case and comparing strategies
+## Running the base case and comparing interventions
 
 The base-case parameters drive both arms through common random numbers, with 50,000 individuals rather than the source's 100,000, which trades some Monte Carlo precision for a faster run.
 
@@ -61,7 +61,7 @@ engine = MicrosimModel.discrete(
     states=STATES, transition_probabilities=transition_probabilities,
     state_rewards=state_rewards, population=population,
     n_individuals=50_000,
-    strategies=["No Treatment", "Treatment"],
+    interventions=["No Treatment", "Treatment"],
     n_cycles=30, discount_rate=0.03,
     cycle_correction="none", duration_groups={"dur": ("S1", "S2")})
 outcomes = run_psa(

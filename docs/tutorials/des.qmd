@@ -19,10 +19,10 @@ ARRIVAL_RATE = 15.0  # patients per year
 def patients(rng, n):
     return pd.DataFrame({"arrival": np.cumsum(rng.exponential(1.0 / ARRIVAL_RATE, n))})
 
-def resources(env, params, strategy):
+def resources(env, params, intervention):
     return {"specialist": simpy.Resource(env, capacity=int(params["n_servers"]))}
 
-def clinic(env, patient, params, strategy, toolkit):
+def clinic(env, patient, params, intervention, toolkit):
     arrival = float(patient["arrival"])
     if arrival >= toolkit.horizon:
         return
@@ -43,10 +43,10 @@ def clinic(env, patient, params, strategy, toolkit):
 
 ## Configuring once, evaluating on draws
 
-The constructor takes the model; `run_psa` takes the draw matrix. The two strategies differ only in capacity, so each is a `Strategy` carrying the numeric knobs that arm sets: `n_servers`, and a per-patient overhead `c_capacity` for the expanded arm. This is the right use of overrides, a scenario knob the model already reads as a parameter, rather than a flag standing in for which arm is which. They see the same patients and service draws through common random numbers, so the incremental result reflects the capacity change, not sampling noise.
+The constructor takes the model; `run_psa` takes the draw matrix. The two interventions differ only in capacity, so each is an `Intervention` carrying the numeric knobs that arm sets: `n_servers`, and a per-patient overhead `c_capacity` for the expanded arm. This is the right use of decision levers, a scenario knob the model already reads as a parameter, rather than a flag standing in for which arm is which. They see the same patients and service draws through common random numbers, so the incremental result reflects the capacity change, not sampling noise.
 
 ```{python}
-from heormodel.models import DESModel, Strategy
+from heormodel.models import DESModel, Intervention
 from heormodel.params import Beta, Gamma, ParameterSet
 from heormodel.run import SeedManager, run_psa
 
@@ -64,8 +64,8 @@ draws = parameters.sample(128, seed=seeds.generator())
 
 engine = DESModel(
     process=clinic, population=patients, n_individuals=30, resources=resources,
-    strategies=[Strategy("Standard capacity", {"n_servers": 1, "c_capacity": 0.0}),
-                Strategy("Expanded capacity", {"n_servers": 2})],
+    interventions=[Intervention("Standard capacity", {"n_servers": 1, "c_capacity": 0.0}),
+                Intervention("Expanded capacity", {"n_servers": 2})],
     horizon=HORIZON,
 )
 outcomes = run_psa(engine, draws, seed=seeds.entropy, sequential=True).outcomes
@@ -95,7 +95,7 @@ Service time leads the value-of-information ranking: it sets how fast the queue 
 from heormodel.models import queue_waits
 
 trace = run_psa(engine, draws.iloc[[0]], seed=seeds.entropy, collect="events").events
-(queue_waits(trace).groupby("strategy", sort=False)["wait"].mean() * 365).round(1)
+(queue_waits(trace).groupby("intervention", sort=False)["wait"].mean() * 365).round(1)
 ```
 
 The single specialist leaves patients waiting weeks; the second clears the queue to about a day. See the [engines](../concepts/engines.qmd) concept page for where the engine sits in the contract.

@@ -44,7 +44,7 @@ N = 5_000
 def make_external_psa_table(seed_manager: SeedManager) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Stand-in for an external model: produce a tidy PSA table and its draws.
 
-    Three strategies for a chronic disease: standard of care, a new drug,
+    Three interventions for a chronic disease: standard of care, a new drug,
     and drug + monitoring. Costs and QALYs per iteration are simple
     functions of sampled parameters, so the VoI results are traceable.
     """
@@ -66,15 +66,15 @@ def make_external_psa_table(seed_manager: SeedManager) -> tuple[pd.DataFrame, pd
         effect_drug = base_qaly + row["u_gain"] * row["p_response"] / row["rr_drug"] * 10
         effect_mon = effect_drug + 0.15 * row["p_response"]
         rows += [
-            {"strategy": "Standard care", "iteration": i, "cost": 40_000.0, "qaly": base_qaly},
+            {"intervention": "Standard care", "iteration": i, "cost": 40_000.0, "qaly": base_qaly},
             {
-                "strategy": "New drug",
+                "intervention": "New drug",
                 "iteration": i,
                 "cost": 40_000.0 + row["c_drug"],
                 "qaly": effect_drug,
             },
             {
-                "strategy": "Drug + monitoring",
+                "intervention": "Drug + monitoring",
                 "iteration": i,
                 "cost": 40_000.0 + row["c_drug"] + row["c_monitoring"],
                 "qaly": effect_mon,
@@ -119,7 +119,7 @@ def main() -> None:
         OUT / "ceac.png", dpi=150, bbox_inches="tight"
     )
     plot_frontier(outcomes).figure.savefig(OUT / "frontier.png", dpi=150, bbox_inches="tight")
-    td = tornado_data(outcomes, draws, WTP, strategy="New drug", comparator="Standard care")
+    td = tornado_data(outcomes, draws, WTP, intervention="New drug", comparator="Standard care")
     plot_tornado(td).figure.savefig(OUT / "tornado.png", dpi=150, bbox_inches="tight")
 
     # --- reproducibility record --------------------------------------------

@@ -35,9 +35,14 @@ import pandas as pd
 from numpy.typing import NDArray
 
 from heormodel.models._accrual import accrue, aggregate, integrate_flow
-from heormodel.models._strategies import StrategySpec, merge_overrides, normalize_strategies
+from heormodel.models._interventions import (
+    InterventionSpec,
+    comparator_of,
+    merge_decision_levers,
+    normalize_interventions,
+)
 from heormodel.models.markov import gen_wcc
-from heormodel.models.outcomes import ITERATION_LEVEL, STRATEGY_LEVEL, Outcomes
+from heormodel.models.outcomes import INTERVENTION_LEVEL, ITERATION_LEVEL, Outcomes
 from heormodel.models.protocol import EngineResult
 from heormodel.run.seeds import SeedManager
 
@@ -69,7 +74,7 @@ class _MicrosimBase:
             ..., tuple[NDArray[np.float64], NDArray[np.float64]]
         ],
         population: PopulationSpec,
-        strategies: StrategySpec,
+        interventions: InterventionSpec,
         n_individuals: int,
         initial_state: str | int,
         discount_rate: float,
@@ -80,7 +85,8 @@ class _MicrosimBase:
             raise ValueError("Provide at least two states.")
         self._states = tuple(states)
         self._state_rewards = state_rewards
-        self._strategies = normalize_strategies(strategies)
+        self._interventions = normalize_interventions(interventions)
+        self._comparator = comparator_of(interventions)
         self._discount_rate = float(discount_rate)
         self._effect = effect
         self._independent_streams = bool(independent_streams)
@@ -122,7 +128,7 @@ class _MicrosimBase:
         return attrs.reset_index(drop=True)
 
     def _simulate(
-        self, params: pd.Series, strategy: str, attrs: pd.DataFrame,
+        self, params: pd.Series, intervention: str, attrs: pd.DataFrame,
         rng: np.random.Generator, *, collect_events: bool = False,
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], pd.DataFrame | None]:
         raise NotImplementedError
@@ -140,7 +146,7 @@ class _MicrosimBase:
                 the outcome iteration index.
 
         Returns:
-            `Outcomes` indexed by ``(strategy, draws.index)``.
+            `Outcomes` indexed by ``(intervention, draws.index)``.
         """
         return self.evaluate_streamed(draws, streams=SeedManager(0)).outcomes
 
@@ -155,7 +161,7 @@ class _MicrosimBase:
                 stream keyed by its index, so results do not depend on how the
                 run is chunked across workers.
             collect: ``None`` for outcomes only, ``"events"`` for the state-change
-                history (one row per state change with columns ``strategy``,
+                history (one row per state change with columns ``intervention``,
                 ``iteration``, ``individual``, ``time``, ``from_state``, and
                 ``to_state``, the input to `heormodel.models.state_occupancy`), or
                 ``"individuals"`` for per-individual cost and effect.
@@ -172,7 +178,7 @@ class _MicrosimBase:
         collect_individuals = collect == "individuals"
         if draws.empty:
             raise ValueError("draws is empty.")
-        strategy_names = list(self._strategies)
+        intervention_names = list(self._interventions)
         rows: list[pd.DataFrame] = []
         traces: list[pd.DataFrame] = []
         for label, (_, raw_params) in zip(draws.index, draws.iterrows(), strict=True):
@@ -180,12 +186,12 @@ class _MicrosimBase:
             shared_attrs: pd.DataFrame | None = None
             shared_txn: np.random.SeedSequence | None = None
             if self._independent_streams:
-                sub = iter_seq.spawn(2 * len(strategy_names))
+                sub = iter_seq.spawn(2 * len(intervention_names))
             else:
                 pop_seq, shared_txn = iter_seq.spawn(2)
                 shared_attrs = self._sample_population(np.random.default_rng(pop_seq))
-            for j, (name, overrides) in enumerate(self._strategies.items()):
-                params = merge_overrides(raw_params, overrides)
+            for j, (name, decision_levers) in enumerate(self._interventions.items()):
+                params = merge_decision_levers(raw_params, decision_levers)
                 if self._independent_streams:
                     attrs = self._sample_population(np.random.default_rng(sub[2 * j]))
                     rng = np.random.default_rng(sub[2 * j + 1])
@@ -200,13 +206,13 @@ class _MicrosimBase:
                 if collect_events:
                     assert events is not None
                     events.insert(0, ITERATION_LEVEL, label)
-                    events.insert(0, STRATEGY_LEVEL, name)
+                    events.insert(0, INTERVENTION_LEVEL, name)
                     traces.append(events)
                 elif collect_individuals:
                     traces.append(
                         pd.DataFrame(
                             {
-                                STRATEGY_LEVEL: name,
+                                INTERVENTION_LEVEL: name,
                                 ITERATION_LEVEL: label,
                                 "individual": np.arange(len(cost)),
                                 "cost": cost,
@@ -216,9 +222,11 @@ class _MicrosimBase:
                     )
         data = pd.concat(rows)
         full_index = pd.MultiIndex.from_product(
-            [strategy_names, draws.index], names=[STRATEGY_LEVEL, ITERATION_LEVEL]
+            [intervention_names, draws.index], names=[INTERVENTION_LEVEL, ITERATION_LEVEL]
         )
-        outcomes = Outcomes(data.reindex(full_index), effect=self._effect)
+        outcomes = Outcomes(
+            data.reindex(full_index), effect=self._effect, comparator=self._comparator
+        )
         log = pd.concat(traces, ignore_index=True) if traces else None
         return EngineResult(
             outcomes,
@@ -253,30 +261,30 @@ class MicrosimModel(_MicrosimBase):
     scales the discrete clock: with ``cycle_length=0.5`` each cycle discounts
     by half a year.
 
-    Every user-supplied model function receives the strategy name as its second
-    argument, so a strategy can branch on the name as well as through parameter
-    overrides.
+    Every user-supplied model function receives the intervention name as its second
+    argument, so an intervention can branch on the name as well as through parameter
+    decision levers.
 
     Example:
         >>> import numpy as np, pandas as pd
         >>> from heormodel.models import MicrosimModel
-        >>> def transition_probabilities(params, strategy, state, attrs, rng):
+        >>> def transition_probabilities(params, intervention, state, attrs, rng):
         ...     probs = np.zeros((len(state), 2))
         ...     probs[state == 0] = [1 - params["p_die"], params["p_die"]]
         ...     probs[state == 1] = [0.0, 1.0]  # dead is absorbing
         ...     return probs
-        >>> def state_rewards(params, strategy, state, attrs):
+        >>> def state_rewards(params, intervention, state, attrs):
         ...     alive = (state == 0).astype(float)
         ...     return alive * params["cost"], alive
         >>> engine = MicrosimModel.discrete(
         ...     states=("healthy", "dead"),
         ...     transition_probabilities=transition_probabilities,
         ...     state_rewards=state_rewards,
-        ...     population=500, strategies=["care"], n_cycles=10,
+        ...     population=500, interventions=["care"], n_cycles=10,
         ...     cycle_correction="none")
         >>> draws = pd.DataFrame({"p_die": [0.1], "cost": [1000.0]},
         ...                      index=pd.RangeIndex(1, name="iteration"))
-        >>> engine.evaluate(draws).strategies
+        >>> engine.evaluate(draws).interventions
         ['care']
     """
 
@@ -288,7 +296,7 @@ class MicrosimModel(_MicrosimBase):
         state_rewards: Callable[
             ..., tuple[NDArray[np.float64], NDArray[np.float64]]
         ],
-        strategies: StrategySpec,
+        interventions: InterventionSpec,
         transition_probabilities: Callable[..., NDArray[np.float64]] | None = None,
         event_times: Callable[..., NDArray[np.float64]] | None = None,
         population: PopulationSpec = None,
@@ -310,7 +318,7 @@ class MicrosimModel(_MicrosimBase):
             states=states,
             state_rewards=state_rewards,
             population=population,
-            strategies=strategies,
+            interventions=interventions,
             n_individuals=n_individuals,
             initial_state=initial_state,
             discount_rate=discount_rate,
@@ -345,7 +353,7 @@ class MicrosimModel(_MicrosimBase):
         states: tuple[str, ...],
         transition_probabilities: Callable[..., NDArray[np.float64]],
         state_rewards: Callable[..., tuple[NDArray[np.float64], NDArray[np.float64]]],
-        strategies: StrategySpec,
+        interventions: InterventionSpec,
         n_cycles: int,
         population: PopulationSpec = None,
         cycle_length: float = 1.0,
@@ -364,14 +372,14 @@ class MicrosimModel(_MicrosimBase):
 
         Args:
             states: State labels; the first is the default starting state.
-            transition_probabilities: ``fn(params, strategy, state, attrs, rng)
+            transition_probabilities: ``fn(params, intervention, state, attrs, rng)
                 -> probs``, shape ``(n, n_states)`` with each row summing to 1.
-            state_rewards: ``fn(params, strategy, state, attrs) -> (cost,
+            state_rewards: ``fn(params, intervention, state, attrs) -> (cost,
                 utility)``, the per-cycle cost and utility of each individual's
                 current state, each shape ``(n,)``.
-            strategies: A sequence of strategy names or
-                `heormodel.models.Strategy` objects; a `Strategy` may carry
-                parameter overrides merged into ``params`` for that strategy.
+            interventions: A sequence of intervention names or
+                `heormodel.models.Intervention` objects; an `Intervention` may carry
+                parameter decision levers merged into ``params`` for that intervention.
                 Order is preserved in `Outcomes`.
             n_cycles: Number of cycles to simulate.
             population: Attribute sampler ``fn(rng, n) -> DataFrame`` for
@@ -386,7 +394,7 @@ class MicrosimModel(_MicrosimBase):
                 ``None``.
             initial_state: Starting state label or index.
             effect: Name of the effect column (QALYs by default).
-            independent_streams: Give each strategy its own population and
+            independent_streams: Give each intervention its own population and
                 simulation stream instead of common random numbers.
             duration_groups: Optional map of attribute name to a set of state
                 labels. For each entry the engine maintains a per-individual
@@ -402,7 +410,7 @@ class MicrosimModel(_MicrosimBase):
             states=states,
             transition_probabilities=transition_probabilities,
             state_rewards=state_rewards,
-            strategies=strategies,
+            interventions=interventions,
             n_cycles=n_cycles,
             population=population,
             cycle_length=cycle_length,
@@ -422,7 +430,7 @@ class MicrosimModel(_MicrosimBase):
         states: tuple[str, ...],
         event_times: Callable[..., NDArray[np.float64]],
         state_reward_rates: Callable[..., tuple[NDArray[np.float64], NDArray[np.float64]]],
-        strategies: StrategySpec,
+        interventions: InterventionSpec,
         horizon: float,
         population: PopulationSpec = None,
         discount_rate: float = 0.03,
@@ -439,16 +447,16 @@ class MicrosimModel(_MicrosimBase):
 
         Args:
             states: State labels; the first is the default starting state.
-            event_times: ``fn(params, strategy, state, attrs, rng) -> times``,
+            event_times: ``fn(params, intervention, state, attrs, rng) -> times``,
                 shape ``(n, n_states)``, the sampled time to each destination
                 state. Use ``inf`` where a transition cannot occur, including a
                 state's own column and every column of an absorbing state.
-            state_reward_rates: ``fn(params, strategy, state, attrs) ->
+            state_reward_rates: ``fn(params, intervention, state, attrs) ->
                 (cost_rate, utility_rate)``, the per-year cost and utility flows
                 of each individual's current state, each shape ``(n,)``.
-            strategies: A sequence of strategy names or
-                `heormodel.models.Strategy` objects; a `Strategy` may carry
-                parameter overrides merged into ``params`` for that strategy.
+            interventions: A sequence of intervention names or
+                `heormodel.models.Intervention` objects; an `Intervention` may carry
+                parameter decision levers merged into ``params`` for that intervention.
                 Order is preserved in `Outcomes`.
             horizon: Time horizon in years; trajectories truncate here.
             population: Attribute sampler ``fn(rng, n) -> DataFrame`` for
@@ -460,7 +468,7 @@ class MicrosimModel(_MicrosimBase):
                 ``None``.
             initial_state: Starting state label or index.
             effect: Name of the effect column (QALYs by default).
-            independent_streams: Give each strategy its own population and
+            independent_streams: Give each intervention its own population and
                 simulation stream instead of common random numbers.
             max_events: Safety cap on events per individual before raising.
         """
@@ -469,7 +477,7 @@ class MicrosimModel(_MicrosimBase):
             states=states,
             event_times=event_times,
             state_rewards=state_reward_rates,
-            strategies=strategies,
+            interventions=interventions,
             horizon=horizon,
             population=population,
             discount_rate=discount_rate,
@@ -481,15 +489,15 @@ class MicrosimModel(_MicrosimBase):
         )
 
     def _simulate(
-        self, params: pd.Series, strategy: str, attrs: pd.DataFrame,
+        self, params: pd.Series, intervention: str, attrs: pd.DataFrame,
         rng: np.random.Generator, *, collect_events: bool = False,
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], pd.DataFrame | None]:
         if self._clock == "discrete":
             return self._simulate_discrete(
-                params, strategy, attrs, rng, collect_events=collect_events
+                params, intervention, attrs, rng, collect_events=collect_events
             )
         return self._simulate_continuous(
-            params, strategy, attrs, rng, collect_events=collect_events
+            params, intervention, attrs, rng, collect_events=collect_events
         )
 
     def _assemble_events(
@@ -520,7 +528,7 @@ class MicrosimModel(_MicrosimBase):
         )
 
     def _simulate_discrete(
-        self, params: pd.Series, strategy: str, attrs: pd.DataFrame,
+        self, params: pd.Series, intervention: str, attrs: pd.DataFrame,
         rng: np.random.Generator, *, collect_events: bool = False,
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], pd.DataFrame | None]:
         n = len(attrs)
@@ -538,12 +546,12 @@ class MicrosimModel(_MicrosimBase):
         ev_to: list[NDArray[np.int64]] = []
         for c in range(n_points):
             view = attrs.assign(cycle=c, time_in_state=time_in_state, **durations)
-            cost, eff = self._state_rewards(params, strategy, state, view)
+            cost, eff = self._state_rewards(params, intervention, state, view)
             cost_grid[:, c] = cost
             eff_grid[:, c] = eff
             if c < horizon:
                 probs = np.asarray(
-                    self._transition_probabilities(params, strategy, state, view, rng),
+                    self._transition_probabilities(params, intervention, state, view, rng),
                     dtype=np.float64,
                 )
                 if probs.shape != (n, n_states):
@@ -588,7 +596,7 @@ class MicrosimModel(_MicrosimBase):
         return (u[:, None] < cdf).argmax(axis=1).astype(np.int64)
 
     def _simulate_continuous(
-        self, params: pd.Series, strategy: str, attrs: pd.DataFrame,
+        self, params: pd.Series, intervention: str, attrs: pd.DataFrame,
         rng: np.random.Generator, *, collect_events: bool = False,
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], pd.DataFrame | None]:
         n = len(attrs)
@@ -608,7 +616,7 @@ class MicrosimModel(_MicrosimBase):
                 break
             view = attrs.assign(time=clock)
             times = np.asarray(
-                self._event_times(params, strategy, state, view, rng), dtype=np.float64
+                self._event_times(params, intervention, state, view, rng), dtype=np.float64
             )
             if times.shape != (n, n_states):
                 raise ValueError(
@@ -618,7 +626,7 @@ class MicrosimModel(_MicrosimBase):
             dt = times[np.arange(n), dest]
             remaining = horizon - clock
             segment = np.where(active, np.minimum(dt, remaining), 0.0)
-            cost_rate, eff_rate = self._state_rewards(params, strategy, state, view)
+            cost_rate, eff_rate = self._state_rewards(params, intervention, state, view)
             disc_cost = integrate_flow(clock, segment, self._discount_rate)
             disc_eff = integrate_flow(clock, segment, self._discount_rate)
             cost_total += np.where(active, cost_rate * disc_cost, 0.0)

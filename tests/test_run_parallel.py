@@ -109,19 +109,19 @@ class TestProgressInRun:
 def _stochastic_engine():
     """A small individual-level engine, seeded by the runner."""
 
-    def transition(params, strategy, state, attrs, rng):
+    def transition(params, intervention, state, attrs, rng):
         probs = np.zeros((len(state), 2))
         probs[state == 0] = [1 - params["p"], params["p"]]
         probs[state == 1] = [0.0, 1.0]  # absorbing
         return probs
 
-    def rewards(params, strategy, state, attrs):
+    def rewards(params, intervention, state, attrs):
         alive = (state == 0).astype(float)
         return alive * 100.0, alive
 
     return MicrosimModel.discrete(
         states=("well", "dead"), transition_probabilities=transition,
-        state_rewards=rewards, population=200, strategies=["A", "B"], n_cycles=8,
+        state_rewards=rewards, population=200, interventions=["A", "B"], n_cycles=8,
     )
 
 

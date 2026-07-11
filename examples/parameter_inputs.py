@@ -39,7 +39,7 @@ WTP = 30_000.0
 
 
 def model(draws: pd.DataFrame) -> Outcomes:
-    """A two-strategy model: standard care versus a new drug.
+    """A two-intervention model: standard care versus a new drug.
 
     Cost and QALYs per iteration are simple functions of three parameters, so
     the outputs are traceable to the inputs.

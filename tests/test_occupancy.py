@@ -32,7 +32,7 @@ def _draws(n_iter=1):
 def _hand_log() -> pd.DataFrame:
     return pd.DataFrame(
         {
-            "strategy": "care",
+            "intervention": "care",
             "iteration": 0,
             "individual": [0, 0, 1],
             "time": [1.0, 3.0, 2.0],
@@ -87,13 +87,13 @@ class TestEventTrace:
     def _continuous_engine(self, population=20_000):
         lam = 0.1
 
-        def event_times(params, strategy, state, attrs, rng):
+        def event_times(params, intervention, state, attrs, rng):
             times = np.full((len(state), 2), np.inf)
             alive = state == 0
             times[alive, 1] = rng.exponential(1.0 / lam, int(alive.sum()))
             return times
 
-        def reward_rates(params, strategy, state, attrs):
+        def reward_rates(params, intervention, state, attrs):
             alive = (state == 0).astype(float)
             return alive * 0.0, alive
 
@@ -102,7 +102,7 @@ class TestEventTrace:
             event_times=event_times,
             state_reward_rates=reward_rates,
             population=population,
-            strategies=["care"],
+            interventions=["care"],
             horizon=50.0,
         )
 
@@ -110,7 +110,7 @@ class TestEventTrace:
         engine = self._continuous_engine()
         events = run_psa(engine, _draws(), seed=5, collect="events").events
         assert list(events.columns) == [
-            "strategy", "iteration", "individual", "time", "from_state", "to_state",
+            "intervention", "iteration", "individual", "time", "from_state", "to_state",
         ]
         occ = state_occupancy(
             events, states=("alive", "dead"), initial_state="alive",
@@ -126,13 +126,13 @@ class TestEventTrace:
         pd.testing.assert_frame_equal(plain.data, with_events.outcomes.data)
 
     def test_discrete_clock_logs_state_changes(self):
-        def transition(params, strategy, state, attrs, rng):
+        def transition(params, intervention, state, attrs, rng):
             probs = np.zeros((len(state), 2))
             probs[state == 0] = [0.7, 0.3]
             probs[state == 1] = [0.0, 1.0]
             return probs
 
-        def reward_rates(params, strategy, state, attrs):
+        def reward_rates(params, intervention, state, attrs):
             alive = (state == 0).astype(float)
             return alive, alive
 
@@ -141,7 +141,7 @@ class TestEventTrace:
             transition_probabilities=transition,
             state_rewards=reward_rates,
             population=50_000,
-            strategies=["care"],
+            interventions=["care"],
             n_cycles=10,
             cycle_correction="none",
         )

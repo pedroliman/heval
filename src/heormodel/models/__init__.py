@@ -1,7 +1,7 @@
 """Model engines behind an output contract (`heormodel.models`).
 
 The durable pieces here are `Outcomes`, the standardized
-(strategy, iteration) outcome structure, and `ModelEngine`, the
+(intervention, iteration) outcome structure, and `ModelEngine`, the
 contract every engine satisfies. The engines are `MarkovModel`
 (cohort state-transition), `MicrosimModel` (individual-level, built through
 `MicrosimModel.discrete` or `MicrosimModel.continuous`), and `DESModel`
@@ -9,7 +9,7 @@ contract every engine satisfies. The engines are `MarkovModel`
 event history into the proportion of the population in each state over time.
 """
 
-from heormodel.models._strategies import Strategy
+from heormodel.models._interventions import Intervention
 from heormodel.models.des import DESModel, queue_waits
 from heormodel.models.lifetable import LifeTable
 from heormodel.models.markov import CohortSpec, MarkovModel
@@ -29,7 +29,7 @@ __all__ = [
     "ModelFn",
     "Outcomes",
     "StochasticEngine",
-    "Strategy",
+    "Intervention",
     "queue_waits",
     "state_occupancy",
 ]

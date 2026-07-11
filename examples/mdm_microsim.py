@@ -53,7 +53,7 @@ def population(rng: np.random.Generator, n: int) -> pd.DataFrame:
 
 
 def transition_probabilities(
-    params: pd.Series, strategy: str, state: np.ndarray, attrs: pd.DataFrame,
+    params: pd.Series, intervention: str, state: np.ndarray, attrs: pd.DataFrame,
     rng: np.random.Generator,
 ) -> np.ndarray:
     """Per-cycle transition probabilities with duration-dependent mortality."""
@@ -81,7 +81,7 @@ def transition_probabilities(
 
 
 def state_rewards(
-    params: pd.Series, strategy: str, state: np.ndarray, attrs: pd.DataFrame
+    params: pd.Series, intervention: str, state: np.ndarray, attrs: pd.DataFrame
 ) -> tuple[np.ndarray, np.ndarray]:
     """Per-cycle cost and utility, with a duration-decaying treatment utility."""
     n = len(state)
@@ -89,7 +89,7 @@ def state_rewards(
     util = np.zeros(n)
     dur = attrs["dur"].to_numpy()  # cycles already spent sick
     x = attrs["x"].to_numpy()
-    on_tx = strategy == "Treatment"
+    on_tx = intervention == "Treatment"
     tx_cost = params["c_Trt"] if on_tx else 0.0
 
     h = state == 0
@@ -114,7 +114,7 @@ def main() -> None:
         states=STATES, transition_probabilities=transition_probabilities,
         state_rewards=state_rewards, population=population,
         n_individuals=POP,
-        strategies=["No Treatment", "Treatment"],
+        interventions=["No Treatment", "Treatment"],
         n_cycles=HORIZON, discount_rate=0.03,
         cycle_correction="none",
         duration_groups={"dur": ("S1", "S2")},

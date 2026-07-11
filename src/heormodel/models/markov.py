@@ -7,7 +7,7 @@ matrix each cycle. Transitions may be constant or vary by cycle, which is how
 age-dependent mortality enters.
 
 The engine configures once and evaluates on draws. The constructor takes the
-model structure (states, strategies, a ``transitions_and_rewards`` function,
+model structure (states, interventions, a ``transitions_and_rewards`` function,
 cycle count, discounting, within-cycle correction); ``evaluate`` takes only the parameter
 draw matrix and returns `Outcomes` indexed by ``draws.index``. Cohort models
 are deterministic given a parameter set, so no random streams are involved.
@@ -30,15 +30,20 @@ import pandas as pd
 from numpy.typing import NDArray
 
 from heormodel.models._accrual import discount_factor
-from heormodel.models._strategies import StrategySpec, merge_overrides, normalize_strategies
-from heormodel.models.outcomes import ITERATION_LEVEL, STRATEGY_LEVEL, Outcomes
+from heormodel.models._interventions import (
+    InterventionSpec,
+    comparator_of,
+    merge_decision_levers,
+    normalize_interventions,
+)
+from heormodel.models.outcomes import INTERVENTION_LEVEL, ITERATION_LEVEL, Outcomes
 
 _PROB_TOL = 1e-8
 
 
 @dataclass
 class CohortSpec:
-    """One strategy's matrices for a single parameter set.
+    """One intervention's matrices for a single parameter set.
 
     Returned by the engine's ``transitions_and_rewards`` function. Arrays are
     plain ``numpy`` arrays over the engine's state order.
@@ -111,13 +116,13 @@ class MarkovModel:
 
     Args:
         states: State labels; their order fixes every array's axis order.
-        strategies: A sequence of strategy names or `heormodel.models.Strategy`
-            objects, in the order they appear in `Outcomes`. A `Strategy` may
-            carry parameter overrides merged into ``params`` for that strategy.
-        transitions_and_rewards: ``fn(params, strategy) -> CohortSpec`` returning
-            the transition matrix and reward arrays for one strategy under one
+        interventions: A sequence of intervention names or `heormodel.models.Intervention`
+            objects, in the order they appear in `Outcomes`. A `Intervention` may
+            carry parameter decision levers merged into ``params`` for that intervention.
+        transitions_and_rewards: ``fn(params, intervention) -> CohortSpec`` returning
+            the transition matrix and reward arrays for one intervention under one
             parameter set. ``params`` is a draw-matrix row (a ``pandas.Series``);
-            ``strategy`` is the strategy name.
+            ``intervention`` is the intervention name.
         n_cycles: Number of cycles in the time horizon.
         initial_state: Initial state distribution: a state label (all mass
             there), a mapping of state label to probability, or a
@@ -132,18 +137,18 @@ class MarkovModel:
     Example:
         >>> import numpy as np, pandas as pd
         >>> from heormodel.models.markov import CohortSpec, MarkovModel
-        >>> def transitions_and_rewards(params, strategy):
+        >>> def transitions_and_rewards(params, intervention):
         ...     p = params["p_die"]
         ...     P = np.array([[1 - p, p], [0.0, 1.0]])
         ...     return CohortSpec(P, np.array([params["cost"], 0.0]),
         ...                       np.array([1.0, 0.0]))
         >>> engine = MarkovModel(
-        ...     states=("alive", "dead"), strategies=("care",),
+        ...     states=("alive", "dead"), interventions=("care",),
         ...     transitions_and_rewards=transitions_and_rewards,
         ...     n_cycles=10, cycle_correction="none")
         >>> draws = pd.DataFrame({"p_die": [0.1], "cost": [1000.0]},
         ...                      index=pd.RangeIndex(1, name="iteration"))
-        >>> engine.evaluate(draws).strategies
+        >>> engine.evaluate(draws).interventions
         ['care']
     """
 
@@ -151,7 +156,7 @@ class MarkovModel:
         self,
         *,
         states: Sequence[str],
-        strategies: StrategySpec,
+        interventions: InterventionSpec,
         transitions_and_rewards: Callable[[pd.Series, str], CohortSpec],
         n_cycles: int,
         initial_state: str | Mapping[str, float] | Sequence[float] | None = None,
@@ -166,7 +171,8 @@ class MarkovModel:
             raise ValueError("n_cycles must be at least one.")
         self._states = tuple(states)
         self._n_states = len(self._states)
-        self._strategies = normalize_strategies(strategies)
+        self._interventions = normalize_interventions(interventions)
+        self._comparator = comparator_of(interventions)
         self._transitions_and_rewards = transitions_and_rewards
         self._n_cycles = int(n_cycles)
         self._cycle_length = float(cycle_length)
@@ -275,14 +281,14 @@ class MarkovModel:
         return total_cost, total_effect
 
     def evaluate(self, draws: pd.DataFrame) -> Outcomes:
-        """Evaluate every strategy on every draw and return `Outcomes`.
+        """Evaluate every intervention on every draw and return `Outcomes`.
 
         Args:
             draws: Parameter draw matrix (rows = iterations). Its index becomes
                 the outcome iteration index.
 
         Returns:
-            `Outcomes` indexed by ``(strategy, draws.index)``.
+            `Outcomes` indexed by ``(intervention, draws.index)``.
         """
         if draws.empty:
             raise ValueError("draws is empty.")
@@ -290,16 +296,16 @@ class MarkovModel:
         effects: list[float] = []
         keys: list[tuple[str, object]] = []
         for label, (_, raw_params) in zip(draws.index, draws.iterrows(), strict=True):
-            for name, overrides in self._strategies.items():
-                params = merge_overrides(raw_params, overrides)
+            for name, decision_levers in self._interventions.items():
+                params = merge_decision_levers(raw_params, decision_levers)
                 spec = self._transitions_and_rewards(params, name)
                 cost, effect = self._accrue(spec)
                 costs.append(cost)
                 effects.append(effect)
                 keys.append((name, label))
-        index = pd.MultiIndex.from_tuples(keys, names=[STRATEGY_LEVEL, ITERATION_LEVEL])
+        index = pd.MultiIndex.from_tuples(keys, names=[INTERVENTION_LEVEL, ITERATION_LEVEL])
         data = pd.DataFrame({"cost": costs, self._effect: effects}, index=index)
         full_index = pd.MultiIndex.from_product(
-            [self._strategies, draws.index], names=[STRATEGY_LEVEL, ITERATION_LEVEL]
+            [self._interventions, draws.index], names=[INTERVENTION_LEVEL, ITERATION_LEVEL]
         )
-        return Outcomes(data.reindex(full_index), effect=self._effect)
+        return Outcomes(data.reindex(full_index), effect=self._effect, comparator=self._comparator)
