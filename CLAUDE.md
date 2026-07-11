@@ -47,7 +47,7 @@ When asked to implement the next roadmap priority (`devdocs/roadmap/README.md`):
 
 ## GitHub workflow
 
-Every development task follows a structured GitHub workflow to maintain clear traceability and documentation:
+Every development task follows a structured GitHub workflow to maintain clear traceability and avoid duplicating information:
 
 ### Task initiation
 - Create a GitHub Issue at the start of each conversation describing the work to be done.
@@ -56,20 +56,18 @@ Every development task follows a structured GitHub workflow to maintain clear tr
 ### Code changes
 - All code changes go through Pull Requests.
 - Open the PR early, linking it to the corresponding GitHub Issue.
-- Use the PR description to outline the planned work and approach.
 
 ### Commits
-- Every commit message must reference the GitHub Issue using the format: `Closes #<issue-number>` or `Fixes #<issue-number>` (or `Refs #<issue-number>` if the commit does not close the issue).
-- Commit messages should be clear and descriptive about the changes being made, following the writing style guide.
+- Every commit message must reference the GitHub Issue using the format: `Closes #<issue-number>`, `Fixes #<issue-number>`, or `Refs #<issue-number>`.
+- Commit messages are the source of truth for *what* changed. Make them clear and descriptive about the actual changes.
 
-### Plan communication
-- When creating an implementation plan, post it as a comment on the GitHub Issue or PR.
-- This ensures the plan is visible and documented in the project's history.
+### Plan and status communication
+- Post implementation plans as comments on the Issue or PR.
+- When starting work, post a comment stating only the high-level approach and *why* this approach was chosen—not implementation details.
+- When completing work, post a comment summarizing the *why* (rationale for changes) and high-level *what* (nature of changes).
+- Keep comments concise. Do not duplicate information from commits. Point to commits for implementation details.
 
-### Status updates
-- Post a comment on the Issue or PR when starting work, describing what will be done.
-- Post a comment on the Issue or PR when completing a task, summarizing what was accomplished.
-- These updates create a clear record of progress and decisions.
+This separation ensures commits serve as the detailed change history while Issue/PR comments document rationale, decisions, and progress without redundancy.
 
 ## Git identity
 
