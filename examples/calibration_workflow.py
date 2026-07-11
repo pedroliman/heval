@@ -4,7 +4,7 @@ literature, then mix both into one PSA that flows through CEA and VoI.
 This is the workflow most applied models need. A natural-history model has
 transition rates that no single study reports, so they are calibrated to
 observed prevalence. Utilities and costs come from the literature as
-mean/SE distributions. `heval.params.mix_draws` joins the calibrated
+mean/SE distributions. `heormodel.params.mix_draws` joins the calibrated
 posterior and the literature draws into one matrix, and from that point the
 analysis layer does not care where a parameter came from.
 
@@ -230,7 +230,7 @@ def main() -> None:
     )
     record.to_json(OUT / "run_record_calib.json")
     (OUT / "run_report_calib.md").write_text(
-        record.to_markdown("heval calibration workflow run report")
+        record.to_markdown("heormodel calibration workflow run report")
     )
     print(f"\nWrote plots, run report, and run record to {OUT}/")
 

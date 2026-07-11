@@ -36,8 +36,8 @@ def model(p, strategy):
     u_s1 = p["u_trtA"] if strategy in ("Strategy A", "Strategy AB") else p["u_S1"]
     return CohortSpec(P, cost, np.array([p["u_H"], u_s1, p["u_S2"], 0.0]))
 
-engine = MarkovModel(states=STATES, strategies=STRATEGIES, model_fn=model,
-                     n_cycles=75, start="H", half_cycle_correction="simpson")
+engine = MarkovModel(states=STATES, strategies=STRATEGIES, transitions_and_rewards=model,
+                     n_cycles=75, initial_state="H", cycle_correction="simpson")
 
 base = pd.Series(dict(
     r_HD=0.002, r_HS1=0.15, r_S1H=0.5, r_S1S2=0.105, hr_S1=3.0, hr_S2=10.0,

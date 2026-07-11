@@ -50,8 +50,8 @@ def model(p, strategy):
     te = np.zeros((4, 4)); te[0, 1] = -p["du_HS1"]
     return CohortSpec(P, cost, eff, transition_cost=tc, transition_effect=te)
 
-engine = MarkovModel(states=STATES, strategies=STRATEGIES, model_fn=model,
-                            n_cycles=N, start="H", half_cycle_correction="simpson")
+engine = MarkovModel(states=STATES, strategies=STRATEGIES, transitions_and_rewards=model,
+                            n_cycles=N, initial_state="H", cycle_correction="simpson")
 ```
 
 ## Reproducing the published base case

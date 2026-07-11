@@ -24,21 +24,22 @@ def resources(env, params, strategy):
 
 def clinic(env, patient, params, strategy, toolkit):
     arrival = float(patient["arrival"])
-    if arrival >= HORIZON:
+    if arrival >= toolkit.horizon:
         return
     yield env.timeout(arrival)
     toolkit.state("waiting")
     with toolkit.request("specialist") as slot:
-        result = yield slot | env.timeout(HORIZON - env.now)  # race the horizon
+        result = yield slot | env.timeout(toolkit.horizon - env.now)  # race the horizon
         served = slot in result
         toolkit.accrue_over(arrival, env.now, params["c_wait_year"], params["u_wait"])
         if served:
             toolkit.accrue_cost(params["c_treat"] + params["c_capacity"])
-            toolkit.accrue_over(env.now, HORIZON, params["c_followup_year"], params["u_treated"])
+            toolkit.accrue_over(env.now, toolkit.horizon, params["c_followup_year"],
+                                params["u_treated"])
             yield env.timeout(toolkit.rng.gamma(2.0, params["service_time"] / 2.0))
 ```
 
-`toolkit.accrue_over(start, end, cost_rate, utility_rate)` integrates and discounts a flow over an absolute interval, so billing the queueing time a patient just endured is one call once the specialist is granted. A patient still waiting at the horizon is never seen: the request loses the race and only the waiting segment is billed.
+`toolkit.accrue_over(start, end, cost_rate, utility_rate)` integrates and discounts a flow over an absolute interval, so billing the queueing time a patient just endured is one call once the specialist is granted. The process reads the run's time horizon back as `toolkit.horizon`, so it need not repeat the value the constructor already holds. A patient still waiting at the horizon is never seen: the request loses the race and only the waiting segment is billed.
 
 ## Configuring once, evaluating on draws
 
@@ -62,7 +63,7 @@ parameters = ParameterSet({
 draws = parameters.sample(128, seed=seeds.generator())
 
 engine = DESModel(
-    process=clinic, entities=patients, n_entities=30, resources=resources,
+    process=clinic, population=patients, n_individuals=30, resources=resources,
     strategies={"Standard capacity": {"n_servers": 1, "c_capacity": 0.0},
                 "Expanded capacity": {"n_servers": 2}},
     horizon=HORIZON, seed_manager=seeds,

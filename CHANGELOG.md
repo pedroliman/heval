@@ -105,6 +105,35 @@ Each entry links to the pull request that introduced it. Add a line under
   silent unless `progress=True` is explicit
   ([#15](https://github.com/pedroliman/heormodel/pull/15)).
 
+### Changed
+
+- One vocabulary across the engines, a clean break with no aliases
+  ([#28](https://github.com/pedroliman/heormodel/issues/28)). Every engine now
+  spells a shared concept the same way:
+  - `MarkovModel`: `model_fn` is now `transitions_and_rewards`, `start` is now
+    `initial_state`, and `half_cycle_correction` is now `cycle_correction` (its
+    `"half-cycle"` option is now `"half_cycle"`).
+  - `MicrosimModel` no longer takes a `clock` argument. Build the two kernels
+    through `MicrosimModel.discrete(...)` and `MicrosimModel.continuous(...)`;
+    each constructor carries only its kernel's parameters, so a parameter that
+    belongs to the other clock is a `TypeError` at the call site. The discrete
+    clock takes `n_cycles` (was `horizon`) and per-cycle `state_rewards` (was
+    `state_costs_and_utilities`); the continuous clock takes `horizon` and
+    per-year `state_reward_rates`. `half_cycle_correction=True` is now
+    `cycle_correction="half_cycle"`, sharing the string with `MarkovModel`.
+  - `DESModel`: `entities` is now `population` and `n_entities` is now
+    `n_individuals`, matching `MicrosimModel`.
+  - Every engine accepts `strategies` as either a sequence of names or a
+    name-to-overrides mapping, and every user-supplied model function receives
+    the strategy name. Microsimulation callbacks gain it as their second
+    argument: `transition_probabilities(params, strategy, state, attrs, rng)`,
+    `state_rewards(params, strategy, state, attrs)`, and
+    `event_times(params, strategy, state, attrs, rng)`.
+  - A discrete-event `process` reads the run's horizon back as `toolkit.horizon`
+    instead of duplicating it as a module constant.
+  The replication examples reproduce their published numbers unchanged, since
+  nothing numeric changed.
+
 ### Fixed
 
 - `heormodel.__version__` reported `0.0.0` on every install because the package

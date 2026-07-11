@@ -3,7 +3,7 @@
 Companion to ``examples/mdm_cohort.py``. Where that script runs a
 probabilistic sensitivity analysis, this one runs the deterministic forms:
 a one-way sweep, a one-at-a-time tornado, and a two-way grid. All three feed
-`heval.dsa` designs through the same `run_psa` loop the PSA uses, then read
+`heormodel.dsa` designs through the same `run_psa` loop the PSA uses, then read
 the results with the report layer.
 
 The base case is the tutorial's Table 1 point estimates. The outcome of
@@ -113,11 +113,11 @@ def incremental_nmb(design: pd.DataFrame) -> pd.Series:
 engine = MarkovModel(
     states=STATES,
     strategies=STRATEGIES,
-    model_fn=model,
+    transitions_and_rewards=model,
     n_cycles=N_CYCLES,
-    start="H",
+    initial_state="H",
     discount_rate=0.03,
-    half_cycle_correction="simpson",
+    cycle_correction="simpson",
 )
 
 

@@ -25,11 +25,11 @@ COST_VEC = np.array([1_000.0, 3_000.0, 0.0])
 EFF_VEC = np.array([1.0, 0.6, 0.0])
 
 
-def _transition(params, state, attrs, rng):
+def _transition(params, strategy, state, attrs, rng):
     return P[state]
 
 
-def _payoffs(params, state, attrs):
+def _payoffs(params, strategy, state, attrs):
     return COST_VEC[state], EFF_VEC[state]
 
 
@@ -58,15 +58,15 @@ def _draws(n_iter=1):
 class TestDiscreteValidation:
     def test_converges_to_cohort_closed_form(self):
         horizon = 40
-        engine = MicrosimModel(
+        engine = MicrosimModel.discrete(
             states=("H", "S", "D"),
             transition_probabilities=_transition,
-            state_costs_and_utilities=_payoffs,
+            state_rewards=_payoffs,
             population=60_000,
-            strategies={"care": {}},
-            horizon=horizon,
+            strategies=["care"],
+            n_cycles=horizon,
             discount_rate=0.03,
-            half_cycle_correction=True,
+            cycle_correction="half_cycle",
             seed_manager=SeedManager(2026),
         )
         out = engine.evaluate(_draws())
@@ -85,23 +85,22 @@ class TestContinuousValidation:
     def test_constant_hazard_matches_exponential_cohort(self):
         lam, cost_year, horizon, rate = 0.05, 1_000.0, 40.0, 0.03
 
-        def hazards(params, state, attrs, rng):
+        def event_times(params, strategy, state, attrs, rng):
             times = np.full((len(state), 2), np.inf)
             alive = state == 0
             times[alive, 1] = rng.exponential(1.0 / lam, int(alive.sum()))
             return times
 
-        def payoffs(params, state, attrs):
+        def reward_rates(params, strategy, state, attrs):
             alive = (state == 0).astype(float)
             return alive * cost_year, alive
 
-        engine = MicrosimModel(
+        engine = MicrosimModel.continuous(
             states=("alive", "dead"),
-            clock="continuous",
-            event_times=hazards,
-            state_costs_and_utilities=payoffs,
+            event_times=event_times,
+            state_reward_rates=reward_rates,
             population=60_000,
-            strategies={"care": {}},
+            strategies=["care"],
             horizon=horizon,
             discount_rate=rate,
             seed_manager=SeedManager(7),
@@ -113,23 +112,22 @@ class TestContinuousValidation:
         assert got["qaly"] == pytest.approx(disc_ly, rel=0.01)
 
     def test_max_events_guard(self):
-        def hazards(params, state, attrs, rng):
+        def event_times(params, strategy, state, attrs, rng):
             # Ping-pong between the two states, never absorbing: events pile up.
             times = np.empty((len(state), 2))
             times[:, 0] = np.where(state == 0, np.inf, 0.001)
             times[:, 1] = np.where(state == 0, 0.001, np.inf)
             return times
 
-        def payoffs(params, state, attrs):
+        def reward_rates(params, strategy, state, attrs):
             return np.zeros(len(state)), np.zeros(len(state))
 
-        engine = MicrosimModel(
+        engine = MicrosimModel.continuous(
             states=("a", "b"),
-            clock="continuous",
-            event_times=hazards,
-            state_costs_and_utilities=payoffs,
+            event_times=event_times,
+            state_reward_rates=reward_rates,
             population=10,
-            strategies={"care": {}},
+            strategies=["care"],
             horizon=100.0,
             seed_manager=SeedManager(1),
             max_events=50,
@@ -142,14 +140,14 @@ def _small_engine(**overrides):
     kwargs = dict(
         states=("H", "S", "D"),
         transition_probabilities=_transition,
-        state_costs_and_utilities=_payoffs,
+        state_rewards=_payoffs,
         population=200,
-        strategies={"care": {}},
-        horizon=10,
+        strategies=["care"],
+        n_cycles=10,
         seed_manager=SeedManager(99),
     )
     kwargs.update(overrides)
-    return MicrosimModel(**kwargs)
+    return MicrosimModel.discrete(**kwargs)
 
 
 class TestReproducibility:
@@ -202,12 +200,24 @@ class TestContract:
 
     def test_overrides_reach_the_model(self):
         # An override flips a payoff multiplier read from params.
-        def payoffs(params, state, attrs):
+        def payoffs(params, strategy, state, attrs):
             return COST_VEC[state] * params.get("mult", 1.0), EFF_VEC[state]
 
         engine = _small_engine(
-            state_costs_and_utilities=payoffs, strategies={"base": {}, "double": {"mult": 2.0}}
+            state_rewards=payoffs, strategies={"base": {}, "double": {"mult": 2.0}}
         )
+        summary = engine.evaluate(_draws(3)).summary()
+        assert summary.loc["double", "cost"] == pytest.approx(
+            2.0 * summary.loc["base", "cost"]
+        )
+
+    def test_strategy_name_reaches_the_model(self):
+        # A strategy can branch on its name instead of a parameter override.
+        def payoffs(params, strategy, state, attrs):
+            factor = 2.0 if strategy == "double" else 1.0
+            return COST_VEC[state] * factor, EFF_VEC[state]
+
+        engine = _small_engine(state_rewards=payoffs, strategies=["base", "double"])
         summary = engine.evaluate(_draws(3)).summary()
         assert summary.loc["double", "cost"] == pytest.approx(
             2.0 * summary.loc["base", "cost"]
@@ -219,13 +229,13 @@ class TestPopulationAndTrace:
         def population(rng, n):
             return pd.DataFrame({"frail": rng.random(n)})
 
-        def payoffs(params, state, attrs):
+        def payoffs(params, strategy, state, attrs):
             # Frailer individuals cost more while sick.
             sick = (state == 1).astype(float)
             return COST_VEC[state] + sick * attrs["frail"].to_numpy() * 1_000.0, EFF_VEC[state]
 
         engine = _small_engine(
-            state_costs_and_utilities=payoffs, population=population, n_individuals=300
+            state_rewards=payoffs, population=population, n_individuals=300
         )
         out = engine.evaluate(_draws(2))
         assert out.n_iterations == 2
@@ -246,20 +256,20 @@ class TestDurationGroups:
         idx = {"H": 0, "S1": 1, "S2": 2, "D": 3}
         seen = []
 
-        def transition(params, state, attrs, rng):
+        def transition(params, strategy, state, attrs, rng):
             c = int(attrs["cycle"].iloc[0])
             seen.append(int(attrs["sick_dur"].iloc[0]))
             probs = np.zeros((1, 4))
             probs[0, idx[path[c + 1]]] = 1.0
             return probs
 
-        def payoffs(params, state, attrs):
+        def payoffs(params, strategy, state, attrs):
             return np.zeros(1), np.zeros(1)
 
-        engine = MicrosimModel(
+        engine = MicrosimModel.discrete(
             states=("H", "S1", "S2", "D"),
-            transition_probabilities=transition, state_costs_and_utilities=payoffs,
-            population=1, strategies={"s": {}}, horizon=len(path) - 1,
+            transition_probabilities=transition, state_rewards=payoffs,
+            population=1, strategies=["s"], n_cycles=len(path) - 1,
             seed_manager=SeedManager(0), duration_groups={"sick_dur": ("S1", "S2")},
         )
         engine.evaluate(_draws())
@@ -268,35 +278,44 @@ class TestDurationGroups:
         assert seen == [0, 0, 1, 2, 3, 0]  # cycles 0..5 (last cycle takes no step)
 
     def test_absent_by_default(self):
-        def transition(params, state, attrs, rng):
+        def transition(params, strategy, state, attrs, rng):
             assert "sick_dur" not in attrs.columns
-            return _transition(params, state, attrs, rng)
+            return _transition(params, strategy, state, attrs, rng)
 
         engine = _small_engine(transition_probabilities=transition)
         engine.evaluate(_draws())
 
 
-class TestClockValidation:
-    def test_bad_clock_rejected(self):
-        with pytest.raises(ValueError, match="clock"):
-            MicrosimModel(
-                states=("H", "S", "D"),
-                transition_probabilities=_transition,
-                state_costs_and_utilities=_payoffs,
-                population=10, strategies={"care": {}}, seed_manager=SeedManager(0),
-                clock="quarterly",
-            )
-
+class TestConstructorValidation:
     def test_discrete_requires_transition(self):
         with pytest.raises(TypeError, match="transition_probabilities"):
-            MicrosimModel(
-                states=("H", "S", "D"), state_costs_and_utilities=_payoffs, population=10,
-                strategies={"care": {}}, seed_manager=SeedManager(0),
+            MicrosimModel.discrete(
+                states=("H", "S", "D"), state_rewards=_payoffs, population=10,
+                strategies=["care"], n_cycles=10, seed_manager=SeedManager(0),
             )
 
     def test_continuous_requires_event_times(self):
+        def reward_rates(params, strategy, state, attrs):
+            return np.zeros(len(state)), np.zeros(len(state))
+
         with pytest.raises(TypeError, match="event_times"):
-            MicrosimModel(
-                states=("H", "S", "D"), clock="continuous", state_costs_and_utilities=_payoffs,
-                population=10, strategies={"care": {}}, seed_manager=SeedManager(0),
+            MicrosimModel.continuous(
+                states=("H", "S", "D"), state_reward_rates=reward_rates,
+                population=10, strategies=["care"], horizon=10.0, seed_manager=SeedManager(0),
+            )
+
+    def test_mode_invalid_parameter_rejected(self):
+        # A cycle-grid parameter passed to the continuous constructor is a
+        # TypeError at the call site, not a runtime validation error.
+        def event_times(params, strategy, state, attrs, rng):
+            return np.full((len(state), 3), np.inf)
+
+        def reward_rates(params, strategy, state, attrs):
+            return np.zeros(len(state)), np.zeros(len(state))
+
+        with pytest.raises(TypeError, match="cycle_correction"):
+            MicrosimModel.continuous(
+                states=("H", "S", "D"), event_times=event_times,
+                state_reward_rates=reward_rates, population=10, strategies=["care"],
+                horizon=10.0, seed_manager=SeedManager(0), cycle_correction="none",
             )

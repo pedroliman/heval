@@ -36,6 +36,7 @@ import pandas as pd
 from numpy.typing import NDArray
 
 from heormodel.models._accrual import aggregate, discount_factor, integrate_flow
+from heormodel.models._strategies import StrategySpec, merge_overrides, normalize_strategies
 from heormodel.models.outcomes import (
     ITERATION_LEVEL,
     STRATEGY_LEVEL,
@@ -46,10 +47,9 @@ from heormodel.run.seeds import SeedManager
 if TYPE_CHECKING:
     import simpy
 
-EntitySpec = int | Callable[[np.random.Generator, int], pd.DataFrame] | None
+PopulationSpec = int | Callable[[np.random.Generator, int], pd.DataFrame] | None
 ResourceFn = Callable[[Any, pd.Series, str], Mapping[str, Any]]
 ProcessFn = Callable[..., Any]
-StrategySpec = Mapping[str, Mapping[str, Any]]
 
 # Event-log column names, the columns of the optional trace side channel.
 _LOG_COLS = ("strategy", "iteration", "entity", "t", "event", "state", "resource")
@@ -80,7 +80,9 @@ class _DESToolkit:
 
     Handed to each process as ``toolkit``. It accrues discounted cost and effect
     for its entity, marks trajectory segments and resource events in the shared
-    event log, and exposes the entity's derived generator as ``rng``.
+    event log, exposes the entity's derived generator as ``rng``, and exposes the
+    run's time horizon as ``horizon`` so a process need not duplicate it as a
+    module constant.
     """
 
     def __init__(
@@ -96,9 +98,9 @@ class _DESToolkit:
     ) -> None:
         self.env = env
         self.rng = rng
+        self.horizon = horizon
         self._resources = resources
         self._entity_id = entity_id
-        self._horizon = horizon
         self._rate = discount_rate
         self._log = log
         self.cost = 0.0
@@ -145,7 +147,7 @@ class _DESToolkit:
             component: Optional label for the cost subtotal.
         """
         a = max(0.0, float(start))
-        b = min(self._horizon, float(end))
+        b = min(self.horizon, float(end))
         dur = max(0.0, b - a)
         cost = float(cost_rate) * float(integrate_flow(a, dur, self._rate))
         self.effect += float(effect_rate) * float(integrate_flow(a, dur, self._rate))
@@ -252,23 +254,26 @@ class DESModel:
     Args:
         process: The SimPy process factory, ``fn(env, entity, params, strategy,
             toolkit)`` returning a generator.
-        entities: Attribute sampler ``fn(rng, n) -> DataFrame``, an ``int`` count
-            for a featureless population, or ``None`` to use ``n_entities`` with
-            no attributes.
-        strategies: Map of strategy name to a parameter-override dict merged into
-            ``params`` for that strategy. Order is preserved in `Outcomes`.
+        population: Attribute sampler ``fn(rng, n) -> DataFrame``, an ``int``
+            count for a featureless population, or ``None`` to use
+            ``n_individuals`` with no attributes.
+        strategies: Strategy names, or a mapping of name to a parameter-override
+            dict merged into ``params`` for that strategy. Order is preserved in
+            `Outcomes`.
         seed_manager: Root of all randomness. Each iteration draws a stream keyed
             by its index; entity streams derive from it.
         resources: ``fn(env, params, strategy) -> dict[str, simpy.Resource]``,
             built fresh for each run and shared by every entity in it. ``None``
             for a model with no constrained resources.
-        horizon: Time horizon in the environment's unit; the run stops here.
+        horizon: Time horizon in the environment's unit; the run stops here. Each
+            process reads it back as ``toolkit.horizon``.
         discount_rate: Annual (per-unit-time) discount rate for costs and
             effects (0.03 by default). Discounting is continuous
             (``exp(-rate * t)``).
-        n_entities: Population size when ``entities`` is a sampler or ``None``.
+        n_individuals: Population size when ``population`` is a sampler or
+            ``None``.
         effect: Name of the effect column (QALYs by default).
-        independent_streams: Give each strategy its own entities and streams
+        independent_streams: Give each strategy its own population and streams
             instead of common random numbers.
 
     Example:
@@ -280,7 +285,7 @@ class DESModel:
         ...     toolkit.accrue_rate(params["day_cost"], 1.0, wait)
         ...     yield env.timeout(wait)
         >>> engine = DESModel(
-        ...     process=process, entities=200, strategies={"ward": {}},
+        ...     process=process, population=200, strategies=["ward"],
         ...     horizon=30.0, seed_manager=SeedManager(0))
         >>> draws = pd.DataFrame({"los": [3.0], "day_cost": [500.0]},
         ...                      index=pd.RangeIndex(1, name="iteration"))
@@ -292,64 +297,54 @@ class DESModel:
         self,
         *,
         process: ProcessFn,
-        entities: EntitySpec = None,
+        population: PopulationSpec = None,
         strategies: StrategySpec,
         seed_manager: SeedManager,
         resources: ResourceFn | None = None,
         horizon: float,
         discount_rate: float = 0.03,
-        n_entities: int = 1_000,
+        n_individuals: int = 1_000,
         effect: str = "qaly",
         independent_streams: bool = False,
     ) -> None:
         _require_simpy()
-        if not strategies:
-            raise ValueError("Provide at least one strategy.")
         if horizon <= 0:
             raise ValueError("horizon must be positive.")
         self._process = process
         self._resources_fn = resources
-        self._strategies = {name: dict(overrides) for name, overrides in strategies.items()}
+        self._strategies = normalize_strategies(strategies)
         self._seed_manager = seed_manager
         self._horizon = float(horizon)
         self._discount_rate = float(discount_rate)
         self._effect = effect
         self._independent_streams = bool(independent_streams)
-        if isinstance(entities, bool):  # bool is an int subclass; reject it explicitly
-            raise TypeError("entities must be an int, a callable, or None.")
-        if isinstance(entities, int):
-            self._n = entities
-            self._entities_fn: Callable[..., pd.DataFrame] | None = None
-        elif entities is None:
-            self._n = n_entities
-            self._entities_fn = None
-        elif callable(entities):
-            self._n = n_entities
-            self._entities_fn = entities
+        if isinstance(population, bool):  # bool is an int subclass; reject it explicitly
+            raise TypeError("population must be an int, a callable, or None.")
+        if isinstance(population, int):
+            self._n = population
+            self._population_fn: Callable[..., pd.DataFrame] | None = None
+        elif population is None:
+            self._n = n_individuals
+            self._population_fn = None
+        elif callable(population):
+            self._n = n_individuals
+            self._population_fn = population
         else:
-            raise TypeError("entities must be an int, a callable, or None.")
+            raise TypeError("population must be an int, a callable, or None.")
         if self._n <= 0:
             raise ValueError("Population size must be positive.")
 
     def _sample_entities(self, rng: np.random.Generator) -> pd.DataFrame:
-        if self._entities_fn is None:
+        if self._population_fn is None:
             return pd.DataFrame(index=pd.RangeIndex(self._n))
-        attrs = self._entities_fn(rng, self._n)
+        attrs = self._population_fn(rng, self._n)
         if not isinstance(attrs, pd.DataFrame):
-            raise TypeError("entities sampler must return a DataFrame.")
+            raise TypeError("population sampler must return a DataFrame.")
         if len(attrs) != self._n:
             raise ValueError(
-                f"entities sampler returned {len(attrs)} rows, expected {self._n}."
+                f"population sampler returned {len(attrs)} rows, expected {self._n}."
             )
         return attrs.reset_index(drop=True)
-
-    def _merge_overrides(self, params: pd.Series, overrides: Mapping[str, Any]) -> pd.Series:
-        if not overrides:
-            return params
-        merged = params.copy()
-        for key, value in overrides.items():
-            merged[key] = value
-        return merged
 
     def _run_once(
         self,
@@ -408,7 +403,7 @@ class DESModel:
             ...     toolkit.accrue_cost(params["visit"])
             ...     yield env.timeout(1.0)
             >>> engine = DESModel(
-            ...     process=process, entities=50, strategies={"clinic": {}},
+            ...     process=process, population=50, strategies=["clinic"],
             ...     horizon=5.0, seed_manager=SeedManager(1))
             >>> draws = pd.DataFrame({"visit": [200.0, 210.0]},
             ...                      index=pd.RangeIndex(2, name="iteration"))
@@ -431,7 +426,7 @@ class DESModel:
                 shared_attrs = self._sample_entities(np.random.default_rng(pop_seq))
                 shared_entity_seqs = list(entity_root.spawn(self._n))
             for j, (name, overrides) in enumerate(self._strategies.items()):
-                params = self._merge_overrides(raw_params, overrides)
+                params = merge_overrides(raw_params, overrides)
                 if self._independent_streams:
                     attrs = self._sample_entities(np.random.default_rng(sub[2 * j]))
                     entity_seqs = list(sub[2 * j + 1].spawn(self._n))

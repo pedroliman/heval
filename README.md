@@ -53,7 +53,7 @@ def model(p, strategy):
 # create the MarkovModel engine.
 engine = MarkovModel(states=("Healthy", "Sick", "Dead"),
                      strategies=("Standard care", "Treatment"),
-                     model_fn=model, n_cycles=40)
+                     transitions_and_rewards=model, n_cycles=40)
 
 # Define your parameters:
 params = ParameterSet({

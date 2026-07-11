@@ -48,7 +48,7 @@ def model(p, strategy):
 
 engine = MarkovModel(states=("Healthy", "Sick", "Dead"),
                      strategies=("Standard care", "Treatment A", "Treatment B"),
-                     model_fn=model, n_cycles=40)
+                     transitions_and_rewards=model, n_cycles=40)
 
 params = ParameterSet({
     "p_progress": Beta(20, 180), "rr_a": Beta(75, 25), "rr_b": Beta(45, 55),

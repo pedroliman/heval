@@ -68,33 +68,33 @@ def _make_pop(var):
     return population
 
 
-def _transition(p, state, attrs, rng):
+def _transition(p, strategy, state, attrs, rng):
     probs = _rows_from(_hazards(p, state, attrs["z"].to_numpy()))
     probs[np.arange(len(state)), state] += 1.0 - probs.sum(axis=1)
     probs[state == 3] = [0.0, 0.0, 0.0, 1.0]
     return probs
 
 
-def _payoffs(p, state, attrs):
+def _payoffs(p, strategy, state, attrs):
     return COST[state], EFF[state]
 
 
 def _microsim(n, var, seed=1):
-    return MicrosimModel(
+    return MicrosimModel.discrete(
         states=STATES,
         transition_probabilities=_transition,
-        state_costs_and_utilities=_payoffs,
+        state_rewards=_payoffs,
         population=_make_pop(var),
-        n_individuals=n, strategies={STRATEGY: {}}, horizon=N_CYCLES,
-        discount_rate=0.03, half_cycle_correction=True, seed_manager=SeedManager(seed),
+        n_individuals=n, strategies=[STRATEGY], n_cycles=N_CYCLES,
+        discount_rate=0.03, cycle_correction="half_cycle", seed_manager=SeedManager(seed),
     )
 
 
 def _cohort():
     return MarkovModel(
-        states=STATES, strategies=(STRATEGY,), model_fn=_cohort_model,
-        n_cycles=N_CYCLES, start="H", discount_rate=0.03,
-        half_cycle_correction="half-cycle",
+        states=STATES, strategies=(STRATEGY,), transitions_and_rewards=_cohort_model,
+        n_cycles=N_CYCLES, initial_state="H", discount_rate=0.03,
+        cycle_correction="half_cycle",
     )
 
 

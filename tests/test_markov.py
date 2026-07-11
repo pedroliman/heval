@@ -28,7 +28,7 @@ def _draws(n_iter=1, **cols):
 
 def test_gen_wcc_variants():
     assert gen_wcc(4, "none").tolist() == [1.0, 1.0, 1.0, 1.0, 1.0]
-    assert gen_wcc(4, "half-cycle").tolist() == [0.5, 1.0, 1.0, 1.0, 0.5]
+    assert gen_wcc(4, "half_cycle").tolist() == [0.5, 1.0, 1.0, 1.0, 0.5]
     # matches the DARTH gen_wcc reference: endpoints 1/3, interior alternating
     simpson = gen_wcc(4, "simpson")
     assert simpson.tolist() == pytest.approx([1 / 3, 2 / 3, 4 / 3, 2 / 3, 1 / 3])
@@ -53,8 +53,8 @@ def test_two_state_closed_form():
         return CohortSpec(P, np.array([cost, 0.0]), np.array([1.0, 0.0]))
 
     engine = MarkovModel(
-        states=("alive", "dead"), strategies=("s",), model_fn=model, n_cycles=horizon,
-        discount_rate=rate, half_cycle_correction="none",
+        states=("alive", "dead"), strategies=("s",), transitions_and_rewards=model,
+        n_cycles=horizon, discount_rate=rate, cycle_correction="none",
     )
     got = engine.evaluate(_draws()).summary().loc["s"]
     # occupancy of alive at cycle t is (1-p)^t; accrue discounted, unit weights
@@ -70,9 +70,9 @@ def test_half_cycle_correction_changes_result():
         P = np.array([[0.9, 0.1], [0.0, 1.0]])
         return CohortSpec(P, np.array([100.0, 0.0]), np.array([1.0, 0.0]))
 
-    common = dict(states=("a", "d"), strategies=("s",), model_fn=model, n_cycles=10)
-    none = MarkovModel(**common, half_cycle_correction="none")
-    half = MarkovModel(**common, half_cycle_correction="half-cycle")
+    common = dict(states=("a", "d"), strategies=("s",), transitions_and_rewards=model, n_cycles=10)
+    none = MarkovModel(**common, cycle_correction="none")
+    half = MarkovModel(**common, cycle_correction="half_cycle")
     q_none = none.evaluate(_draws()).summary().loc["s", "qaly"]
     q_half = half.evaluate(_draws()).summary().loc["s", "qaly"]
     # half-cycle correction halves the first cycle's full-occupancy contribution
@@ -119,8 +119,8 @@ def test_sick_sicker_matches_published_icers():
     """Reproduce the published deterministic CEA table of the intro tutorial."""
     engine = MarkovModel(
         states=("H", "S1", "S2", "D"), strategies=_STRATEGIES,
-        model_fn=_sick_sicker_model, n_cycles=75, start="H",
-        half_cycle_correction="simpson",
+        transitions_and_rewards=_sick_sicker_model, n_cycles=75, initial_state="H",
+        cycle_correction="simpson",
     )
     draws = pd.DataFrame([_SICK_SICKER], index=pd.RangeIndex(1, name="iteration"))
     table = icer_table(engine.evaluate(draws))
@@ -151,10 +151,10 @@ def test_per_cycle_transition_differs_from_constant():
         return CohortSpec(P, np.array([100.0, 0.0]), np.array([1.0, 0.0]))
 
     common = dict(states=("a", "d"), strategies=("s",), n_cycles=n_cycles,
-                  half_cycle_correction="none")
-    q_var = MarkovModel(model_fn=model_varying, **common).evaluate(
+                  cycle_correction="none")
+    q_var = MarkovModel(transitions_and_rewards=model_varying, **common).evaluate(
         _draws()).summary().loc["s", "qaly"]
-    q_con = MarkovModel(model_fn=model_constant, **common).evaluate(
+    q_con = MarkovModel(transitions_and_rewards=model_constant, **common).evaluate(
         _draws()).summary().loc["s", "qaly"]
     assert q_var < q_con  # rising mortality accrues fewer QALYs
 
@@ -174,8 +174,8 @@ def test_transition_reward_adds_one_time_cost():
                           transition_cost=tc)
 
     engine = MarkovModel(
-        states=("a", "d"), strategies=("s",), model_fn=model, n_cycles=40,
-        discount_rate=0.0, half_cycle_correction="none",
+        states=("a", "d"), strategies=("s",), transitions_and_rewards=model, n_cycles=40,
+        discount_rate=0.0, cycle_correction="none",
     )
     cost = engine.evaluate(_draws()).summary().loc["s", "cost"]
     # everyone dies within 40 cycles from 'a'; total death cost approaches 5000
@@ -191,7 +191,7 @@ def test_engine_satisfies_protocol_and_contract():
         return CohortSpec(P, np.array([params["c"], 0.0]), np.array([1.0, 0.0]))
 
     engine = MarkovModel(
-        states=("a", "d"), strategies=("x", "y"), model_fn=model, n_cycles=5,
+        states=("a", "d"), strategies=("x", "y"), transitions_and_rewards=model, n_cycles=5,
     )
     assert isinstance(engine, ModelEngine)
     draws = _draws(4, c=np.arange(4, dtype=float))
@@ -208,8 +208,8 @@ def test_start_distribution_forms():
         return CohortSpec(P, np.zeros(3), np.array([1.0, 0.0, 0.0]))
 
     engine = MarkovModel(
-        states=("a", "b", "c"), strategies=("s",), model_fn=model, n_cycles=3,
-        start={"a": 0.6, "b": 0.4}, discount_rate=0.0, half_cycle_correction="none",
+        states=("a", "b", "c"), strategies=("s",), transitions_and_rewards=model, n_cycles=3,
+        initial_state={"a": 0.6, "b": 0.4}, discount_rate=0.0, cycle_correction="none",
     )
     # only state 'a' has unit utility; with 60% starting there, each of 4 cycles
     # contributes 0.6
@@ -221,15 +221,15 @@ def test_bad_start_rejected():
         return CohortSpec(np.eye(2), np.zeros(2), np.zeros(2))
 
     with pytest.raises(ValueError, match="sum to 1"):
-        MarkovModel(states=("a", "d"), strategies=("s",), model_fn=model,
-                           n_cycles=3, start=[0.7, 0.7])
+        MarkovModel(states=("a", "d"), strategies=("s",), transitions_and_rewards=model,
+                           n_cycles=3, initial_state=[0.7, 0.7])
 
 
 def test_bad_transition_shape_rejected():
     def model(params, strategy):
         return CohortSpec(np.zeros((3, 3)), np.zeros(2), np.zeros(2))
 
-    engine = MarkovModel(states=("a", "d"), strategies=("s",), model_fn=model,
+    engine = MarkovModel(states=("a", "d"), strategies=("s",), transitions_and_rewards=model,
                                 n_cycles=3)
     with pytest.raises(ValueError, match="shape"):
         engine.evaluate(_draws())
@@ -240,7 +240,7 @@ def test_rows_must_sum_to_one():
         P = np.array([[0.5, 0.2], [0.0, 1.0]])  # first row sums to 0.7
         return CohortSpec(P, np.zeros(2), np.zeros(2))
 
-    engine = MarkovModel(states=("a", "d"), strategies=("s",), model_fn=model,
+    engine = MarkovModel(states=("a", "d"), strategies=("s",), transitions_and_rewards=model,
                                 n_cycles=3)
     with pytest.raises(ValueError, match="sum to 1"):
         engine.evaluate(_draws())
@@ -250,7 +250,7 @@ def test_empty_draws_rejected():
     def model(params, strategy):
         return CohortSpec(np.eye(2), np.zeros(2), np.zeros(2))
 
-    engine = MarkovModel(states=("a", "d"), strategies=("s",), model_fn=model,
+    engine = MarkovModel(states=("a", "d"), strategies=("s",), transitions_and_rewards=model,
                                 n_cycles=3)
     with pytest.raises(ValueError, match="empty"):
         engine.evaluate(pd.DataFrame(index=pd.RangeIndex(0, name="iteration")))

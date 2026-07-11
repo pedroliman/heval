@@ -87,23 +87,22 @@ class TestEventTrace:
     def _continuous_engine(self, population=20_000, seed=5):
         lam = 0.1
 
-        def hazards(params, state, attrs, rng):
+        def event_times(params, strategy, state, attrs, rng):
             times = np.full((len(state), 2), np.inf)
             alive = state == 0
             times[alive, 1] = rng.exponential(1.0 / lam, int(alive.sum()))
             return times
 
-        def payoffs(params, state, attrs):
+        def reward_rates(params, strategy, state, attrs):
             alive = (state == 0).astype(float)
             return alive * 0.0, alive
 
-        return MicrosimModel(
+        return MicrosimModel.continuous(
             states=("alive", "dead"),
-            clock="continuous",
-            event_times=hazards,
-            state_costs_and_utilities=payoffs,
+            event_times=event_times,
+            state_reward_rates=reward_rates,
             population=population,
-            strategies={"care": {}},
+            strategies=["care"],
             horizon=50.0,
             seed_manager=SeedManager(seed),
         )
@@ -128,25 +127,25 @@ class TestEventTrace:
         pd.testing.assert_frame_equal(plain.data, with_events.data)
 
     def test_discrete_clock_logs_state_changes(self):
-        def transition(params, state, attrs, rng):
+        def transition(params, strategy, state, attrs, rng):
             probs = np.zeros((len(state), 2))
             probs[state == 0] = [0.7, 0.3]
             probs[state == 1] = [0.0, 1.0]
             return probs
 
-        def payoffs(params, state, attrs):
+        def reward_rates(params, strategy, state, attrs):
             alive = (state == 0).astype(float)
             return alive, alive
 
-        engine = MicrosimModel(
+        engine = MicrosimModel.discrete(
             states=("alive", "dead"),
             transition_probabilities=transition,
-            state_costs_and_utilities=payoffs,
+            state_rewards=reward_rates,
             population=50_000,
-            strategies={"care": {}},
-            horizon=10,
+            strategies=["care"],
+            n_cycles=10,
             seed_manager=SeedManager(6),
-            half_cycle_correction=False,
+            cycle_correction="none",
         )
         _, events = engine.evaluate(_draws(), trace="events")
         occ = state_occupancy(

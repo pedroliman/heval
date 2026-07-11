@@ -125,7 +125,8 @@ def make_population(frailty_var: float):
 
 
 def micro_transition(
-    params: pd.Series, state: np.ndarray, attrs: pd.DataFrame, rng: np.random.Generator
+    params: pd.Series, strategy: str, state: np.ndarray, attrs: pd.DataFrame,
+    rng: np.random.Generator,
 ) -> np.ndarray:
     """Per-individual transition rows, frailty read from the ``z`` attribute."""
     z = attrs["z"].to_numpy()
@@ -137,7 +138,7 @@ def micro_transition(
 
 
 def micro_payoffs(
-    params: pd.Series, state: np.ndarray, attrs: pd.DataFrame
+    params: pd.Series, strategy: str, state: np.ndarray, attrs: pd.DataFrame
 ) -> tuple[np.ndarray, np.ndarray]:
     """Per-cycle cost and utility of each individual's current state."""
     cost_vec = np.array([params["c_H"], params["c_S1"], params["c_S2"], 0.0])
@@ -150,16 +151,16 @@ def build_microsim(
     *, transition_probabilities=micro_transition, **kwargs,
 ) -> MicrosimModel:
     """A microsimulation twin of the cohort model at one population size."""
-    return MicrosimModel(
+    return MicrosimModel.discrete(
         states=STATES,
         transition_probabilities=transition_probabilities,
-        state_costs_and_utilities=micro_payoffs,
+        state_rewards=micro_payoffs,
         population=make_population(frailty_var),
         n_individuals=n_individuals,
-        strategies={STRATEGY: {}},
-        horizon=N_CYCLES,
+        strategies=[STRATEGY],
+        n_cycles=N_CYCLES,
         discount_rate=DISCOUNT,
-        half_cycle_correction=True,
+        cycle_correction="half_cycle",
         seed_manager=seeds,
         **kwargs,
     )
@@ -174,9 +175,9 @@ def main() -> None:
     draws = _draws()
 
     cohort = MarkovModel(
-        states=STATES, strategies=(STRATEGY,), model_fn=cohort_model,
-        n_cycles=N_CYCLES, start="H", discount_rate=DISCOUNT,
-        half_cycle_correction="half-cycle",
+        states=STATES, strategies=(STRATEGY,), transitions_and_rewards=cohort_model,
+        n_cycles=N_CYCLES, initial_state="H", discount_rate=DISCOUNT,
+        cycle_correction="half_cycle",
     )
     cohort_out = cohort.evaluate(draws).summary().loc[STRATEGY]
     c_cost, c_qaly = float(cohort_out["cost"]), float(cohort_out["qaly"])
@@ -211,7 +212,7 @@ def main() -> None:
     #    hold it without tunnel states.
     seeds = SeedManager(20260705)
 
-    def hist_transition(params, state, attrs, rng):
+    def hist_transition(params, strategy, state, attrs, rng):
         z = attrs["z"].to_numpy()
         tis = attrs["tis"].to_numpy()
         haz = _hazards_from(params, state, z)

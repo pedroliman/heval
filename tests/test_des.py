@@ -47,8 +47,8 @@ class TestMM1Validation:
 
         engine = DESModel(
             process=process,
-            entities=entities,
-            n_entities=n,
+            population=entities,
+            n_individuals=n,
             resources=resources,
             strategies={"clinic": {}},
             horizon=n / lam * 1.5,  # comfortably past the last arrival
@@ -80,7 +80,7 @@ class TestExponentialCohort:
 
         return DESModel(
             process=process,
-            entities=60_000,
+            population=60_000,
             strategies={"care": {}},
             horizon=horizon,
             discount_rate=self.RATE,
@@ -90,23 +90,22 @@ class TestExponentialCohort:
     def _microsim(self):
         lam, cost_year = self.LAM, self.COST_YEAR
 
-        def hazards(params, state, attrs, rng):
+        def event_times(params, strategy, state, attrs, rng):
             times = np.full((len(state), 2), np.inf)
             alive = state == 0
             times[alive, 1] = rng.exponential(1.0 / lam, int(alive.sum()))
             return times
 
-        def payoffs(params, state, attrs):
+        def reward_rates(params, strategy, state, attrs):
             alive = (state == 0).astype(float)
             return alive * cost_year, alive
 
-        return MicrosimModel(
+        return MicrosimModel.continuous(
             states=("alive", "dead"),
-            clock="continuous",
-            event_times=hazards,
-            state_costs_and_utilities=payoffs,
+            event_times=event_times,
+            state_reward_rates=reward_rates,
             population=60_000,
-            strategies={"care": {}},
+            strategies=["care"],
             horizon=self.HORIZON,
             discount_rate=self.RATE,
             seed_manager=SeedManager(7),
@@ -136,7 +135,7 @@ def _small_engine(**overrides):
 
     kwargs = dict(
         process=process,
-        entities=200,
+        population=200,
         strategies={"care": {}},
         horizon=10.0,
         seed_manager=SeedManager(99),
@@ -209,7 +208,7 @@ class TestAccrualDetails:
 
         engine = DESModel(
             process=process,
-            entities=1,
+            population=1,
             strategies={"care": {}},
             horizon=10.0,
             discount_rate=0.03,
@@ -225,7 +224,7 @@ class TestAccrualDetails:
 
         engine = DESModel(
             process=process,
-            entities=1,
+            population=1,
             strategies={"care": {}},
             horizon=10.0,
             discount_rate=0.0,
@@ -243,7 +242,7 @@ class TestAccrualDetails:
 
         engine = DESModel(
             process=process,
-            entities=10,
+            population=10,
             strategies={"care": {}},
             horizon=5.0,
             discount_rate=0.0,
@@ -266,7 +265,7 @@ class TestTraceAndGuards:
 
         engine = DESModel(
             process=process,
-            entities=5,
+            population=5,
             strategies={"A": {}, "B": {}},
             horizon=5.0,
             seed_manager=SeedManager(1),
@@ -291,7 +290,7 @@ class TestTraceAndGuards:
 
         engine = DESModel(
             process=process,
-            entities=1,
+            population=1,
             strategies={"care": {}},
             horizon=5.0,
             seed_manager=SeedManager(1),

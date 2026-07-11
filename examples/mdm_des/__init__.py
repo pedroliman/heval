@@ -9,7 +9,7 @@ Import the pieces from this package, for example
 ``from mdm_des import build_engine, load_life_table``.
 """
 
-from mdm_des.model import build_engine, make_event_times, make_state_costs_and_utilities
+from mdm_des.model import build_engine, make_event_times, make_state_reward_rates
 from mdm_des.mortality import load_life_table
 from mdm_des.outcomes import dwell_times, survival_and_prevalence
 from mdm_des.parameters import base_case, parameter_set, states, strategies
@@ -27,7 +27,7 @@ __all__ = [
     "dwell_times",
     "load_life_table",
     "make_event_times",
-    "make_state_costs_and_utilities",
+    "make_state_reward_rates",
     "parameter_set",
     "plot_epidemiology",
     "states",

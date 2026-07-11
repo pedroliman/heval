@@ -1,6 +1,6 @@
 """End-to-end example: bring-your-own-outputs PSA -> CEA -> VoI -> report.
 
-This script demonstrates the adoption wedge of ``heval``: a costs/effects
+This script demonstrates the adoption wedge of ``heormodel``: a costs/effects
 PSA table produced by *any* external model (here, synthesised and written to
 CSV to stand in for a spreadsheet export or a legacy simulator) is loaded
 with ``as_outcomes`` and driven through the full analysis layer without
@@ -129,7 +129,7 @@ def main() -> None:
         note="Bring-your-own-outputs example: external PSA CSV through CEA and VoI.",
     )
     record.to_json(OUT / "run_record.json")
-    (OUT / "run_report.md").write_text(record.to_markdown("heval example run report"))
+    (OUT / "run_report.md").write_text(record.to_markdown("heormodel example run report"))
     print(f"\nWrote plots, run report, and run record to {OUT}/")
 
 

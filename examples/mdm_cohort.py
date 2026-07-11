@@ -125,9 +125,9 @@ def main() -> None:
     OUT.mkdir(exist_ok=True)
     seeds = SeedManager(20260705)
     engine = MarkovModel(
-        states=STATES, strategies=STRATEGIES, model_fn=model, n_cycles=N_CYCLES,
-        start="H", discount_rate=0.03,
-        half_cycle_correction="simpson",
+        states=STATES, strategies=STRATEGIES, transitions_and_rewards=model, n_cycles=N_CYCLES,
+        initial_state="H", discount_rate=0.03,
+        cycle_correction="simpson",
     )
 
     # Deterministic base case reproduces the tutorial's CEA table.
@@ -165,7 +165,7 @@ def main() -> None:
         ),
     )
     (OUT / "run_report_cohort.md").write_text(
-        record.to_markdown("heval cohort Sick-Sicker run report")
+        record.to_markdown("heormodel cohort Sick-Sicker run report")
     )
     print(f"\nWrote plots and run report to {OUT}/")
 

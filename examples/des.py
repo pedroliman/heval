@@ -16,7 +16,7 @@ capacity cuts the queue, so patients spend less time at the low waiting utility.
 Both strategies see the same patients and the same service draws through common
 random numbers (the engine default), so the incremental result reflects the
 capacity change, not sampling noise. `DESModel.evaluate` conforms to the model
-contract, so `run_psa`, `heval.cea`, and `heval.voi` treat it like any engine.
+contract, so `run_psa`, `heormodel.cea`, and `heormodel.voi` treat it like any engine.
 
 Run it with::
 
@@ -72,14 +72,14 @@ def clinic(
 ) -> Any:
     """One patient: arrive, queue for a specialist, be treated, follow up."""
     arrival = float(patient["arrival"])
-    if arrival >= HORIZON:
+    if arrival >= toolkit.horizon:
         return
     yield env.timeout(arrival)
     toolkit.state("waiting")
     with toolkit.request("specialist") as slot:
         # Race the queue against the horizon: a patient still waiting at the
         # horizon is never seen, and only the waiting segment is billed.
-        result = yield slot | env.timeout(HORIZON - env.now)
+        result = yield slot | env.timeout(toolkit.horizon - env.now)
         served = slot in result
         toolkit.accrue_over(
             arrival, env.now, params["c_wait_year"], params["u_wait"], component="cost_waiting"
@@ -92,7 +92,7 @@ def clinic(
             # From treatment to the horizon the patient is treated: higher utility.
             toolkit.accrue_over(
                 env.now,
-                HORIZON,
+                toolkit.horizon,
                 params["c_followup_year"],
                 params["u_treated"],
                 component="cost_followup",
@@ -121,8 +121,8 @@ def main() -> None:
 
     engine = DESModel(
         process=clinic,
-        entities=patients,
-        n_entities=N_PATIENTS,
+        population=patients,
+        n_individuals=N_PATIENTS,
         resources=resources,
         strategies={
             "Standard capacity": {"n_servers": 1, "c_capacity": 0.0},
@@ -170,7 +170,9 @@ def main() -> None:
             "per iteration, common random numbers across staffing levels."
         ),
     )
-    (OUT / "run_report_des.md").write_text(record.to_markdown("heval discrete-event run report"))
+    (OUT / "run_report_des.md").write_text(
+        record.to_markdown("heormodel discrete-event run report")
+    )
     print(f"\nWrote plots and run report to {OUT}/")
 
 

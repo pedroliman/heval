@@ -15,7 +15,7 @@ The model is three states, Healthy, Sick, Dead, over a 30-year horizon:
 Two strategies share one population through common random numbers (the engine
 default), so the incremental result reflects the treatment effect rather than
 sampling noise. `MicrosimModel.evaluate` conforms to the model
-contract, so `run_psa`, `heval.cea`, and `heval.voi` treat it like any engine.
+contract, so `run_psa`, `heormodel.cea`, and `heormodel.voi` treat it like any engine.
 
 Run it with::
 
@@ -59,7 +59,8 @@ def population(rng: np.random.Generator, n: int) -> pd.DataFrame:
 
 
 def transition_probabilities(
-    params: pd.Series, state: np.ndarray, attrs: pd.DataFrame, rng: np.random.Generator
+    params: pd.Series, strategy: str, state: np.ndarray, attrs: pd.DataFrame,
+    rng: np.random.Generator,
 ) -> np.ndarray:
     """Per-cycle transition probabilities, with history and heterogeneity."""
     n = len(state)
@@ -83,8 +84,8 @@ def transition_probabilities(
     return probs
 
 
-def state_costs_and_utilities(
-    params: pd.Series, state: np.ndarray, attrs: pd.DataFrame
+def state_rewards(
+    params: pd.Series, strategy: str, state: np.ndarray, attrs: pd.DataFrame
 ) -> tuple[np.ndarray, np.ndarray]:
     """Per-cycle cost and QALY of each individual's current state."""
     n = len(state)
@@ -120,17 +121,17 @@ def main() -> None:
     )
     draws = parameters.sample(N, seed=seeds.generator())
 
-    engine = MicrosimModel(
+    engine = MicrosimModel.discrete(
         states=STATES,
         transition_probabilities=transition_probabilities,
-        state_costs_and_utilities=state_costs_and_utilities,
+        state_rewards=state_rewards,
         population=population,
         n_individuals=POP,
         strategies={
             "Standard care": {"on_treatment": 0.0},
             "Treatment": {"on_treatment": 1.0},
         },
-        horizon=HORIZON,
+        n_cycles=HORIZON,
         seed_manager=seeds,
     )
 
@@ -163,7 +164,9 @@ def main() -> None:
             "cycles per iteration, common random numbers across strategies."
         ),
     )
-    (OUT / "run_report_micro.md").write_text(record.to_markdown("heval microsimulation run report"))
+    (OUT / "run_report_micro.md").write_text(
+        record.to_markdown("heormodel microsimulation run report")
+    )
     print(f"\nWrote plots and run report to {OUT}/")
 
 
