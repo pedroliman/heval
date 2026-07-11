@@ -45,6 +45,32 @@ When asked to implement the next roadmap priority (`devdocs/roadmap/README.md`):
 - Grill the result. Run the example and any executable docs, and confirm the printed outputs and prose actually match before committing. Do not claim an example works without running it.
 - Ship each feature with a website tutorial, as items 1 and 2 did.
 
+## GitHub workflow
+
+Every development task follows a structured GitHub workflow to maintain clear traceability and documentation:
+
+### Task initiation
+- Create a GitHub Issue at the start of each conversation describing the work to be done.
+- Link all work to this issue throughout the development process.
+
+### Code changes
+- All code changes go through Pull Requests.
+- Open the PR early, linking it to the corresponding GitHub Issue.
+- Use the PR description to outline the planned work and approach.
+
+### Commits
+- Every commit message must reference the GitHub Issue using the format: `Closes #<issue-number>` or `Fixes #<issue-number>` (or `Refs #<issue-number>` if the commit does not close the issue).
+- Commit messages should be clear and descriptive about the changes being made, following the writing style guide.
+
+### Plan communication
+- When creating an implementation plan, post it as a comment on the GitHub Issue or PR.
+- This ensures the plan is visible and documented in the project's history.
+
+### Status updates
+- Post a comment on the Issue or PR when starting work, describing what will be done.
+- Post a comment on the Issue or PR when completing a task, summarizing what was accomplished.
+- These updates create a clear record of progress and decisions.
+
 ## Git identity
 
 - All commits belong to the repo owner's GitHub account, never to Claude. Do not add `Co-Authored-By: Claude ...` or `Claude-Session:` trailers to commit messages.
