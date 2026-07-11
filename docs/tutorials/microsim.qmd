@@ -22,7 +22,7 @@ def population(rng, n):
 def transition_probabilities(params, strategy, state, attrs, rng):
     n = len(state)
     probs = np.zeros((n, 3))
-    on_tx = bool(params["on_treatment"])
+    on_tx = strategy == "Treatment"
     p_hs = params["p_hs"] * (params["rr_tx"] if on_tx else 1.0)
     healthy = state == 0
     probs[healthy, 1] = p_hs
@@ -41,7 +41,7 @@ def state_rewards(params, strategy, state, attrs):
     n = len(state)
     cost, qaly = np.zeros(n), np.zeros(n)
     frailty = attrs["frailty"].to_numpy()
-    tx_cost = params["c_treat"] if bool(params["on_treatment"]) else 0.0
+    tx_cost = params["c_treat"] if strategy == "Treatment" else 0.0
     healthy = state == 0
     cost[healthy] = params["c_well"] + tx_cost
     qaly[healthy] = 1.0
@@ -53,7 +53,7 @@ def state_rewards(params, strategy, state, attrs):
 
 ## Configuring once, evaluating on draws
 
-The constructor takes the model structure; `evaluate` takes only the draw matrix. Each strategy is a set of parameter overrides merged into each iteration's draw, so the two arms differ by one flag the model reads. The two strategies share one population through common random numbers (the engine default), so the incremental result reflects the treatment effect rather than sampling noise.
+The constructor takes the model structure; `run_psa` takes the draw matrix. The two strategies are bare names, and the model functions branch on the strategy name (`strategy == "Treatment"`) to decide whether treatment is on. The two strategies share one population through common random numbers (the engine default), so the incremental result reflects the treatment effect rather than sampling noise.
 
 ```{python}
 from heormodel.models import MicrosimModel
@@ -76,8 +76,7 @@ engine = MicrosimModel.discrete(
     states=STATES, transition_probabilities=transition_probabilities,
     state_rewards=state_rewards,
     population=population, n_individuals=800,
-    strategies={"Standard care": {"on_treatment": 0.0},
-                "Treatment": {"on_treatment": 1.0}},
+    strategies=["Standard care", "Treatment"],
     n_cycles=30,
 )
 outcomes = run_psa(engine, draws, seed=seeds.entropy, sequential=True).outcomes
@@ -85,6 +84,15 @@ outcomes.summary().round(3)
 ```
 
 `run_psa` runs the engine like any other model, and enforces the same contract: the outcome iteration index equals `draws.index`. Because each iteration draws a stream keyed by its index, the result is identical whether the run is parallel or sequential. Runs are parallel by default; this small one passes `sequential=True` to stay in-process.
+
+## Branching on the strategy name versus using overrides
+
+A strategy carries a name and, optionally, parameter overrides. Which to use depends on how the arms differ:
+
+- Branch on the name when the arms differ in structure or in which model function runs, as here: treatment changes a utility and a cost, so the model reads `strategy == "Treatment"`. The comparison is not a number that lives in the `ParameterSet`.
+- Use a `Strategy` with overrides for a numeric scenario knob the model already reads as a parameter, such as a server count `Strategy("Expanded", {"n_servers": 2})`. The discrete-event tutorial does this for clinic capacity.
+
+Encoding an arm as a pseudo-parameter, a flag like `{"on_treatment": 1.0}` read back as a boolean, is the case branch-on-name replaces. That flag is not in the `ParameterSet`, so it is invisible to `evppi_ranking` and to the deterministic sensitivity builders, and a float stands in for a flag. The ranking below therefore reports only genuine parameters.
 
 ## Analyzing cost-effectiveness and value of information
 

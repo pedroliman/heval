@@ -258,9 +258,9 @@ class DESModel:
         population: Attribute sampler ``fn(rng, n) -> DataFrame``, an ``int``
             count for a featureless population, or ``None`` to use
             ``n_individuals`` with no attributes.
-        strategies: Strategy names, or a mapping of name to a parameter-override
-            dict merged into ``params`` for that strategy. Order is preserved in
-            `Outcomes`.
+        strategies: A sequence of strategy names or `heormodel.models.Strategy`
+            objects; a `Strategy` may carry parameter overrides merged into
+            ``params`` for that strategy. Order is preserved in `Outcomes`.
         resources: ``fn(env, params, strategy) -> dict[str, simpy.Resource]``,
             built fresh for each run and shared by every entity in it. ``None``
             for a model with no constrained resources.

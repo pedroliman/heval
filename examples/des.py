@@ -37,7 +37,7 @@ import pandas as pd
 import simpy
 
 from heormodel.cea import ceac, ceaf, icer_table
-from heormodel.models import DESModel, queue_waits
+from heormodel.models import DESModel, Strategy, queue_waits
 from heormodel.params import Beta, Gamma, ParameterSet
 from heormodel.report import capture_run, plot_ce_plane, plot_ceac, plot_frontier
 from heormodel.run import SeedManager, run_psa
@@ -124,10 +124,10 @@ def main() -> None:
         population=patients,
         n_individuals=N_PATIENTS,
         resources=resources,
-        strategies={
-            "Standard capacity": {"n_servers": 1, "c_capacity": 0.0},
-            "Expanded capacity": {"n_servers": 2},
-        },
+        strategies=[
+            Strategy("Standard capacity", {"n_servers": 1, "c_capacity": 0.0}),
+            Strategy("Expanded capacity", {"n_servers": 2}),
+        ],
         horizon=HORIZON,
     )
 

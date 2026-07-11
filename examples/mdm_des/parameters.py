@@ -10,6 +10,7 @@ from typing import Any
 
 import numpy as np
 
+from heormodel.models import Strategy
 from heormodel.params import Beta, Fixed, Gamma, LogNormal, ParameterSet
 
 
@@ -18,19 +19,19 @@ def states() -> tuple[str, ...]:
     return ("H", "S1", "S2", "D")
 
 
-def strategies() -> dict[str, dict[str, float]]:
-    """The four strategies as the treatment flags the model functions read.
+def strategies() -> list[Strategy]:
+    """The four strategies as the treatment scenario knobs the model reads.
 
     Treatment A raises the Sick utility; treatment B slows the Sick-to-Sicker
-    progression. Each strategy sets the two flags the event-time and valuation
-    functions read.
+    progression. Each `Strategy` sets the two knobs the event-time and valuation
+    functions read, matching the companion code's parameterisation of the arms.
     """
-    return {
-        "Standard of care": {"trtA": 0.0, "trtB": 0.0},
-        "Strategy A": {"trtA": 1.0, "trtB": 0.0},
-        "Strategy B": {"trtA": 0.0, "trtB": 1.0},
-        "Strategy AB": {"trtA": 1.0, "trtB": 1.0},
-    }
+    return [
+        Strategy("Standard of care", {"trtA": 0.0, "trtB": 0.0}),
+        Strategy("Strategy A", {"trtA": 1.0, "trtB": 0.0}),
+        Strategy("Strategy B", {"trtA": 0.0, "trtB": 1.0}),
+        Strategy("Strategy AB", {"trtA": 1.0, "trtB": 1.0}),
+    ]
 
 
 def base_case() -> dict[str, float]:

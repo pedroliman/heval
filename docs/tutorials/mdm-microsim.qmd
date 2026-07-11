@@ -37,7 +37,7 @@ def transition_probabilities(p, strategy, state, attrs, rng):
 
 def state_rewards(p, strategy, state, attrs):
     n = len(state); cost = np.zeros(n); util = np.zeros(n)
-    dur, x, tx = attrs["dur"].to_numpy(), attrs["x"].to_numpy(), bool(p["on_treatment"])
+    dur, x, tx = attrs["dur"].to_numpy(), attrs["x"].to_numpy(), strategy == "Treatment"
     tx_cost = p["c_Trt"] if tx else 0.0
     util[state == 0] = p["u_H"]; cost[state == 0] = p["c_H"]
     s1 = state == 1
@@ -61,7 +61,7 @@ engine = MicrosimModel.discrete(
     states=STATES, transition_probabilities=transition_probabilities,
     state_rewards=state_rewards, population=population,
     n_individuals=50_000,
-    strategies={"No Treatment": {"on_treatment": 0.0}, "Treatment": {"on_treatment": 1.0}},
+    strategies=["No Treatment", "Treatment"],
     n_cycles=30, discount_rate=0.03,
     cycle_correction="none", duration_groups={"dur": ("S1", "S2")})
 outcomes = run_psa(

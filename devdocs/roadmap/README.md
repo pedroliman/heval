@@ -35,17 +35,15 @@ Design notes for completed items move to [`done/`](done/). Items 1 through 12 ar
 
 - Item 13, continuous-time Sick-Sicker replication ([13-des-sicksicker-replication.md](13-des-sicksicker-replication.md)): the `examples/mdm_des/` package (building blocks composed by `run.py`) and a website tutorial reproduce the published figures of the 2026 Medical Decision Making discrete-event simulation tutorial on the continuous microsimulation clock, adding `LifeTable` age-dependent mortality sampling, an event-history trace with `heormodel.models.state_occupancy`, and expected loss curves in `heormodel.cea`. The replication matches the companion code by accruing each one-time transition amount over the sojourn that ends in it (reconstructed from the event history) and holding six companion-fixed parameters at base case. The one remaining difference, per-iteration versus shared seeding, is the framework's reproducibility guarantee.
 
-## In progress
-
-- Item 14, coherent engine APIs ([#28](https://github.com/pedroliman/heormodel/issues/28)): the three engines shared one output contract but grew incongruent input surfaces. A coordinated clean break unifies them in four phases:
+- Item 14, coherent engine APIs ([#28](https://github.com/pedroliman/heormodel/issues/28)): the three engines shared one output contract but grew incongruent input surfaces. A coordinated clean break unified them in four phases, all shipped:
   - Phase 0 (done): remove the `heval` residue so `__version__` reads the installed distribution and no docstring, error, or install hint names the pre-rename package.
   - Phase 1 (done): one vocabulary. `MarkovModel` takes `transitions_and_rewards`, `initial_state`, and `cycle_correction`; `MicrosimModel` splits into `MicrosimModel.discrete` and `MicrosimModel.continuous` (no `clock` argument), with `n_cycles`/`state_rewards` on the discrete clock and `horizon`/`state_reward_rates` on the continuous one; `DESModel` takes `population`/`n_individuals`. Every engine accepts `strategies` as names or a name-to-overrides mapping and passes the strategy name to every model function, and a discrete-event `process` reads `toolkit.horizon`.
   - Phase 2 (done): the runner owns execution. Stochastic engines drop `seed_manager` and the `trace` flag; `run_psa` gains `seed=` and `collect=` and returns a `RunResult` (`outcomes`, `events`, `individuals`), narrowing `evaluate` back to the `ModelEngine` protocol. Streams reach a stochastic engine through the wider `StochasticEngine` protocol, keyed by iteration so results stay invariant to `batch_size` and `n_jobs`; the numbers reproduce Phase 1 exactly.
-  - Phase 3 (pending): a `Strategy(name, overrides)` value object replaces the pseudo-parameter encoding of treatment arms.
+  - Phase 3 (done): a `Strategy(name, overrides={})` value object replaces the name-to-overrides mapping form; `strategies=` accepts a sequence of names or `Strategy` objects everywhere. The microsimulation examples and tutorials branch on the strategy name for the treatment arm instead of an `{"on_treatment": 1.0}` pseudo-parameter. `Timeline` and `Population` are deferred until a new engine lands.
 
 ## Prioritized next steps
 
-The engine phases are complete for cohort state-transition, microsimulation, and discrete-event simulation, the public API reads in model-type names, and parameter inputs, deterministic sensitivity analysis, parallel runs, the tutorial narrative order, the value-of-information tutorial, and the discrete-event replication are in place. Item 14 (above) is unifying the engine constructor vocabulary; the backlog below holds unscheduled work with no design note yet.
+The engine phases are complete for cohort state-transition, microsimulation, and discrete-event simulation, the public API reads in model-type names, and parameter inputs, deterministic sensitivity analysis, parallel runs, the tutorial narrative order, the value-of-information tutorial, the discrete-event replication, and the coherent engine APIs of item 14 are in place. No item is scheduled; the backlog below holds unscheduled work with no design note yet.
 
 ## Backlog
 

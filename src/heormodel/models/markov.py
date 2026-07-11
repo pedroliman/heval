@@ -111,9 +111,9 @@ class MarkovModel:
 
     Args:
         states: State labels; their order fixes every array's axis order.
-        strategies: Strategy names in the order they appear in `Outcomes`, or a
-            mapping of name to a parameter-override dict merged into ``params``
-            for that strategy.
+        strategies: A sequence of strategy names or `heormodel.models.Strategy`
+            objects, in the order they appear in `Outcomes`. A `Strategy` may
+            carry parameter overrides merged into ``params`` for that strategy.
         transitions_and_rewards: ``fn(params, strategy) -> CohortSpec`` returning
             the transition matrix and reward arrays for one strategy under one
             parameter set. ``params`` is a draw-matrix row (a ``pandas.Series``);

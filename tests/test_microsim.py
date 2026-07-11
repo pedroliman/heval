@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from heormodel.models import MicrosimModel, ModelEngine
+from heormodel.models import MicrosimModel, ModelEngine, Strategy
 from heormodel.run import run_psa
 
 # A three-state cohort: Healthy, Sick, Dead. Constant transitions and payoffs.
@@ -167,14 +167,14 @@ class TestReproducibility:
 
 class TestCommonRandomNumbers:
     def test_crn_makes_identical_strategies_match(self):
-        engine = _small_engine(strategies={"A": {}, "B": {}})
+        engine = _small_engine(strategies=["A", "B"])
         out = engine.evaluate(_draws(4))
         a = out.select(["A"]).data.reset_index(drop=True)
         b = out.select(["B"]).data.reset_index(drop=True)
         pd.testing.assert_frame_equal(a, b)
 
     def test_independent_streams_break_the_tie(self):
-        engine = _small_engine(strategies={"A": {}, "B": {}}, independent_streams=True)
+        engine = _small_engine(strategies=["A", "B"], independent_streams=True)
         out = engine.evaluate(_draws(4))
         a = out.select(["A"]).data.reset_index(drop=True)
         b = out.select(["B"]).data.reset_index(drop=True)
@@ -191,7 +191,7 @@ class TestContract:
         assert out.iterations.equals(draws.index)
 
     def test_strategies_in_declared_order(self):
-        engine = _small_engine(strategies={"Tx": {}, "SoC": {}})
+        engine = _small_engine(strategies=["Tx", "SoC"])
         assert engine.evaluate(_draws(2)).strategies == ["Tx", "SoC"]
 
     def test_overrides_reach_the_model(self):
@@ -200,7 +200,7 @@ class TestContract:
             return COST_VEC[state] * params.get("mult", 1.0), EFF_VEC[state]
 
         engine = _small_engine(
-            state_rewards=payoffs, strategies={"base": {}, "double": {"mult": 2.0}}
+            state_rewards=payoffs, strategies=["base", Strategy("double", {"mult": 2.0})]
         )
         summary = engine.evaluate(_draws(3)).summary()
         assert summary.loc["double", "cost"] == pytest.approx(
@@ -237,7 +237,7 @@ class TestPopulationAndTrace:
         assert out.n_iterations == 2
 
     def test_individuals_channel_returns_per_individual_rows(self):
-        engine = _small_engine(strategies={"A": {}, "B": {}})
+        engine = _small_engine(strategies=["A", "B"])
         result = run_psa(engine, _draws(2), seed=99, collect="individuals")
         assert result.outcomes.strategies == ["A", "B"]
         trace = result.individuals

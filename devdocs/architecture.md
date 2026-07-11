@@ -48,4 +48,8 @@ outcomes.iterations.equals(draws.index)
 
 `run_psa` rejects duplicated draw indices and re-checks the index on the way out, including after parallel batches are reassembled. If you bypass `run_psa` and pair a draw matrix with external outcomes, keeping the indices aligned is your responsibility; `evppi` will refuse mismatched indices.
 
+## Strategies, and the value objects not yet built
+
+Every engine names its arms the same way: `strategies` is a sequence of names or `Strategy(name, overrides)` objects, and every model function receives the strategy name so an arm can branch on it. `Strategy` is the one shared value object the engines carry today. Two others were considered and deferred: `Timeline` (a cycle grid or a continuous horizon with its correction) and `Population` (size, attribute sampler, initial state). Their structural benefit, a single home for vocabulary shared across engines, pays off mainly when a fifth engine arrives; until then the flat keyword constructors read better in the two-state docstring examples. Add them when the engine roster grows, reusing them across engines rather than re-spelling the concepts.
+
 Next: [engines](https://pedroliman.github.io/heormodel/concepts/engines.html) describes what `ModelEngine` requires and what a contract on outputs means in practice.

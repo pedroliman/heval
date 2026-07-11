@@ -369,8 +369,9 @@ class MicrosimModel(_MicrosimBase):
             state_rewards: ``fn(params, strategy, state, attrs) -> (cost,
                 utility)``, the per-cycle cost and utility of each individual's
                 current state, each shape ``(n,)``.
-            strategies: Strategy names, or a mapping of name to a
-                parameter-override dict merged into ``params`` for that strategy.
+            strategies: A sequence of strategy names or
+                `heormodel.models.Strategy` objects; a `Strategy` may carry
+                parameter overrides merged into ``params`` for that strategy.
                 Order is preserved in `Outcomes`.
             n_cycles: Number of cycles to simulate.
             population: Attribute sampler ``fn(rng, n) -> DataFrame`` for
@@ -445,8 +446,9 @@ class MicrosimModel(_MicrosimBase):
             state_reward_rates: ``fn(params, strategy, state, attrs) ->
                 (cost_rate, utility_rate)``, the per-year cost and utility flows
                 of each individual's current state, each shape ``(n,)``.
-            strategies: Strategy names, or a mapping of name to a
-                parameter-override dict merged into ``params`` for that strategy.
+            strategies: A sequence of strategy names or
+                `heormodel.models.Strategy` objects; a `Strategy` may carry
+                parameter overrides merged into ``params`` for that strategy.
                 Order is preserved in `Outcomes`.
             horizon: Time horizon in years; trajectories truncate here.
             population: Attribute sampler ``fn(rng, n) -> DataFrame`` for

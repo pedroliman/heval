@@ -107,6 +107,20 @@ Each entry links to the pull request that introduced it. Add a line under
 
 ### Changed
 
+- The `Strategy` value object, and one canonical spelling for strategies
+  ([#28](https://github.com/pedroliman/heormodel/issues/28)). `strategies=` now
+  accepts a sequence of names or `Strategy(name, overrides={})` objects
+  everywhere; a bare string is shorthand for an override-free strategy. The
+  name-to-overrides mapping form is removed, so there is exactly one canonical
+  spelling plus the string shorthand. The microsimulation examples and tutorials
+  now branch on the strategy name for the treatment arm instead of encoding it
+  as an `{"on_treatment": 1.0}` pseudo-parameter, which kept a float flag out of
+  the `ParameterSet` where `evppi_ranking` and the deterministic sensitivity
+  builders could not see it. Overrides stay for genuine numeric scenario knobs
+  such as a discrete-event server count. `Timeline` and `Population` value
+  objects are deferred until a new engine lands (noted in
+  `devdocs/architecture.md`).
+
 - The runner owns execution, a clean break with no aliases
   ([#28](https://github.com/pedroliman/heormodel/issues/28)). Seeding and the
   event side channel move out of the engines and into `run_psa`:

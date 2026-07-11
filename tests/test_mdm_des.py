@@ -21,7 +21,7 @@ import pytest
 from mdm_des.model import build_engine
 from mdm_des.transitions import with_transition_costs_and_utilities
 
-from heormodel.models import LifeTable
+from heormodel.models import LifeTable, Strategy
 from heormodel.params import single_draw
 from heormodel.run import run_psa
 
@@ -40,7 +40,7 @@ BASE = dict(
 )
 
 
-def _engine(strategies: dict, population: int):
+def _engine(strategies: list[Strategy], population: int):
     return build_engine(
         life_table=LIFE_TABLE, states=STATES, strategies=strategies,
         age_start=0.0, horizon=HORIZON, discount_rate=DISCOUNT,
@@ -91,7 +91,7 @@ def ctmc_value(p: dict, *, trt_a: bool, trt_b: bool) -> tuple[float, float]:
     ("Strategy AB", {"trtA": 1.0, "trtB": 1.0}),
 ])
 def test_engine_matches_ctmc_closed_form(strategy, overrides):
-    engine = _engine({strategy: overrides}, population=120_000)
+    engine = _engine([Strategy(strategy, overrides)], population=120_000)
     draws = single_draw(BASE)
     result = run_psa(engine, draws, seed=13, collect="events")
     outcomes = with_transition_costs_and_utilities(
@@ -108,10 +108,10 @@ def test_common_random_numbers_tie_equivalent_dynamics():
     # A shares SoC's transition dynamics; with common random numbers their event
     # histories are identical, so survival curves coincide exactly.
     engine = _engine(
-        {
-            "Standard of care": {"trtA": 0.0, "trtB": 0.0},
-            "Strategy A": {"trtA": 1.0, "trtB": 0.0},
-        },
+        [
+            Strategy("Standard of care", {"trtA": 0.0, "trtB": 0.0}),
+            Strategy("Strategy A", {"trtA": 1.0, "trtB": 0.0}),
+        ],
         population=2_000,
     )
     events = run_psa(engine, single_draw(BASE), seed=21, collect="events").events

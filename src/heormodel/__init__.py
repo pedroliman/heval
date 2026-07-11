@@ -22,9 +22,9 @@ Subpackages:
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _version
 
-from heormodel.models import ModelEngine, ModelFn, Outcomes
+from heormodel.models import ModelEngine, ModelFn, Outcomes, Strategy
 from heormodel.params import ParameterSet, mix_draws
-from heormodel.run import SeedManager, as_outcomes, run_psa
+from heormodel.run import RunResult, SeedManager, as_outcomes, run_psa
 
 try:
     __version__ = _version("heormodel")
@@ -36,7 +36,9 @@ __all__ = [
     "ModelFn",
     "Outcomes",
     "ParameterSet",
+    "RunResult",
     "SeedManager",
+    "Strategy",
     "__version__",
     "as_outcomes",
     "mix_draws",

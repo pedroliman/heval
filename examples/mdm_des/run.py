@@ -64,6 +64,7 @@ def main() -> None:
 
     state_labels = states()
     strategy_defs = strategies()
+    strategy_names = [s.name for s in strategy_defs]
     life_table = load_life_table(DATA)
     seeds = SeedManager(2)
 
@@ -89,11 +90,11 @@ def main() -> None:
     )
 
     survival, prevalence = survival_and_prevalence(
-        events, states=state_labels, strategies=strategy_defs, initial_state="H",
+        events, states=state_labels, strategies=strategy_names, initial_state="H",
         dead_state="D", disease_states=("S1", "S2"), n_individuals=n_base, horizon=horizon,
     )
     plot_epidemiology(
-        survival, prevalence, strategies=strategy_defs, age_start=age_start,
+        survival, prevalence, strategies=strategy_names, age_start=age_start,
         path=OUT / "epi_des_mdm.png",
     )
     print("\nMean completed dwell time by state (years):")

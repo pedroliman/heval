@@ -7,13 +7,12 @@ how configuration is passed in rather than read from module-level constants.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
-from typing import Any
+from collections.abc import Callable, Sequence
 
 import numpy as np
 import pandas as pd
 
-from heormodel.models import LifeTable, MicrosimModel
+from heormodel.models import LifeTable, MicrosimModel, Strategy
 
 EventTimes = Callable[..., np.ndarray]
 Valuation = Callable[..., tuple[np.ndarray, np.ndarray]]
@@ -110,7 +109,7 @@ def build_engine(
     *,
     life_table: LifeTable,
     states: tuple[str, ...],
-    strategies: Mapping[str, Mapping[str, Any]],
+    strategies: Sequence[str | Strategy],
     age_start: float,
     horizon: float,
     discount_rate: float,

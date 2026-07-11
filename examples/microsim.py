@@ -65,7 +65,7 @@ def transition_probabilities(
     """Per-cycle transition probabilities, with history and heterogeneity."""
     n = len(state)
     probs = np.zeros((n, 3))
-    on_tx = bool(params["on_treatment"])
+    on_tx = strategy == "Treatment"
     p_hs = params["p_hs"] * (params["rr_tx"] if on_tx else 1.0)
 
     healthy = state == 0
@@ -92,7 +92,7 @@ def state_rewards(
     cost = np.zeros(n)
     qaly = np.zeros(n)
     frailty = attrs["frailty"].to_numpy()
-    tx_cost = params["c_treat"] if bool(params["on_treatment"]) else 0.0
+    tx_cost = params["c_treat"] if strategy == "Treatment" else 0.0
 
     healthy = state == 0
     cost[healthy] = params["c_well"] + tx_cost
@@ -127,10 +127,7 @@ def main() -> None:
         state_rewards=state_rewards,
         population=population,
         n_individuals=POP,
-        strategies={
-            "Standard care": {"on_treatment": 0.0},
-            "Treatment": {"on_treatment": 1.0},
-        },
+        strategies=["Standard care", "Treatment"],
         n_cycles=HORIZON,
     )
 

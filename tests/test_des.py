@@ -18,6 +18,7 @@ from heormodel.models import (  # noqa: E402
     DESModel,
     MicrosimModel,
     ModelEngine,
+    Strategy,
     queue_waits,
 )
 from heormodel.run import run_psa  # noqa: E402
@@ -50,7 +51,7 @@ class TestMM1Validation:
             population=entities,
             n_individuals=n,
             resources=resources,
-            strategies={"clinic": {}},
+            strategies=["clinic"],
             horizon=n / lam * 1.5,  # comfortably past the last arrival
         )
         trace = run_psa(engine, _draws(), seed=3, collect="events").events
@@ -80,7 +81,7 @@ class TestExponentialCohort:
         return DESModel(
             process=process,
             population=60_000,
-            strategies={"care": {}},
+            strategies=["care"],
             horizon=horizon,
             discount_rate=self.RATE,
         )
@@ -133,7 +134,7 @@ def _small_engine(**overrides):
     kwargs = dict(
         process=process,
         population=200,
-        strategies={"care": {}},
+        strategies=["care"],
         horizon=10.0,
     )
     kwargs.update(overrides)
@@ -161,14 +162,14 @@ class TestReproducibility:
 
 class TestCommonRandomNumbers:
     def test_crn_makes_identical_strategies_match(self):
-        engine = _small_engine(strategies={"A": {}, "B": {}})
+        engine = _small_engine(strategies=["A", "B"])
         out = engine.evaluate(_draws(4))
         a = out.select(["A"]).data.reset_index(drop=True)
         b = out.select(["B"]).data.reset_index(drop=True)
         pd.testing.assert_frame_equal(a, b)
 
     def test_independent_streams_break_the_tie(self):
-        engine = _small_engine(strategies={"A": {}, "B": {}}, independent_streams=True)
+        engine = _small_engine(strategies=["A", "B"], independent_streams=True)
         out = engine.evaluate(_draws(4))
         a = out.select(["A"]).data.reset_index(drop=True)
         b = out.select(["B"]).data.reset_index(drop=True)
@@ -185,11 +186,11 @@ class TestContract:
         assert out.iterations.equals(draws.index)
 
     def test_strategies_in_declared_order(self):
-        engine = _small_engine(strategies={"Tx": {}, "SoC": {}})
+        engine = _small_engine(strategies=["Tx", "SoC"])
         assert engine.evaluate(_draws(2)).strategies == ["Tx", "SoC"]
 
     def test_overrides_reach_the_model(self):
-        engine = _small_engine(strategies={"base": {}, "double": {"scale": 2_000.0}})
+        engine = _small_engine(strategies=["base", Strategy("double", {"scale": 2_000.0})])
         summary = engine.evaluate(_draws(4)).summary()
         assert summary.loc["double", "cost"] == pytest.approx(
             2.0 * summary.loc["base", "cost"], rel=0.05
@@ -205,7 +206,7 @@ class TestAccrualDetails:
         engine = DESModel(
             process=process,
             population=1,
-            strategies={"care": {}},
+            strategies=["care"],
             horizon=10.0,
             discount_rate=0.03,
         )
@@ -220,7 +221,7 @@ class TestAccrualDetails:
         engine = DESModel(
             process=process,
             population=1,
-            strategies={"care": {}},
+            strategies=["care"],
             horizon=10.0,
             discount_rate=0.0,
         )
@@ -237,7 +238,7 @@ class TestAccrualDetails:
         engine = DESModel(
             process=process,
             population=10,
-            strategies={"care": {}},
+            strategies=["care"],
             horizon=5.0,
             discount_rate=0.0,
         )
@@ -259,7 +260,7 @@ class TestTraceAndGuards:
         engine = DESModel(
             process=process,
             population=5,
-            strategies={"A": {}, "B": {}},
+            strategies=["A", "B"],
             horizon=5.0,
         )
         result = run_psa(engine, _draws(2), seed=1, collect="events")
@@ -284,7 +285,7 @@ class TestTraceAndGuards:
         engine = DESModel(
             process=process,
             population=1,
-            strategies={"care": {}},
+            strategies=["care"],
             horizon=5.0,
         )
         with pytest.raises(KeyError, match="missing"):

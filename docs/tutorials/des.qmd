@@ -43,10 +43,10 @@ def clinic(env, patient, params, strategy, toolkit):
 
 ## Configuring once, evaluating on draws
 
-The constructor takes the model; `evaluate` takes only the draw matrix. The two strategies differ only in capacity, `n_servers`, and a per-patient overhead `c_capacity` for the expanded arm. They see the same patients and service draws through common random numbers, so the incremental result reflects the capacity change, not sampling noise.
+The constructor takes the model; `run_psa` takes the draw matrix. The two strategies differ only in capacity, so each is a `Strategy` carrying the numeric knobs that arm sets: `n_servers`, and a per-patient overhead `c_capacity` for the expanded arm. This is the right use of overrides, a scenario knob the model already reads as a parameter, rather than a flag standing in for which arm is which. They see the same patients and service draws through common random numbers, so the incremental result reflects the capacity change, not sampling noise.
 
 ```{python}
-from heormodel.models import DESModel
+from heormodel.models import DESModel, Strategy
 from heormodel.params import Beta, Gamma, ParameterSet
 from heormodel.run import SeedManager, run_psa
 
@@ -64,8 +64,8 @@ draws = parameters.sample(128, seed=seeds.generator())
 
 engine = DESModel(
     process=clinic, population=patients, n_individuals=30, resources=resources,
-    strategies={"Standard capacity": {"n_servers": 1, "c_capacity": 0.0},
-                "Expanded capacity": {"n_servers": 2}},
+    strategies=[Strategy("Standard capacity", {"n_servers": 1, "c_capacity": 0.0}),
+                Strategy("Expanded capacity", {"n_servers": 2})],
     horizon=HORIZON,
 )
 outcomes = run_psa(engine, draws, seed=seeds.entropy, sequential=True).outcomes

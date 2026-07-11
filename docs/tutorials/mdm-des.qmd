@@ -53,6 +53,7 @@ from heormodel.run import run_psa
 age_start, horizon, discount_rate = 25.0, 75.0, 0.03
 SEED = 2
 state_labels, strategy_defs = states(), strategies()
+strategy_names = [s.name for s in strategy_defs]
 life_table = load_life_table(examples / "mdm_des" / "data" / "us_mortality_2015.csv")
 
 engine = build_engine(
@@ -80,11 +81,11 @@ from matplotlib import pyplot as plt
 from heormodel.report import strategy_colors
 
 survival, prevalence = survival_and_prevalence(
-    events, states=state_labels, strategies=strategy_defs, initial_state="H",
+    events, states=state_labels, strategies=strategy_names, initial_state="H",
     dead_state="D", disease_states=("S1", "S2"), n_individuals=25_000, horizon=horizon,
 )
 
-colors = strategy_colors(list(strategy_defs))
+colors = strategy_colors(strategy_names)
 dashes = {"Strategy A": (4, 2), "Strategy AB": (4, 2)}
 fig, axes = plt.subplots(1, 2, figsize=(9, 3.4))
 for ax, curves, title in ((axes[0], survival, "Survival"), (axes[1], prevalence, "Prevalence of S1 and S2")):

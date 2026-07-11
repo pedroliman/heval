@@ -89,7 +89,7 @@ def state_rewards(
     util = np.zeros(n)
     dur = attrs["dur"].to_numpy()  # cycles already spent sick
     x = attrs["x"].to_numpy()
-    on_tx = bool(params["on_treatment"])
+    on_tx = strategy == "Treatment"
     tx_cost = params["c_Trt"] if on_tx else 0.0
 
     h = state == 0
@@ -114,8 +114,7 @@ def main() -> None:
         states=STATES, transition_probabilities=transition_probabilities,
         state_rewards=state_rewards, population=population,
         n_individuals=POP,
-        strategies={"No Treatment": {"on_treatment": 0.0},
-                    "Treatment": {"on_treatment": 1.0}},
+        strategies=["No Treatment", "Treatment"],
         n_cycles=HORIZON, discount_rate=0.03,
         cycle_correction="none",
         duration_groups={"dur": ("S1", "S2")},
