@@ -164,6 +164,10 @@ class TestReproducibility:
         second = engine.evaluate(_draws(3))
         pd.testing.assert_frame_equal(first.data, second.data)
 
+    def test_rejects_empty_draws(self):
+        with pytest.raises(ValueError, match="empty"):
+            _small_engine().evaluate(pd.DataFrame(index=pd.RangeIndex(0, name="iteration")))
+
 
 class TestCommonRandomNumbers:
     def test_crn_makes_identical_strategies_match(self):
@@ -238,7 +242,7 @@ class TestPopulationAndTrace:
 
     def test_individuals_channel_returns_per_individual_rows(self):
         engine = _small_engine(strategies=["A", "B"])
-        result = run_psa(engine, _draws(2), seed=99, collect="individuals")
+        result = run_psa(engine, _draws(2), seed=99, collect="individuals", sequential=True)
         assert result.outcomes.strategies == ["A", "B"]
         trace = result.individuals
         assert len(trace) == 2 * 2 * 200  # strategies x iterations x individuals

@@ -147,3 +147,8 @@ class TestSeededStochasticRun:
             engine, draws, seed=5, n_jobs=2, batch_size=2, collect="events"
         ).events
         pd.testing.assert_frame_equal(serial, parallel)
+
+    def test_collect_on_a_deterministic_model_is_rejected(self):
+        # A plain function produces no event or individual log.
+        with pytest.raises(ValueError, match="only available for a stochastic engine"):
+            run_psa(_model, _draws(), collect="events", sequential=True)

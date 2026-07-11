@@ -112,7 +112,7 @@ class TestRunPsa:
 
     def test_engine_object_satisfies_protocol(self):
         assert isinstance(DummyEngine(), ModelEngine)
-        out = run_psa(DummyEngine(), self.draws).outcomes
+        out = run_psa(DummyEngine(), self.draws, sequential=True).outcomes
         assert out.strategies == ["A", "B"]
 
     def test_parallel_matches_serial(self):

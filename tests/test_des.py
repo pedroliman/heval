@@ -277,6 +277,27 @@ class TestTraceAndGuards:
         }
         assert (trace["event"] == "state").sum() == 2 * 2 * 5  # strategies x iters x entities
 
+    def test_individuals_channel_returns_per_entity_rows(self):
+        def process(env, entity, params, strategy, toolkit):
+            toolkit.accrue_cost(10.0)
+            yield env.timeout(1.0)
+
+        engine = DESModel(
+            process=process,
+            population=5,
+            strategies=["A", "B"],
+            horizon=5.0,
+        )
+        result = run_psa(engine, _draws(2), seed=1, collect="individuals", sequential=True)
+        rows = result.individuals
+        assert len(rows) == 2 * 2 * 5  # strategies x iterations x entities
+        assert {"strategy", "iteration", "individual", "cost", "qaly"} <= set(rows.columns)
+        assert result.events is None
+
+    def test_bad_collect_value_rejected(self):
+        with pytest.raises(ValueError, match="collect must be"):
+            run_psa(_small_engine(), _draws(), collect="entities", sequential=True)
+
     def test_unknown_resource_raises(self):
         def process(env, entity, params, strategy, toolkit):
             with toolkit.request("missing") as req:
@@ -298,3 +319,44 @@ class TestTraceAndGuards:
     def test_rejects_empty_draws(self):
         with pytest.raises(ValueError, match="empty"):
             _small_engine().evaluate(pd.DataFrame(index=pd.RangeIndex(0, name="iteration")))
+
+
+def _noop_process(env, entity, params, strategy, toolkit):
+    yield env.timeout(1.0)
+
+
+class TestPopulationValidation:
+    def test_bool_population_rejected(self):
+        with pytest.raises(TypeError, match="population must be"):
+            DESModel(process=_noop_process, population=True, strategies=["a"], horizon=5.0)
+
+    def test_invalid_population_type_rejected(self):
+        with pytest.raises(TypeError, match="population must be"):
+            DESModel(process=_noop_process, population="many", strategies=["a"], horizon=5.0)
+
+    def test_nonpositive_population_rejected(self):
+        with pytest.raises(ValueError, match="positive"):
+            DESModel(process=_noop_process, population=0, strategies=["a"], horizon=5.0)
+
+    def test_none_population_uses_n_individuals(self):
+        engine = DESModel(
+            process=_noop_process, population=None, n_individuals=3,
+            strategies=["a"], horizon=5.0,
+        )
+        assert engine.evaluate(_draws()).n_iterations == 1
+
+    def test_sampler_must_return_a_dataframe(self):
+        engine = DESModel(
+            process=_noop_process, population=lambda rng, n: [1, 2],
+            n_individuals=2, strategies=["a"], horizon=5.0,
+        )
+        with pytest.raises(TypeError, match="must return a DataFrame"):
+            engine.evaluate(_draws())
+
+    def test_sampler_row_count_is_checked(self):
+        engine = DESModel(
+            process=_noop_process, population=lambda rng, n: pd.DataFrame({"x": [1.0]}),
+            n_individuals=2, strategies=["a"], horizon=5.0,
+        )
+        with pytest.raises(ValueError, match="rows, expected"):
+            engine.evaluate(_draws())

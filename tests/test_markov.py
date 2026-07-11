@@ -225,6 +225,28 @@ def test_bad_start_rejected():
                            n_cycles=3, initial_state=[0.7, 0.7])
 
 
+def _absorbing(params, strategy):
+    return CohortSpec(np.eye(2), np.zeros(2), np.zeros(2))
+
+
+def test_unknown_initial_state_label_rejected():
+    with pytest.raises(ValueError, match="Unknown initial_state"):
+        MarkovModel(states=("a", "d"), strategies=("s",), transitions_and_rewards=_absorbing,
+                    n_cycles=3, initial_state="z")
+
+
+def test_unknown_initial_state_in_mapping_rejected():
+    with pytest.raises(ValueError, match="Unknown initial_state"):
+        MarkovModel(states=("a", "d"), strategies=("s",), transitions_and_rewards=_absorbing,
+                    n_cycles=3, initial_state={"a": 0.5, "z": 0.5})
+
+
+def test_initial_state_array_wrong_length_rejected():
+    with pytest.raises(ValueError, match="must have length"):
+        MarkovModel(states=("a", "d"), strategies=("s",), transitions_and_rewards=_absorbing,
+                    n_cycles=3, initial_state=[1.0, 0.0, 0.0])
+
+
 def test_bad_transition_shape_rejected():
     def model(params, strategy):
         return CohortSpec(np.zeros((3, 3)), np.zeros(2), np.zeros(2))
