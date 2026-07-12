@@ -10,6 +10,18 @@ Each entry links to the pull request that introduced it. Add a line under
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-07-12
+
+### Changed
+
+- Releases publish to PyPI from `.github/workflows/release.yml` directly: the
+  separate `tag-release.yml` workflow is folded into `release.yml`, so the
+  publish job's PyPI trusted-publisher identity is always `release.yml`
+  regardless of which job triggered it, fixing the `invalid-publisher`
+  failure `v0.7.2`'s publish hit. The tag and GitHub release are also now
+  attributed to the repository owner instead of `github-actions[bot]`
+  ([#54](https://github.com/pedroliman/heormodel/issues/54)).
+
 ## [0.7.2] - 2026-07-12
 
 ### Added
@@ -375,7 +387,8 @@ bring-your-own-outputs ingestion (`heormodel.run`), cost-effectiveness analysis
 (`heormodel.cea`), value-of-information analysis (`heormodel.voi`), optional ABC
 calibration (`heormodel.calibrate`), and reporting plots (`heormodel.report`).
 
-[Unreleased]: https://github.com/pedroliman/heormodel/compare/v0.7.2...HEAD
+[Unreleased]: https://github.com/pedroliman/heormodel/compare/v0.7.3...HEAD
+[0.7.3]: https://github.com/pedroliman/heormodel/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/pedroliman/heormodel/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/pedroliman/heormodel/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/pedroliman/heormodel/compare/v0.6.0...v0.7.0
