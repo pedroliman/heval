@@ -32,7 +32,7 @@ jobs:
       - name: Check whether the tag already exists
         id: check
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
           if gh release view "v${{ steps.version.outputs.version }}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
@@ -58,7 +58,7 @@ jobs:
       - name: Create tag and GitHub release
         if: steps.check.outputs.exists == 'false'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
           gh release create "v${{ steps.version.outputs.version }}" \
             --repo "$GITHUB_REPOSITORY" \
