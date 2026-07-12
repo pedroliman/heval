@@ -10,6 +10,8 @@ Each entry links to the pull request that introduced it. Add a line under
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-07-12
+
 ### Added
 
 - An "Open in Colab" badge on every tutorial with executable code, backed by a
@@ -373,7 +375,8 @@ bring-your-own-outputs ingestion (`heormodel.run`), cost-effectiveness analysis
 (`heormodel.cea`), value-of-information analysis (`heormodel.voi`), optional ABC
 calibration (`heormodel.calibrate`), and reporting plots (`heormodel.report`).
 
-[Unreleased]: https://github.com/pedroliman/heormodel/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/pedroliman/heormodel/compare/v0.7.2...HEAD
+[0.7.2]: https://github.com/pedroliman/heormodel/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/pedroliman/heormodel/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/pedroliman/heormodel/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/pedroliman/heormodel/compare/v0.5.0...v0.6.0
