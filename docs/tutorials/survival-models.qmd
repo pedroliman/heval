@@ -8,34 +8,70 @@ title: Survival models
 
 <!-- colab-badge:end -->
 
-This tutorial shows how to turn a fitted parametric survival curve into engine inputs with `heormodel.survival`: sampled event times for `MicrosimModel.continuous` and per-cycle transition probabilities for `MarkovModel`. It fits the curve with `lifelines` and carries the fitted uncertainty into a probabilistic analysis. The reference curve is Weibull, `S(t) = exp(-(t / scale) ** shape)` with shape 1.2 and scale 6.0 years, run as a two-state alive-and-dead model at a 3% discount rate. Full script: [`examples/survival_models.py`](https://github.com/pedroliman/heormodel/blob/main/examples/survival_models.py). Install the survival extra with `uv pip install 'heormodel[survival]'`.
+This tutorial shows how a fitted parametric survival curve becomes an input both engines already accept, and derives the mathematics that makes the two representations agree: sampled event times for the individual-level `MicrosimModel.continuous` and per-cycle death probabilities for the cohort `MarkovModel`. It writes out each step at the level a graduate student would want, from the survival function through the censored likelihood to the sampling of fitted uncertainty. It builds on the [microsimulation engine tutorial](microsim.qmd) and the [Markov cohort tutorial](mdm-cohort.qmd), and carries the fitted uncertainty through [`run_psa`](voi.qmd) like any other parameter draw. The full script is [`examples/survival_models.py`](https://github.com/pedroliman/heormodel/blob/main/examples/survival_models.py). Install the survival extra with `uv pip install 'heormodel[survival]'`.
 
-## The survival curve
+## Defining the survival curve
 
-A `SurvivalCurve` is one value object; families and curve algebra are functions that return curves, so nothing depends on a class hierarchy.
+A survival curve is determined by any one of three functions of time, and `heormodel.survival` stores the cumulative hazard because the other two and every engine input follow from it in closed form. Write the survival time as the random variable $T \ge 0$. The survival function $S(t) = \Pr(T > t)$ is the probability of outliving $t$; the hazard $h(t)$ is the instantaneous event rate among survivors; and the cumulative hazard $H(t) = \int_0^t h(u)\,du$ accumulates that rate. They are linked by one identity,
+
+$$
+h(t) = -\frac{d}{dt}\log S(t), \qquad H(t) = -\log S(t), \qquad S(t) = e^{-H(t)}.
+$$
+
+The reference curve is Weibull in the accelerated-failure-time parameterization, with shape $k$ and scale $\lambda$ in years,
+
+$$
+S(t) = \exp\!\left[-\left(\tfrac{t}{\lambda}\right)^{k}\right], \qquad
+h(t) = \frac{k}{\lambda}\left(\frac{t}{\lambda}\right)^{k-1}, \qquad
+H(t) = \left(\frac{t}{\lambda}\right)^{k}.
+$$
+
+A shape above one gives a hazard that rises with time, the pattern of a progressive disease. The example uses $k = 1.2$ and $\lambda = 6.0$, so survival at $t = \lambda$ is $e^{-1}$ and the hazard there is $k/\lambda$.
+
+```{python}
+from heormodel import survival as sv
+
+reference = sv.weibull(shape=1.2, scale=6.0)     # the reference curve
+round(float(reference.survival(6.0)), 4), round(float(reference.hazard_at(6.0)), 4)
+```
+
+Survival at the scale is 0.3679, which is $e^{-1}$ to four places, and the hazard there is 0.2, which is $k/\lambda = 1.2/6.0$. Both confirm the analytic curve is the one the code holds.
+
+## Computing discounted life expectancy
+
+The single number both engines target is the discounted life expectancy, and it has a closed form against which every simulated estimate can be checked. Undiscounted life expectancy is the area under the survival curve, $\mathbb{E}[T] = \int_0^\infty S(t)\,dt$, which for the Weibull equals $\lambda\,\Gamma(1 + 1/k)$. Discounting at a continuous annual rate $r$ weights each future year by $e^{-rt}$, so the discounted expectancy is
+
+$$
+\text{discounted life expectancy} = \int_0^\infty e^{-rt} S(t)\,dt .
+$$
+
+The Weibull has no elementary form for this integral, so we evaluate it numerically at a 3% rate.
 
 ```{python}
 import numpy as np
-import pandas as pd
-from heormodel import survival as sv
-
-reference = sv.weibull(shape=1.2, scale=6.0)  # a Weibull curve
-round(float(reference.survival(6.0)), 4)      # survival at the scale
-```
-
-The discounted life expectancy, the integral of `exp(-rate t) S(t)`, is the value both engines target.
-
-```{python}
 from scipy.integrate import quad
-discounted_le = quad(lambda t: np.exp(-0.03 * t) * reference.survival(t), 0, np.inf)[0]
-round(discounted_le, 5)
+from scipy.special import gamma
+
+DISCOUNT_RATE = 0.03
+undiscounted = 6.0 * gamma(1 + 1 / 1.2)
+discounted_le = quad(lambda t: np.exp(-DISCOUNT_RATE * t) * reference.survival(t), 0, np.inf)[0]
+round(undiscounted, 5), round(discounted_le, 5)
 ```
+
+Undiscounted life expectancy is 5.64394 years and discounting to 3% reduces it to 4.92709 years. The second number is the target: every engine below should reproduce 4.92709 up to its own approximation error, and any larger gap signals a coding difference rather than Monte Carlo noise.
 
 ## Sampling event times for an individual model
 
-`MicrosimModel.continuous` races one death time per person; `sample_time` draws them from the curve by inverse-transform sampling.
+`MicrosimModel.continuous` gives each person a death time and lets the earliest competing event decide their fate, so it needs a sampler that draws $T$ from an arbitrary curve. The tool is the probability integral transform applied to the cumulative hazard: if $T$ has cumulative hazard $H$, then $H(T)$ is a unit-exponential random variable, because
+
+$$
+\Pr\!\big(H(T) > e\big) = \Pr\!\big(T > H^{-1}(e)\big) = S\!\big(H^{-1}(e)\big) = e^{-e}.
+$$
+
+Reading the identity backwards gives the sampler: draw a threshold $E \sim \text{Exponential}(1)$ and return the time $t$ solving $H(t) = E$. For the Weibull the solve is closed-form, $t = \lambda\,E^{1/k}$; for a curve with no analytic inverse, `sample_time` inverts $H$ by bisection, which needs nothing but the cumulative-hazard function. The model function below builds the curve for each parameter draw and fills the death-time column; the alive-to-alive column stays infinite because staying alive is not a timed event.
 
 ```{python}
+import pandas as pd
 from heormodel.models import MicrosimModel
 from heormodel.run import run_psa
 
@@ -55,19 +91,27 @@ def reward_rates(params, intervention, state, attrs):
 continuous = MicrosimModel.continuous(
     states=STATES, event_times=event_times, state_reward_rates=reward_rates,
     interventions=[ARM], horizon=80.0, n_individuals=200_000,
-    discount_rate=0.03, effect="lifeyears")
+    discount_rate=DISCOUNT_RATE, effect="lifeyears")
 ```
 
-The sampled cohort recovers the analytic discounted life expectancy within Monte Carlo error.
+Running the model on the true parameters should return the analytic 4.92709 up to Monte Carlo error, which a cohort of 200,000 people keeps small.
 
 ```{python}
 draws = pd.DataFrame({"shape": [1.2], "scale": [6.0]}, index=pd.RangeIndex(1, name="iteration"))
 run_psa(continuous, draws, seed=1, sequential=True).outcomes.summary().loc[ARM, "lifeyears"]
 ```
 
-## Per-cycle transition probabilities for a cohort model
+The sampled discounted life expectancy is 4.91979 years against the analytic 4.92709, a difference of 0.007 years. The gap is the sampling error of 200,000 death times, not a modeling discrepancy, so the inverse-transform sampler reproduces the curve.
 
-`to_transition_matrix` builds the age-varying transition array `MarkovModel` accepts from cause-specific curves; here one cause takes the cohort from alive to dead.
+## Building per-cycle transition probabilities for a cohort model
+
+A cohort model advances a state vector on a fixed cycle grid, so instead of event times it needs the probability of dying during each cycle. Conditioning on survival to the start of cycle $k$, that probability is
+
+$$
+q_k = \Pr\!\big(k h < T \le (k+1)h \mid T > kh\big) = 1 - \frac{S\big((k+1)h\big)}{S(kh)},
+$$
+
+for cycle length $h$. With a single cause of death `to_transition_matrix` reproduces this formula exactly. With competing causes it assembles each cycle's transition-intensity matrix from the cumulative-hazard increment of every cause and takes its matrix exponential, the continuous-time construction that keeps the row sums at one and holds the relative cause mix fixed within a cycle. Here one cause moves the cohort from alive to dead.
 
 ```{python}
 from heormodel.models import CohortSpec, MarkovModel
@@ -81,28 +125,38 @@ def transitions_and_rewards(params, intervention):
 
 cohort = MarkovModel(
     states=STATES, interventions=[ARM], transitions_and_rewards=transitions_and_rewards,
-    n_cycles=N_CYCLES, initial_state="alive", discount_rate=0.03,
+    n_cycles=N_CYCLES, initial_state="alive", discount_rate=DISCOUNT_RATE,
     cycle_correction="half_cycle", effect="lifeyears")
 cohort.evaluate(draws).summary().loc[ARM, "lifeyears"]
 ```
 
-The cohort lands within the half-cycle correction error of the continuous value, so a model author gets the same answer whichever engine they use.
+The cohort returns 4.94531 years, 0.018 above the analytic 4.92709. The residual is the half-cycle correction's discretization of a curve whose hazard changes within the year, not an error in the transition probabilities, so a model author obtains the same discounted life expectancy whether the same curve drives the individual or the cohort engine.
 
-## Fitting the curve and carrying its uncertainty
+## Fitting the curve to censored data
 
-A real analysis fits the curve to data first. `lifelines` fits a Weibull model to a right-censored sample by maximum likelihood.
+A real analysis estimates the curve from a trial in which some patients are still alive at the data cut, so the likelihood must credit a censored patient for surviving without recording a death time. Let patient $i$ contribute an observed time $y_i$ and an event indicator $d_i$, one for a death and zero for a censored observation. A death of known time contributes its density $f(y_i) = h(y_i) S(y_i)$ and a censored observation contributes only the survival probability $S(y_i)$, so the log-likelihood is
+
+$$
+\ell(k, \lambda) = \sum_i \Big[ d_i \log h(y_i) - H(y_i) \Big],
+$$
+
+using $\log f = \log h - H$. Maximizing $\ell$ gives the maximum-likelihood shape and scale. We generate a 300-patient sample from the true curve, censor administratively at 12 years, and fit.
 
 ```{python}
 from lifelines import WeibullFitter
 
 rng = np.random.default_rng(20260714)
-event_time = reference.sample_time(rng, 300)   # a 300-patient trial
-observed = np.minimum(event_time, 12.0)         # administrative censoring at 12 years
+event_time = reference.sample_time(rng, 300)    # a 300-patient trial
+observed = np.minimum(event_time, 12.0)          # administrative censoring at 12 years
 fit = WeibullFitter().fit(observed, (event_time <= 12.0).astype(float))
-round(fit.rho_, 3), round(fit.lambda_, 3)       # fitted shape and scale
+round(fit.rho_, 3), round(fit.lambda_, 3)        # fitted shape and scale
 ```
 
-`sample_params` draws parameter sets from the fit's asymptotic distribution onto the iteration index, and `from_lifelines` rebuilds the curve for each draw, so `run_psa` propagates the estimation uncertainty like any other parameter.
+The fit recovers shape 1.203 and scale 5.906 against the true 1.2 and 6.0. The estimates sit within a percent of truth from 300 patients, close enough that the fitted curve tracks the reference over the follow-up window.
+
+## Carrying fitted uncertainty into a probabilistic analysis
+
+The point estimate hides how much the finite sample leaves undetermined, and a cost-effectiveness analysis needs that uncertainty propagated. Maximum-likelihood theory supplies it: the estimator $\hat\theta = (\hat k, \hat\lambda)$ is asymptotically normal, $\hat\theta \approx \mathcal{N}\big(\theta, \mathcal{I}(\theta)^{-1}\big)$, with covariance the inverse Fisher information. `sample_params` draws parameter vectors from the multivariate normal centered at the fit with its estimated covariance, and places them on the `iteration` index so they mix with every other parameter draw. `from_lifelines` rebuilds the curve at each draw, so `run_psa` turns estimation uncertainty into a distribution of life expectancies with no special case.
 
 ```{python}
 def fitted_event_times(params, intervention, state, attrs, rng):
@@ -114,10 +168,11 @@ def fitted_event_times(params, intervention, state, attrs, rng):
 
 fitted = MicrosimModel.continuous(
     states=STATES, event_times=fitted_event_times, state_reward_rates=reward_rates,
-    interventions=[ARM], horizon=80.0, n_individuals=20_000, discount_rate=0.03, effect="lifeyears")
+    interventions=[ARM], horizon=80.0, n_individuals=20_000, discount_rate=DISCOUNT_RATE,
+    effect="lifeyears")
 params = sv.sample_params(fit, 1_000, seed=1)
 life_years = run_psa(fitted, params, seed=2).outcomes.effects_wide()[ARM]
 round(life_years.mean(), 3), np.round(np.percentile(life_years, [2.5, 97.5]), 3)
 ```
 
-The 95% credible interval contains the analytic 4.927, and as the trial size grows the estimates converge to shape 1.2 and scale 6.0 and the interval shrinks toward that value.
+The probabilistic discounted life expectancy is 4.865 years with a 95% credible interval of 4.432 to 5.264, which contains the analytic 4.927. The interval is the estimation uncertainty from 300 patients expressed on the decision scale; it narrows toward the true value as the trial grows, and it flows unchanged into the cost-effectiveness and value-of-information analyses covered in the [value of information tutorial](voi.qmd).
