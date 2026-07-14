@@ -10,7 +10,26 @@ Each entry links to the pull request that introduced it. Add a line under
 
 ## [Unreleased]
 
-## [0.7.3] - 2026-07-12
+### Added
+
+- `heormodel.survival` (roadmap item 18): fitted parametric survival curves as
+  engine inputs. `SurvivalCurve` is one composed value object holding a
+  cumulative-hazard function; the families (`exponential`, `weibull`, `gompertz`),
+  the curve algebra (`apply_hazard_ratio`, `apply_acceleration_factor`, `mix`,
+  `splice`), and the `lifelines` adapter (`from_lifelines`, `sample_params`) are
+  functions that return curves, so nothing depends on a class hierarchy. A curve
+  produces sampled event times for `MicrosimModel.continuous` and, through
+  `to_transition_matrix`, the per-cycle transition array `MarkovModel` accepts;
+  `sample_params` carries fitted-parameter uncertainty onto the iteration index so
+  survival estimates flow through `run_psa` unchanged. The adapter is duck-typed,
+  so the module imports without `lifelines`; install the fitting package with the
+  new `survival` extra (`uv pip install 'heormodel[survival]'`).
+  `examples/survival_models.py` and a website tutorial reproduce a Weibull
+  reference model (undiscounted life expectancy 5.64394, discounted 4.92709,
+  quality-adjusted 4.18803) through both engines and run a parameter recovery
+  exercise: fitting the curve to a censored sample with `lifelines` and propagating
+  its uncertainty, the fitted-model and probabilistic discounted life expectancies
+  converge to 4.92709 as the sample grows.
 
 ### Changed
 
