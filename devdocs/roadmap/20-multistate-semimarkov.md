@@ -3,10 +3,10 @@
 Add first-class support for multi-state models whose transitions are parameterized
 by fitted survival hazards, one distribution per allowed transition, simulated on
 the continuous clock. This is the individual-level modeling style at the center of
-the `hesim` tutorials: a transition structure, a survival model per transition, and
-a choice between the clock-forward (Markov) and clock-reset (semi-Markov) timing of
-those hazards. It builds on the survival layer of item 18 and runs on the existing
-`MicrosimModel.continuous`.
+survival-based cost-effectiveness analysis: a transition structure, a survival model
+per transition, and a choice between the clock-forward (Markov) and clock-reset
+(semi-Markov) timing of those hazards. It builds on the survival layer of item 18
+and runs on the existing `MicrosimModel.continuous`.
 
 ## Why a multi-state layer, given the continuous engine already exists
 
@@ -22,54 +22,80 @@ error-prone to hand-assemble each time:
    item 18's layer.
 3. An explicit clock choice. Clock-forward measures each hazard from time zero
    (model time); clock-reset measures it from the last state entry. The two give
-   materially different hazards in a state a patient can dwell in, the point the
-   `hesim` multi-state tutorial makes, so the choice must be a named, tested option
-   rather than an implementation detail.
+   materially different results in a state a patient can dwell in, so the choice
+   must be a named, tested option rather than an implementation detail.
 4. State probabilities over time, the multi-state analog of a cohort trace, which
    `heormodel.models.state_occupancy` already derives from an event log.
 
-## Sequencing: reproduce hesim first, then settle the architecture
+## Sequencing: reproduce the reference model first, then settle the architecture
 
-As with items 18 and 19, the bespoke replication comes first. Reproduce the `hesim`
-multi-state results with example-local functions on `MicrosimModel.continuous`
-using item 18's bespoke survival helpers, confirm parity for both clock variants,
-and only then decide whether the structure above deserves a dedicated
-`MultiStateModel` convenience or is better left as a documented pattern plus a few
-helpers. Building the abstraction only after the replication avoids committing to a
-new engine surface before the worked model shows what it needs to carry.
+As with items 18 and 19, the bespoke replication comes first. Reproduce the
+reference model below with example-local functions on `MicrosimModel.continuous`
+using item 18's bespoke survival helpers, confirm the numbers for both clocks, and
+only then decide whether the structure above deserves a dedicated `MultiStateModel`
+convenience or is better left as a documented pattern plus a few helpers.
+
+## The reference model and its expected results
+
+A reversible illness-death model with three states, healthy, sick, and dead, and
+four transitions.
+
+```
+Transitions and baseline hazards (per year):
+  healthy -> sick    : exponential, rate 0.15
+  healthy -> dead    : exponential, rate 0.02
+  sick    -> healthy : exponential, rate 0.30
+  sick    -> dead    : exponential, rate 0.10
+```
+
+Two strategies: the comparator, and a new intervention that multiplies the two
+hazards out of healthy (to sick and to dead) by a hazard ratio of 0.70. State
+utilities are 1.0 healthy and 0.7 sick; state costs are 2000 and 8000 per year; the
+annual discount rate is 0.03; every patient starts healthy.
+
+With all transitions exponential the process is a continuous-time Markov chain, so
+the clock-forward and clock-reset timings coincide and the expected discounted
+rewards have a closed form: `(discount * I - Q) v = r` for generator `Q` and reward
+rate vector `r`. The expected results:
+
+| Strategy | Discounted quality-adjusted life-years | Discounted cost |
+|---|---|---|
+| Comparator | 13.049 | 50244 |
+| New | 15.459 | 52195 |
+
+The semi-Markov variant replaces the sick-to-dead transition with a Weibull
+clock-reset hazard (shape 1.5, scale 8.0 years), measured from entry to the sick
+state, holding the other three transitions and all rewards fixed. There is no closed
+form; the acceptance target is that the two clocks now diverge, which is the reason
+the clock choice exists:
+
+| Variant | Comparator quality-adjusted life-years | New quality-adjusted life-years |
+|---|---|---|
+| Clock-reset (semi-Markov) | 13.57 | 15.94 |
+| Clock-forward (Markov) | 10.51 | 12.57 |
 
 ## Phase 1: bespoke replication (do this first)
 
-Reproduce the `hesim` "Markov and semi-Markov multi-state models" tutorial with
-example-local functions under `examples/`: the reversible illness-death model with
-three states (healthy, sick, death) and four transitions (healthy to sick, sick to
-healthy, healthy to death, sick to death), a Weibull distribution fitted per
-transition with a treatment covariate, simulated over a population that varies by
-age and sex, comparing standard of care with a new intervention. Reproduce both the
-clock-reset (semi-Markov) and clock-forward (Markov) variants, and the state
-probabilities, quality-adjusted life-years, costs, and cost-effectiveness summary.
-The two clocks must differ in the sick state, the result the source tutorial
-highlights, which is also the phase's headline validation that the clock handling
-is correct.
-
-Acceptance for phase 1 is numeric: the replication matches `hesim` within Monte
-Carlo error, the clock-forward and clock-reset results differ in the sick state as
-the source shows, and the all-Weibull-shape-one case matches the continuous-time
-Markov chain closed form.
+Reproduce both tables with example-local functions under `examples/`: assemble the
+per-transition hazards with item 18's bespoke helpers, sample competing times on
+`MicrosimModel.continuous`, and compute the discounted quality-adjusted life-years
+and costs for both strategies. Reproduce the exponential case against its closed
+form, then the semi-Markov case for both clocks, showing the clock-forward and
+clock-reset results differ as the second table gives.
 
 ## Phase 2: extract the architecture (after parity)
 
 Once phase 1 passes (with items 18 and 19), decide the shape. Candidate: a
 `MultiStateModel` in `heormodel/models/multistate.py` that takes the states, an
 allowed-transition matrix, an `interventions` sequence, a `transitions` callback
-returning one survival distribution per allowed transition, and a `clock`
-argument (`"forward"` or `"reset"`). It assembles the competing-times sampler the
-continuous engine expects and reuses `MicrosimModel.continuous` underneath rather
-than being a separate simulation kernel, so there is one continuous-time engine and
-this layer is a structured way to build its model function. State probabilities come
-from `state_occupancy` on the event log, already shipped. The alternative, if the
-replication shows the assembly is thin, is to keep it as a documented pattern with a
-transition-structure helper rather than a new class. The replication decides.
+returning one survival distribution per allowed transition, and a `clock` argument
+(`"forward"` or `"reset"`). It assembles the competing-times sampler and reuses
+`MicrosimModel.continuous` underneath rather than being a separate simulation
+kernel, so there is one continuous-time engine and this layer is a structured way to
+build its model function. State probabilities come from `state_occupancy` on the
+event log, already shipped. The alternative, if the replication shows the assembly
+is thin, is a documented pattern with a transition-structure helper rather than a
+new class. The replication decides.
 
 ## Coherence with the engine architecture
 
@@ -81,20 +107,19 @@ iteration index, and `state_occupancy` supplies the state-probability trace.
 
 ## Validation (acceptance)
 
-- Phase 1: the bespoke replication of the `hesim` multi-state tutorial matches
-  within Monte Carlo error for both clocks, with the clock-forward and clock-reset
-  results differing in the sick state.
-- Closed form: an all-exponential (or Weibull shape one) illness-death model is a
-  continuous-time Markov chain whose expected discounted costs and effects solve
-  `(discount * I - Q) v = r` for generator `Q`, which the simulation must match,
-  exercising the transition assembly and both clocks (the clocks coincide when the
-  hazard is constant, a useful check that clock-reset reduces correctly).
-- Phase 2 changes no number; whatever shape is chosen reproduces the phase-1
-  result, with contract tests confirming the iteration index matches the draws.
+- Phase 1 reproduces the exponential table within Monte Carlo error (the closed form
+  is exact) and the semi-Markov table for both clocks, with clock-forward and
+  clock-reset differing in the sick state.
+- Closed form: the exponential illness-death model solves `(discount * I - Q) v = r`,
+  which the simulation must match, exercising the transition assembly and both
+  clocks (the clocks coincide when every hazard is constant, a check that clock-reset
+  reduces correctly).
+- Phase 2 changes no number; whatever shape is chosen reproduces the phase-1 result,
+  with contract tests confirming the iteration index matches the draws.
 
 ## Deliverables
 
-- Phase 1: `examples/hesim_mstate.py` reproducing the multi-state tutorial for both
+- Phase 1: `examples/multistate.py` reproducing both reference tables for both
   clocks with bespoke functions, its closed-form test, and a replication gallery
   entry.
 - Phase 2: whichever the replication justifies, a `MultiStateModel` convenience or a
@@ -106,7 +131,5 @@ iteration index, and `state_occupancy` supplies the state-probability trace.
 The three items share one survival layer (item 18) and one continuous-time engine.
 Item 20 is the individual-level multi-state modeling style, item 19 is the
 partitioned survival style, and item 18 is the estimation machinery both rest on.
-Their phase-1 replications together reproduce the survival-driven `hesim` tutorials;
-the cohort, time-inhomogeneous cohort, and cost-effectiveness tutorials already
-reproduce with the shipped engines. The phase-2 architecture for all three is
-settled together, after the replications confirm what the abstractions must carry.
+Their phase-2 architecture is settled together, after the replications confirm what
+the abstractions must carry.
