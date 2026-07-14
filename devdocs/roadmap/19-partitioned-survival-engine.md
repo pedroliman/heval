@@ -55,14 +55,47 @@ area-under-the-curve values (the model is deterministic given the curves), so th
 replication must match them to within numerical integration error, not Monte Carlo
 error.
 
+## Parameter recovery exercise
+
+The reference results use the true curve parameters directly. Every implementation
+must also carry a parameter recovery exercise that fits the two curves from
+simulated trial data, so the estimation and parameter-uncertainty path is exercised
+alongside the forward model. The steps:
+
+1. Data-generating process. For a typical trial-size sample, on the order of 300
+   patients, draw a progression-free survival time from Weibull shape 1.2 scale 3.0
+   and an overall survival time from Weibull shape 1.2 scale 6.0, coupled so that
+   overall survival is at least progression-free survival. A shared uniform draw
+   for the two Weibull inverse transforms gives the correct marginal curves and
+   guarantees the ordering. Apply administrative censoring at a follow-up horizon,
+   for example 10 years.
+2. Estimation. Fit a Weibull model to each endpoint by maximum likelihood,
+   recovering the four parameters and their asymptotic covariances. Fitting the two
+   marginal curves independently is the partitioned survival modeling assumption.
+3. Probabilistic analysis. Draw parameter sets from the fitted distributions,
+   rebuild the two curves, and report the discounted quality-adjusted life-years,
+   costs, and incremental cost-effectiveness ratio with credible intervals.
+4. Convergence, asserted as tests:
+   - Parameter recovery. As the simulated sample size grows, the four estimates
+     converge to the data-generating (1.2, 3.0) and (1.2, 6.0) with standard errors
+     shrinking like one over the square root of the sample size.
+   - Analytic convergence. At a large sample size, on the order of 100,000 or more,
+     the fitted-model comparator discounted quality-adjusted life-years and cost
+     converge to the analytic 3.4826 and 7222.7, the incremental cost-effectiveness
+     ratio to 1980 per quality-adjusted life-year, and the probabilistic spread
+     toward zero. At trial size the analytic values lie inside the credible
+     intervals.
+
 ## Phase 1: bespoke replication (do this first)
 
-Reproduce the table with example-local functions under `examples/`: evaluate the two
-Weibull curves with item 18's bespoke helpers, build occupancy from the
-successive-curve differences on a time grid, accrue the discounted rewards, assemble
-`Outcomes`, and compute the incremental cost-effectiveness ratio. The occupancy
-construction, the integration, and the reward attachment are all example code at
-this stage.
+Reproduce the reference table and the parameter recovery exercise with example-local
+functions under `examples/`: evaluate the two Weibull curves with item 18's bespoke
+helpers, build occupancy from the successive-curve differences on a time grid, accrue
+the discounted rewards, assemble `Outcomes`, and compute the incremental
+cost-effectiveness ratio, then run the recovery exercise (simulate the two censored
+endpoints, fit a Weibull to each by maximum likelihood, and propagate the fitted
+uncertainty through a probabilistic analysis). The occupancy construction, the
+integration, and the reward attachment are all example code at this stage.
 
 ## Phase 2: extract the engine (after parity)
 
@@ -99,6 +132,10 @@ model type; document that a large clamp signals mis-specified curves.
 
 - Phase 1 reproduces the reference table to numerical-integration tolerance, and the
   incremental cost-effectiveness ratio of 1980 per quality-adjusted life-year.
+- The parameter recovery exercise passes its convergence tests: the four estimates
+  converge to (1.2, 3.0) and (1.2, 6.0), and the fitted-model outcomes converge to
+  the analytic comparator quality-adjusted life-years, cost, and incremental
+  cost-effectiveness ratio as the simulated sample grows.
 - Closed form: with exponential progression-free and overall survival at constant
   rates, the discounted life-years in each state have a closed form (for a single
   exponential curve at rate `r` with discount `d`, the discounted area is
@@ -111,8 +148,9 @@ model type; document that a large clamp signals mis-specified curves.
 
 ## Deliverables
 
-- Phase 1: `examples/partitioned_survival.py` reproducing the reference table with
-  bespoke functions, its closed-form tests, and a replication gallery entry.
+- Phase 1: `examples/partitioned_survival.py` reproducing the reference table and the
+  parameter recovery exercise with bespoke functions, its closed-form and convergence
+  tests, and a replication gallery entry.
 - Phase 2: `heormodel.models.PartSurvModel` and `PartSurvSpec` exported from
   `heormodel.models`, a `trace` parallel to `MarkovModel.trace` returning the
   occupancy curves, docstring worked examples, tests, a website tutorial, a

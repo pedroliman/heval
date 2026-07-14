@@ -74,14 +74,50 @@ the clock choice exists:
 | Clock-reset (semi-Markov) | 13.57 | 15.94 |
 | Clock-forward (Markov) | 10.51 | 12.57 |
 
+## Parameter recovery exercise
+
+The reference results use the true transition hazards directly. Every implementation
+must also carry a parameter recovery exercise that fits the per-transition hazards
+from simulated multi-state trial data, so the estimation and parameter-uncertainty
+path is exercised alongside the forward model. The steps:
+
+1. Data-generating process. Simulate a typical trial-size cohort, on the order of
+   300 patients, through the reference illness-death model, recording each patient's
+   transition times and the states occupied, with administrative censoring at a
+   follow-up horizon, for example 30 years. This yields, per transition, a risk set
+   (the time each patient spends at risk in the origin state) and the observed
+   events.
+2. Estimation. Fit one survival model per transition by maximum likelihood on that
+   transition's risk set: an exponential for the three exponential transitions and a
+   Weibull, measured from entry to the sick state, for the sick-to-dead transition in
+   the semi-Markov variant. For an exponential transition the maximum-likelihood
+   rate is the number of observed events divided by the total time at risk in the
+   origin state, with standard error the rate over the square root of the event
+   count. Recover the rates or the shape and scale and their standard errors.
+3. Probabilistic analysis. Draw parameter sets from the fitted distributions,
+   reassemble the per-transition hazards, simulate, and report the discounted
+   quality-adjusted life-years and costs for both strategies with credible intervals.
+4. Convergence, asserted as tests:
+   - Parameter recovery. As the simulated sample size grows, the recovered rates
+     converge to the data-generating 0.15, 0.02, 0.30, and 0.10, with standard
+     errors shrinking like one over the square root of the event count.
+   - Analytic convergence. At a large sample size, on the order of 100,000 or more,
+     the exponential-variant discounted quality-adjusted life-years converge to the
+     closed form, 13.049 for the comparator and 15.459 for the new intervention,
+     and the probabilistic spread toward zero. At trial size the closed-form values
+     lie inside the credible intervals.
+
 ## Phase 1: bespoke replication (do this first)
 
-Reproduce both tables with example-local functions under `examples/`: assemble the
-per-transition hazards with item 18's bespoke helpers, sample competing times on
-`MicrosimModel.continuous`, and compute the discounted quality-adjusted life-years
-and costs for both strategies. Reproduce the exponential case against its closed
-form, then the semi-Markov case for both clocks, showing the clock-forward and
-clock-reset results differ as the second table gives.
+Reproduce both tables and the parameter recovery exercise with example-local
+functions under `examples/`: assemble the per-transition hazards with item 18's
+bespoke helpers, sample competing times on `MicrosimModel.continuous`, and compute
+the discounted quality-adjusted life-years and costs for both strategies. Reproduce
+the exponential case against its closed form, then the semi-Markov case for both
+clocks, showing the clock-forward and clock-reset results differ as the second table
+gives, then run the recovery exercise (simulate the censored multi-state cohort, fit
+one model per transition by maximum likelihood, and propagate the fitted uncertainty
+through a probabilistic analysis).
 
 ## Phase 2: extract the architecture (after parity)
 
@@ -110,6 +146,10 @@ iteration index, and `state_occupancy` supplies the state-probability trace.
 - Phase 1 reproduces the exponential table within Monte Carlo error (the closed form
   is exact) and the semi-Markov table for both clocks, with clock-forward and
   clock-reset differing in the sick state.
+- The parameter recovery exercise passes its convergence tests: the recovered rates
+  converge to 0.15, 0.02, 0.30, and 0.10, and the fitted-model exponential-variant
+  quality-adjusted life-years converge to the closed form as the simulated sample
+  grows.
 - Closed form: the exponential illness-death model solves `(discount * I - Q) v = r`,
   which the simulation must match, exercising the transition assembly and both
   clocks (the clocks coincide when every hazard is constant, a check that clock-reset
@@ -120,8 +160,8 @@ iteration index, and `state_occupancy` supplies the state-probability trace.
 ## Deliverables
 
 - Phase 1: `examples/multistate.py` reproducing both reference tables for both
-  clocks with bespoke functions, its closed-form test, and a replication gallery
-  entry.
+  clocks and the parameter recovery exercise with bespoke functions, its closed-form
+  and convergence tests, and a replication gallery entry.
 - Phase 2: whichever the replication justifies, a `MultiStateModel` convenience or a
   documented pattern with a transition-structure helper, with docstring worked
   examples, tests, a website tutorial, and API reference and changelog entries.
