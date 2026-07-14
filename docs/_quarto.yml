@@ -37,6 +37,8 @@ website:
               text: Calibration workflow
             - href: tutorials/parameter-inputs.qmd
               text: Parameter inputs from data
+            - href: tutorials/survival-bridge.qmd
+              text: Survival analysis bridge
             - href: tutorials/dsa.qmd
               text: Deterministic sensitivity analysis
         - section: Replications
