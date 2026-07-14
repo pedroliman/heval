@@ -12,11 +12,13 @@ This tutorial shows how a fitted parametric survival curve becomes an input both
 
 ## Defining the survival curve
 
-A survival curve is determined by any one of three functions of time, and `heormodel.survival` stores the cumulative hazard because the other two and every engine input follow from it in closed form. Write the survival time as the random variable $T \ge 0$. The survival function $S(t) = \Pr(T > t)$ is the probability of outliving $t$; the hazard $h(t)$ is the instantaneous event rate among survivors; and the cumulative hazard $H(t) = \int_0^t h(u)\,du$ accumulates that rate. They are linked by one identity,
+Write the survival time as the non-negative random variable $T$ with density $f$. Four functions describe its distribution and each determines the others. The survival function $S(t) = \Pr(T > t)$ is the probability of outliving $t$; the hazard $h(t) = f(t) / S(t)$ is the event rate among those still alive at $t$; the cumulative hazard $H(t) = \int_0^t h(u)\,du$ accumulates that rate; and the density itself is $f(t) = h(t) S(t) = -S'(t)$. Starting from $h = f/S = -S'/S = -\tfrac{d}{dt}\log S$ and integrating gives the chain that ties them together,
 
 $$
-h(t) = -\frac{d}{dt}\log S(t), \qquad H(t) = -\log S(t), \qquad S(t) = e^{-H(t)}.
+H(t) = \int_0^t h(u)\,du = -\log S(t), \qquad S(t) = e^{-H(t)}, \qquad f(t) = h(t)\,e^{-H(t)}.
 $$
+
+`heormodel.survival` stores the cumulative hazard rather than the survival function for two reasons that matter later. It is the additive quantity under competing risks, so independent causes combine by summing their cumulative hazards, and it stays numerically well behaved where $S(t)$ has underflowed to zero, so the event-time sampler can invert it far into the tail.
 
 The reference curve is Weibull in the accelerated-failure-time parameterization, with shape $k$ and scale $\lambda$ in years,
 
@@ -26,7 +28,7 @@ h(t) = \frac{k}{\lambda}\left(\frac{t}{\lambda}\right)^{k-1}, \qquad
 H(t) = \left(\frac{t}{\lambda}\right)^{k}.
 $$
 
-A shape above one gives a hazard that rises with time, the pattern of a progressive disease. The example uses $k = 1.2$ and $\lambda = 6.0$, so survival at $t = \lambda$ is $e^{-1}$ and the hazard there is $k/\lambda$.
+The shape sets the direction of the hazard: $k > 1$ makes it rise with time, the pattern of a progressive disease; $k < 1$ makes it fall; and $k = 1$ collapses to the constant-hazard exponential. The example uses $k = 1.2$ and $\lambda = 6.0$, so survival at $t = \lambda$ is $e^{-1}$ regardless of shape, and the rising hazard passes through $k/\lambda$ there.
 
 ```{python}
 from heormodel import survival as sv
@@ -39,13 +41,21 @@ Survival at the scale is 0.3679, which is $e^{-1}$ to four places, and the hazar
 
 ## Computing discounted life expectancy
 
-The single number both engines target is the discounted life expectancy, and it has a closed form against which every simulated estimate can be checked. Undiscounted life expectancy is the area under the survival curve, $\mathbb{E}[T] = \int_0^\infty S(t)\,dt$, which for the Weibull equals $\lambda\,\Gamma(1 + 1/k)$. Discounting at a continuous annual rate $r$ weights each future year by $e^{-rt}$, so the discounted expectancy is
+The single number both engines target is the discounted life expectancy, and it has a closed form against which every simulated estimate can be checked. Life-years accrue at rate one per year survived, so undiscounted life expectancy is the area under the survival curve. Integration by parts on $\mathbb{E}[T] = \int_0^\infty t\,f(t)\,dt$ with $f = -S'$ moves the integral onto the survival function, since the boundary term $-t\,S(t)$ vanishes at both ends for any distribution with a finite mean,
 
 $$
-\text{discounted life expectancy} = \int_0^\infty e^{-rt} S(t)\,dt .
+\mathbb{E}[T] = \int_0^\infty S(t)\,dt = \lambda\,\Gamma\!\left(1 + \tfrac{1}{k}\right),
 $$
 
-The Weibull has no elementary form for this integral, so we evaluate it numerically at a 3% rate.
+where the Weibull value follows from the substitution $u = (t/\lambda)^k$.
+
+Discounting at a continuous annual rate $r$ replaces the constant accrual rate of one with the weight $e^{-rt}$ on each future year, giving the target,
+
+$$
+\text{discounted life expectancy} = \int_0^\infty e^{-rt} S(t)\,dt = \frac{1 - \mathbb{E}\!\left[e^{-rT}\right]}{r}.
+$$
+
+The second equality is the same integration by parts carried through with the discount weight, and it reads the discounted expectancy as the mean discount factor applied over the lifetime: the quantity $\mathbb{E}[e^{-rT}]$ is the Laplace transform of the density at $r$. The Weibull Laplace transform has no elementary form, so we evaluate the integral numerically at a 3% rate.
 
 ```{python}
 import numpy as np
@@ -68,7 +78,9 @@ $$
 \Pr\!\big(H(T) > e\big) = \Pr\!\big(T > H^{-1}(e)\big) = S\!\big(H^{-1}(e)\big) = e^{-e}.
 $$
 
-Reading the identity backwards gives the sampler: draw a threshold $E \sim \text{Exponential}(1)$ and return the time $t$ solving $H(t) = E$. For the Weibull the solve is closed-form, $t = \lambda\,E^{1/k}$; for a curve with no analytic inverse, `sample_time` inverts $H$ by bisection, which needs nothing but the cumulative-hazard function. The model function below builds the curve for each parameter draw and fills the death-time column; the alive-to-alive column stays infinite because staying alive is not a timed event.
+Reading the identity backwards gives the sampler: draw a threshold $E \sim \text{Exponential}(1)$ and return the time $t$ solving $H(t) = E$. For the Weibull the solve is closed-form, inverting $H(t) = (t/\lambda)^k = E$ to $t = \lambda\,E^{1/k}$; for a curve with no analytic inverse, `sample_time` inverts $H$ by bisection, which needs nothing but the cumulative-hazard function and so works for mixtures, spliced tails, and adapted fits alike.
+
+The engine reads the sampler through a competing-risks latent-time construction. Each destination state $j$ reachable from the current state carries its own cause-specific curve, the model draws a latent time $T_j$ from each, and the person moves to the destination with the earliest time, $T = \min_j T_j$, at that time. Independent latent times make cause-specific cumulative hazards add, $H_{\text{total}}(t) = \sum_j H_j(t)$, so the realized survival curve is the product of the cause-specific survival curves and the chance of exiting by cause $j$ is that cause's share of the total hazard. The alive-and-dead model has one cause, so the column below fills only the death time and leaves the alive-to-alive time infinite, since staying alive is not a timed event.
 
 ```{python}
 import pandas as pd
@@ -111,7 +123,9 @@ $$
 q_k = \Pr\!\big(k h < T \le (k+1)h \mid T > kh\big) = 1 - \frac{S\big((k+1)h\big)}{S(kh)},
 $$
 
-for cycle length $h$. With a single cause of death `to_transition_matrix` reproduces this formula exactly. With competing causes it assembles each cycle's transition-intensity matrix from the cumulative-hazard increment of every cause and takes its matrix exponential, the continuous-time construction that keeps the row sums at one and holds the relative cause mix fixed within a cycle. Here one cause moves the cohort from alive to dead.
+for cycle length $h$. The conditional survival factor $S((k+1)h) / S(kh) = e^{-\Delta H_k}$, where $\Delta H_k = H((k+1)h) - H(kh)$ is the cumulative-hazard increment over the cycle, which is the quantity `to_transition_matrix` computes for every cause.
+
+For competing causes the per-cycle probabilities cannot be read off one at a time, because the causes share the cycle. `to_transition_matrix` treats the increments as a piecewise-constant transition intensity $Q_k$ over the cycle, with off-diagonal entries the cause increments and each diagonal entry the negative row sum. The transition-probability matrix solves the Kolmogorov forward equation $P'(t) = P(t)\,Q_k$ with $P(0) = I$, whose solution over a unit cycle is the matrix exponential $P = e^{Q_k}$; its rows sum to one by construction and it holds the relative cause mix fixed within the cycle. For the single decrement here the intensity is $Q_k = \left(\begin{smallmatrix} -\Delta H_k & \Delta H_k \\ 0 & 0 \end{smallmatrix}\right)$, and its exponential has off-diagonal entry $1 - e^{-\Delta H_k}$, so the matrix construction returns exactly the $q_k$ above.
 
 ```{python}
 from heormodel.models import CohortSpec, MarkovModel
@@ -134,13 +148,16 @@ The cohort returns 4.94531 years, 0.018 above the analytic 4.92709. The residual
 
 ## Fitting the curve to censored data
 
-A real analysis estimates the curve from a trial in which some patients are still alive at the data cut, so the likelihood must credit a censored patient for surviving without recording a death time. Let patient $i$ contribute an observed time $y_i$ and an event indicator $d_i$, one for a death and zero for a censored observation. A death of known time contributes its density $f(y_i) = h(y_i) S(y_i)$ and a censored observation contributes only the survival probability $S(y_i)$, so the log-likelihood is
+A real analysis estimates the curve from a trial in which some patients are still alive at the data cut, so the likelihood must credit a censored patient for surviving without recording a death time. Let patient $i$ contribute an observed time $y_i = \min(T_i, c_i)$, the smaller of the true event time and the censoring time, and an event indicator $d_i$, one for a death and zero for a censored observation. A death of known time contributes its density $f(y_i)$; a censored observation contributes only that the patient outlived $y_i$, the probability $S(y_i)$. Under censoring that is independent of the event time, the two combine into one factor per patient and the sample likelihood is their product,
 
 $$
+L(k, \lambda) = \prod_i f(y_i)^{d_i}\, S(y_i)^{1 - d_i}, \qquad
 \ell(k, \lambda) = \sum_i \Big[ d_i \log h(y_i) - H(y_i) \Big],
 $$
 
-using $\log f = \log h - H$. Maximizing $\ell$ gives the maximum-likelihood shape and scale. We generate a 300-patient sample from the true curve, censor administratively at 12 years, and fit.
+where the log-likelihood uses $f = h\,e^{-H}$ to split each factor into $d_i \log h(y_i)$ and $-H(y_i)$.
+
+Administrative censoring at a fixed calendar cut is independent of the event time, so the assumption holds by design here. The Weibull score equations have no closed-form root, so the fit maximizes $\ell$ numerically. We generate a 300-patient sample from the true curve, censor at 12 years, and fit.
 
 ```{python}
 from lifelines import WeibullFitter
@@ -156,7 +173,9 @@ The fit recovers shape 1.203 and scale 5.906 against the true 1.2 and 6.0. The e
 
 ## Carrying fitted uncertainty into a probabilistic analysis
 
-The point estimate hides how much the finite sample leaves undetermined, and a cost-effectiveness analysis needs that uncertainty propagated. Maximum-likelihood theory supplies it: the estimator $\hat\theta = (\hat k, \hat\lambda)$ is asymptotically normal, $\hat\theta \approx \mathcal{N}\big(\theta, \mathcal{I}(\theta)^{-1}\big)$, with covariance the inverse Fisher information. `sample_params` draws parameter vectors from the multivariate normal centered at the fit with its estimated covariance, and places them on the `iteration` index so they mix with every other parameter draw. `from_lifelines` rebuilds the curve at each draw, so `run_psa` turns estimation uncertainty into a distribution of life expectancies with no special case.
+The point estimate hides how much the finite sample leaves undetermined, and a cost-effectiveness analysis needs that uncertainty propagated. Maximum-likelihood theory supplies it: the estimator $\hat\theta = (\hat k, \hat\lambda)$ is asymptotically normal, $\hat\theta \approx \mathcal{N}\big(\theta, \mathcal{I}(\theta)^{-1}\big)$, with covariance the inverse Fisher information $\mathcal{I}(\theta) = -\mathbb{E}[\partial^2 \ell / \partial\theta\,\partial\theta^\top]$. In practice the fit reports the observed information, the negative Hessian of the log-likelihood at $\hat\theta$, and its inverse $\hat V$ estimates the covariance.
+
+`sample_params` draws parameter vectors from $\mathcal{N}(\hat\theta, \hat V)$ and places them on the `iteration` index so they mix with every other parameter draw; `from_lifelines` rebuilds the curve at each draw. This is a normal approximation to the sampling distribution, adequate at 300 patients but not exact, and it is taken on the natural parameter scale, so a wide draw could in principle stray to a non-positive shape or scale. `run_psa` then turns the parameter distribution into a distribution of life expectancies with no special case.
 
 ```{python}
 def fitted_event_times(params, intervention, state, attrs, rng):
