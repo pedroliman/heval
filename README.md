@@ -82,7 +82,7 @@ round(evpi(outcomes, wtp=50_000), 1)
 # 2738.7
 ```
 
-Once you master this workflow, you can do a lot more with the package, like defining microsimulations, discrete-event simulation models, and compartmental transmission models written as ordinary differential equations (the `ODEModel` engine, with a susceptible-exposed-infectious-recovered vaccination example). The package also has a calibration function you can use to calibrate some parameters, take others from the literature, then run a full probabilistic sensitivity analysis.
+Once you master this workflow, you can do a lot more with the package, like defining microsimulations, discrete-event simulation models, and compartmental transmission models written as ordinary differential equations (the `ODEModel` engine, with a susceptible-exposed-infectious-recovered vaccination example). The package also has a calibration function you can use to calibrate some parameters, take others from the literature, then run a full probabilistic sensitivity analysis. When the model is expensive to run, a surrogate-accelerated calibration tutorial trains a Gaussian process on a small design and calibrates through it with the `sbi` package, reaching the same posterior with about a hundred times fewer model runs.
 
 ## Development
 

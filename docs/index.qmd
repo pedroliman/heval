@@ -101,5 +101,6 @@ fig2.tight_layout()
 - [Bring your own outputs](tutorials/byo-outputs.qmd): an external results table through cost-effectiveness analysis, value of information, plots, and a run report.
 - [Full pipeline](tutorials/full-pipeline.qmd): parameters, `run_psa`, cost-effectiveness analysis, and value of information end to end.
 - [Calibration workflow](tutorials/calibration-workflow.qmd): calibrate some parameters, take the rest from the literature, mix both with `mix_draws`, then run the same analyses.
+- [Surrogate-accelerated calibration](tutorials/surrogate-calibration.qmd): train a Gaussian process surrogate of a Markov model on a small design, calibrate it with the `sbi` package, and match the calibration workflow's posterior with about a hundred times fewer model runs.
 - [API reference](reference/index.qmd): every public function, generated from docstrings.
 - [Changelog](changelog.md): what has shipped.

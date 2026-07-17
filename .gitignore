@@ -9,6 +9,9 @@ dist/
 build/
 examples/output/
 
+# sbi writes TensorBoard training logs here by default
+sbi-logs/
+
 # Quarto site build artifacts (docs/reference and copies are generated)
 docs/_site/
 docs/.quarto/

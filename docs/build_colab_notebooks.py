@@ -40,7 +40,11 @@ BADGE_END = "<!-- colab-badge:end -->"
 
 # Optional install extras keyed by tutorial file stem. A tutorial not listed here
 # installs the base package.
-EXTRAS = {"des": "des", "calibration-workflow": "calibration"}
+EXTRAS = {
+    "des": "des",
+    "calibration-workflow": "calibration",
+    "surrogate-calibration": "calibration,surrogate",
+}
 
 # Tutorials whose code loads files from the repository, so the notebook clones it.
 CLONE = {"mdm-des"}
