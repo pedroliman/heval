@@ -2,6 +2,12 @@
 
 Applies to everything written in this repository: README, roadmap, docstrings, comments, commit messages, website pages, error messages.
 
+## Who reads this, and the voice to write in
+
+Write for a health economics and outcomes research (HEOR) modeler: a reader with graduate training in health economics, epidemiology, statistics, or a related quantitative field, who builds cost-effectiveness models and writes code to do it, but who is not a software engineer. Assume this reader already knows what a cohort state-transition model, a quality-adjusted life-year, a prior, and a posterior are, and does not need undergraduate probability re-explained. Do not assume this reader knows software-engineering vocabulary or wants it.
+
+Write in the voice of the methods section or statistical appendix of a clinical or health-economics journal: a PhD-level author explaining a method to a peer, in plain and precise language. Two registers are wrong for this repository, in opposite directions. One is dense jargon and formality for its own sake, which the Vocabulary section below rules out. The other is conversational or promotional writing: casual idiom, figures of speech, and salesmanship about the method. A tutorial here is a written scientific methods section, not a blog post, a conference talk, or a product page. When a sentence would sound out of place in a journal's methods appendix, it is out of place here.
+
 ## Be concise, not clipped
 
 Concise means every sentence earns its place, not that sentences lose their verbs. Write full sentences: a subject and a verb, every time. "Three interventions for a chronic disease: standard of care, a new drug, and drug plus monitoring" is a fragment, a label standing in for a sentence. "Three interventions compete for a chronic disease: standard of care, a new drug, and drug plus monitoring" is a sentence, and no longer than the fragment was. If trimming a sentence would strip its verb, the sentence was doing real work; cut a different sentence instead, or leave it whole.
@@ -78,6 +84,28 @@ Do not mention external existing R packages anywhere.
 - State limitations plainly. "Ties are broken by first occurrence" beats hedging or silence.
 - No rhetorical questions, no triads for rhythm ("fast, simple, and powerful"), no closing summaries that restate the section.
 - Use the plain, literal word over an idiom or figure of speech chosen to sound polished. Say "the model type to use", not "the engine to reach for"; say "is worth its cost", not "pays off"; say "exceeds the threshold", not "clears the threshold". If a phrase takes a second read to parse, or sounds like it is trying to be memorable rather than clear, replace it with the literal wording.
+
+## No conversational or promotional phrasing
+
+The voice is a written methods section, so casual idiom, figures of speech, and salesmanship do not belong, even when they read smoothly. These are the forms that most often slip in. Each example is taken from a real draft in this repository.
+
+- Casual verbs in place of precise ones. "The posterior means sit on the true values" should read "recover the true values". "The estimates land near the target" should read "are close to the target".
+- Salesmanship about the method. "The idea is worth the machinery", "that ratio is the whole case for the approach", and "this is where it pays off" sell rather than describe. State what the method does and what it costs, then let the numbers make the case: "is worth its cost when the model is slow to run", followed by the run counts.
+- Vague or figurative quantities. "A model that takes a minute per run turns a calibration into days" should read "requires days to calibrate". "Let the inference call the approximation as often as it likes" should read "the inference then queries the approximation without further model runs". "To show how little the surrogate needs" should read "to show how few runs the surrogate requires".
+- Anthropomorphizing the code or the model. A model does not want, a surrogate does not see the points it was trained on, and inference does not like anything. Describe what the code computes: not "model runs it never saw" but "model runs that were not in its design".
+- A wrong word dressed as a phrase. Name the object correctly before worrying about how the sentence reads. The prevalence over time in a cohort model without transmission is a prevalence trajectory, not an "epidemic curve": a cohort model has no epidemic. A factual error is not excused by reading well.
+
+## Revising your own writing
+
+Do not treat a first draft as finished. Every time you write prose here, and every time you finish writing a tutorial for the first time, revise it in a systematic pass before considering it done:
+
+1. Read the whole piece back, start to finish, as the intended reader would.
+2. Check it against this guide point by point: the reader and voice above, the concision rules, the punctuation rules, the vocabulary list, and the conversational-phrasing list. For a tutorial, also check it against "What makes a tutorial good": does the opening state what the reader will be able to do afterward, does every section open with a full sentence of purpose, does every output get a sentence interpreting it, are the headings grammatically parallel, and is every "why" sentence one you can actually verify.
+3. Note each place it deviates, and why.
+4. Make the edits.
+5. Return to step 1 and reread the whole piece. Repeat until a full read finds nothing left to fix.
+
+One pass is not enough. The first read catches the obvious problems; idiom, tone, and unparallel headings usually surface only on a second or third read. For a page that executes code, one of these passes is the render-and-check pass: run the page and confirm the prose matches the output, including numbers and plots.
 
 ## Docstrings
 
