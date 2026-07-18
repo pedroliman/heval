@@ -40,6 +40,18 @@ Do not narrate self-evident code line by line ("first we import pandas, then we 
 
 Only explain what you can actually verify. A "why" sentence earns its place when it follows directly from the code, the model's math, or an output you have checked, not from a plausible-sounding guess about the author's intent. Do not invent a rationale for a modeling choice (why this correlation, why this parameter value) unless the source material or the code supports it; if the real reason is not known, describe what the code does and stop. Do not reach for an interpretive aphorism to make a result sound more insightful than it is (a restated inequality dressed up as a conclusion, a clever-sounding turn of phrase you have not derived step by step). If you are not certain a sentence is both correct and useful, cut it rather than leave it in on the chance it reads well.
 
+The reader may be new to the method even when they are not new to health economics. The persona above assumes a modeler who wants to learn the technique a tutorial presents, so introduce a method such as a Gaussian process or simulation-based inference rather than assuming the reader already knows it. This does not mean writing for a beginner in health economics: keep the field's vocabulary, and explain the new method, not the familiar modeling around it.
+
+The following mechanics are adapted from [Rules for writing software tutorials](https://refactoringenglish.com/excerpts/rules-for-software-tutorials/), narrowed to this repository's Python and Quarto tutorials. Several rules there are already covered above (separate the values a reader changes, keep headings parallel, show and confirm the result, link to the full script); these are the ones that add something.
+
+- Put a specific outcome in the title and on the first screen. The title names what the reader will be able to do, and the opening states the result they are working toward, the target number or figure, before the code that produces it.
+- Teach one method per tutorial. If a page must combine two, introduce the second only after the first is working, and defer side complications to the end rather than interleaving them.
+- Keep the code runnable at every step. A reader who runs the blocks in order should have working code after each one, not only at the end.
+- State the extra dependencies a page needs in its first paragraph, and keep that set as small as the analysis allows.
+- Make code blocks copy-and-run. No shell-prompt characters, no `>>>` prompts, and no line numbers inside code the reader is meant to run. Write command-line flags in long form (`--recursive`, not `-r`) so the reader can tell what each one does.
+- Use example values that are unmistakably illustrative. Parameter values, state names, and cohort labels should read as chosen for the example, so a reader never mistakes an illustrative number for a required one.
+- Do the tedious steps for the reader. Where a step would otherwise be manual editing or clicking, give a short code block that does it instead.
+
 ## Punctuation and formatting
 
 - No em-dashes. Use a comma, a colon, parentheses, or a new sentence.
