@@ -96,4 +96,4 @@ from heormodel.run import running_means
 running_means(outcomes).plot(xlabel="iterations", ylabel="mean cost");
 ```
 
-The [engines](../concepts/engines.qmd) concept page describes the model types `run_psa` can run. Next: the [value of information](voi.qmd) tutorial takes outcomes like these through the expected value of perfect, partial perfect, and sample information, checking each against a closed form.
+The [engines](../concepts/engines.qmd) concept page describes the model types `run_psa` can run. Next: the [value of information](voi.qmd) tutorial takes the cohort state-transition model from the [cohort tutorial](mdm-cohort.qmd) through the expected value of perfect, partial perfect, and sample information.

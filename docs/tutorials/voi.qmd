@@ -8,34 +8,57 @@ title: Value of information
 
 <!-- colab-badge:end -->
 
-This tutorial shows how to run the full value-of-information workflow: expected value of perfect information (EVPI), of partial perfect information (EVPPI), and of sample information (EVSI), continuing from the [full pipeline tutorial](full-pipeline.qmd). The full script is [`examples/voi_tutorial.py`](https://github.com/pedroliman/heormodel/blob/main/examples/voi_tutorial.py).
+This tutorial shows how to run the full value-of-information workflow: expected value of perfect information (EVPI), of partial perfect information (EVPPI), and of sample information (EVSI), on the Sick-Sicker cohort state-transition model built in the [cohort state-transition tutorial](mdm-cohort.qmd). The full script is [`examples/voi_tutorial.py`](https://github.com/pedroliman/heormodel/blob/main/examples/voi_tutorial.py).
 
 ## Specifying the decision model
 
-We specify two interventions, standard care and a new drug, which differ by an uncertain incremental effect `dq` (quality-adjusted life-years, QALYs) and an uncertain incremental cost `dc`, both Normal.
+The model is the four-state, four-intervention Sick-Sicker model from the cohort state-transition tutorial: standard of care, Intervention A (raises the Sick-state utility), Intervention B (slows progression from Sick to Sicker), and the combination AB, evaluated over 75 annual cycles. See that tutorial for the state machine and the parameter distributions; the code below reconstructs both so this page runs on its own.
 
 ```{python}
 import numpy as np
 import pandas as pd
-from heormodel.models import Outcomes
-from heormodel.params import Normal, ParameterSet
-from heormodel.run import run_psa
+from heormodel.models import CohortSpec, MarkovModel
+from heormodel.params import Beta, Gamma, LogNormal, ParameterSet
+from heormodel.run import SeedManager, run_psa
 
-WTP = 30_000.0
-MU_Q, SD_Q = 0.20, 0.30
-MU_C, SD_C = 4_000.0, 8_000.0
+STATES = ("H", "S1", "S2", "D")
+INTERVENTIONS = ("Standard of care", "Intervention A", "Intervention B", "Intervention AB")
+WTP = 100_000.0
 
-# TODO: Here we should just use one of the models like the markov model instead of doing this.
-def new_drug(d: pd.DataFrame) -> Outcomes:
-    zero = np.zeros(len(d))
-    costs = pd.DataFrame({"Standard care": zero, "New drug": d["dc"]}, index=d.index)
-    effects = pd.DataFrame({"Standard care": zero, "New drug": d["dq"]}, index=d.index)
-    return Outcomes.from_wide(costs, effects)
+def r2p(rate):  # rate to per-cycle probability
+    return 1.0 - np.exp(-np.asarray(rate))
 
-params = ParameterSet({"dq": Normal(MU_Q, SD_Q), "dc": Normal(MU_C, SD_C)})
-draws = params.sample(100_000, seed=2026)
-outcomes = run_psa(new_drug, draws, sequential=True).outcomes
+def model(p, intervention):
+    p_HS1, p_S1H, p_S1S2 = r2p(p["r_HS1"]), r2p(p["r_S1H"]), r2p(p["r_S1S2"])
+    p_HD, p_S1D, p_S2D = r2p(p["r_HD"]), r2p(p["r_HD"] * p["hr_S1"]), r2p(p["r_HD"] * p["hr_S2"])
+    prog = r2p(p["r_S1S2"] * p["hr_S1S2_trtB"]) if "B" in intervention else p_S1S2
+    P = np.zeros((4, 4))
+    P[0, 0], P[0, 1], P[0, 3] = (1 - p_HD) * (1 - p_HS1), (1 - p_HD) * p_HS1, p_HD
+    P[1, 0], P[1, 2], P[1, 3] = (1 - p_S1D) * p_S1H, (1 - p_S1D) * prog, p_S1D
+    P[1, 1] = (1 - p_S1D) * (1 - p_S1H - prog)
+    P[2, 2], P[2, 3], P[3, 3] = 1 - p_S2D, p_S2D, 1.0
+    add = {"Standard of care": 0.0, "Intervention A": p["c_trtA"],
+           "Intervention B": p["c_trtB"], "Intervention AB": p["c_trtA"] + p["c_trtB"]}[intervention]
+    cost = np.array([p["c_H"], p["c_S1"] + add, p["c_S2"] + add, 0.0])
+    u_s1 = p["u_trtA"] if intervention in ("Intervention A", "Intervention AB") else p["u_S1"]
+    return CohortSpec(P, cost, np.array([p["u_H"], u_s1, p["u_S2"], 0.0]))
+
+engine = MarkovModel(states=STATES, interventions=INTERVENTIONS, transitions_and_rewards=model,
+                            n_cycles=75, initial_state="H", cycle_correction="simpson")
+
+params = ParameterSet({
+    "r_HD": Gamma(20, 1/10000), "r_HS1": Gamma(30, 1/200), "r_S1H": Gamma(60, 1/120),
+    "r_S1S2": Gamma(84, 1/800), "hr_S1": LogNormal(np.log(3), 0.01),
+    "hr_S2": LogNormal(np.log(10), 0.02), "hr_S1S2_trtB": LogNormal(np.log(0.6), 0.02),
+    "c_H": Gamma(100, 20.0), "c_S1": Gamma(177.8, 22.5), "c_S2": Gamma(225, 66.7),
+    "c_trtA": Gamma(73.5, 163.3), "c_trtB": Gamma(86.2, 150.8),
+    "u_H": Beta(200, 3), "u_S1": Beta(130, 45), "u_S2": Beta(230, 230), "u_trtA": Beta(300, 15),
+})
+draws = params.sample(10_000, seed=SeedManager(20260705).generator())
+outcomes = run_psa(engine, draws).outcomes
 ```
+
+Value-of-information estimates need more draws than a mean cost-effectiveness estimate does, so this run uses 10,000 iterations against the cohort tutorial's 1,000.
 
 ## Calculating the Expected Value of Perfect Information (EVPI)
 
@@ -49,42 +72,45 @@ evpi(outcomes, WTP)
 
 ## Ranking parameters with EVPPI
 
-EVPPI is the value of resolving one parameter while the rest stay uncertain. It identifies which parameters drive the decision uncertainty, so `evppi_ranking` sweeps each and sorts them into a research priority list. The effect `dq` outranks the cost `dc` here because `WTP * SD_Q` exceeds `SD_C`.
+EVPPI is the value of resolving one parameter while the rest stay uncertain. It identifies which parameters drive the decision uncertainty, so `evppi_ranking` sweeps each of the model's 16 parameters and sorts them into a research priority list.
 
 ```{python}
 from heormodel.voi import evppi, evppi_ranking
 
-evppi_ranking(outcomes, draws, WTP)
+ranking = evppi_ranking(outcomes, draws, WTP)
+ranking.round(1)
 ```
 
-The ranking is threshold-specific: below about 28,000 per QALY the cost ranks higher instead. The default `spline` metamodel suits one or two parameters; `method="gp"` (a Gaussian process) handles groups of many parameters.
+`u_S1`, the Sick-state utility under standard of care, dominates the ranking: Intervention A's entire benefit is raising that utility to `u_trtA`, so whether the true `u_S1` is already close to `u_trtA` decides whether Intervention A is worth its cost. The two treatment costs `c_trtA` and `c_trtB` follow, with everything else contributing almost nothing at this threshold. The `spline` metamodel used by default handles one parameter at a time well; `method="gp"` (a Gaussian process) suits groups of many parameters evaluated jointly.
 
 ## Expected Value of Sample Information (EVSI)
 
-EVSI is the value of a study of finite sample size. Consider a two-arm trial measuring the incremental effect, each arm reporting a mean QALY difference with sampling standard deviation `tau = 1 / sqrt(n)`. `simulate_summaries` draws one trial summary per parameter draw from its true `dq`, and `evsi_regression` computes the value from the fitted conditional means.
+EVSI is the value of a study of finite sample size. Since `u_S1` drives the ranking, consider a preference-based utility survey of Sick patients, each reporting a health-utility score with the sampling standard deviation typical of an instrument like the EQ-5D-5L in a chronic-disease population. `simulate_summaries` draws one survey summary per parameter draw from its true `u_S1`, and `evsi_regression` computes the value from the fitted conditional means.
 
 ```{python}
 from heormodel.voi import evsi_regression, simulate_summaries
 
-tau = 1.0 / np.sqrt(200)
+PATIENT_SD = 0.20  # per-patient sd of a preference-based utility instrument
+n_survey = 400
+tau = PATIENT_SD / np.sqrt(n_survey)
 summaries = simulate_summaries(
-    draws, lambda row, r: {"xbar": row["dq"] + r.normal(0.0, tau)}, seed=200)
+    draws, lambda row, r: {"ubar": row["u_S1"] + r.normal(0.0, tau)}, seed=n_survey)
 evsi_regression(outcomes, summaries, WTP)
 ```
 
-Reported against the willingness-to-pay threshold, EVSI is a family of curves, one per sample size. Each stays between zero and the effect EVPPI. This trial measures only the health effect, so it does not resolve the cost uncertainty which limits the study's value below perfect information. A trial that also measured cost would rise toward EVPI instead. Larger trials shrink `tau`, lifting each curve toward the effect EVPPI.
+Reported against the willingness-to-pay threshold, EVSI is a family of curves, one per sample size. Each stays below the `u_S1` EVPPI, which in turn tracks EVPI closely here: this survey targets the one parameter EVPPI ranked highest, so resolving it captures most of the value there would be in resolving everything. All three curves are small below about 90,000 per QALY, where the standard of care is optimal by a wide enough margin that the decision does not turn on `u_S1`, peak sharply near 120,000 where the optimal intervention is closely balanced, and fall off above that. Larger surveys shrink `tau`, lifting each curve toward the EVPPI ceiling.
 
 ```{python}
 import matplotlib.pyplot as plt
 from matplotlib import cm, colors
 
-grid = np.linspace(0, 120_000, 13)
-sizes = [25, 50, 100, 200, 400, 800]
+grid = np.linspace(0, 200_000, 21)
+sizes = [25, 50, 100, 200, 400, 800, 1_600, 3_200, 6_400]
 rng = np.random.default_rng(0)
 fan = {}
-for n in sizes:  # the same study, evaluated across the threshold grid
-    xbar = draws["dq"] + rng.normal(0.0, 1.0 / np.sqrt(n), len(draws))
-    summ = pd.DataFrame({"xbar": xbar}, index=draws.index)
+for n in sizes:  # the same survey, evaluated across the threshold grid
+    ubar = draws["u_S1"] + rng.normal(0.0, PATIENT_SD / np.sqrt(n), len(draws))
+    summ = pd.DataFrame({"ubar": ubar}, index=draws.index)
     fan[n] = [evsi_regression(outcomes, summ, k) for k in grid]
 
 ramp, scale = plt.get_cmap("Purples"), colors.LogNorm(min(sizes), max(sizes))
@@ -92,35 +118,34 @@ fig, ax = plt.subplots()
 for n in sizes:
     ax.plot(grid, fan[n], color=ramp(0.3 + 0.6 * scale(n)), lw=1.4)
 ax.plot(grid, evpi(outcomes, grid).to_numpy(), color="#333333", lw=2, label="EVPI")
-ax.plot(grid, [evppi(outcomes, draws, "dq", k) for k in grid],
-        color="#eb6834", lw=2, label="EVPPI (effect)")
+ax.plot(grid, [evppi(outcomes, draws, "u_S1", k) for k in grid],
+        color="#eb6834", lw=2, label="EVPPI (u_S1)")
 ax.set(xlabel="willingness to pay", ylabel="value per person")
 ax.legend(loc="upper left")
 sm = cm.ScalarMappable(norm=scale, cmap=ramp); sm.set_array([])
-fig.colorbar(sm, ax=ax, label="trial size (n per arm)");
+fig.colorbar(sm, ax=ax, label="survey size (patients)");
 ```
 
-## Expected net benefit of sampling (EBNS)
+## Expected net benefit of sampling (ENBS)
 
-So, how many people should we sample? We can answer that question by calculating the expected net benefit of sampling (EBNS).
-
-We calculate EBNS by multiplying the per-person EVSI by the beneficiary population and bring it to a present value estimate. For instance, suppose `2,000` patients a year would benefit from the study over `10` year. We discount those benefits at 3% per year, then subtract the study cost (say, a `300,000` fixed cost plus `6,000` per participant in each trial arm. An ENBS at or above zero is the condition for running the study. We can then investigate what is the trial size that maximizes the net expected benefit of sampling.
+So, how many patients should the survey enrol? The expected net benefit of sampling (ENBS) answers that by multiplying the per-person EVSI by the population it would inform and discounting to a present value, then subtracting the survey's cost. Suppose 2,000 patients enter the Sick state each year for 10 years, discounted at 3% a year, and each would benefit from a decision informed by the resolved utility. The survey costs a fixed 100,000 to set up plus 300 per participant. An ENBS at or above zero is the condition for running the survey; the size that maximizes it is the one worth funding.
 
 ```{python}
-i30 = int(np.where(grid == WTP)[0][0])
-evsi = pd.Series({n: fan[n][i30] for n in sizes})  # EVSI at the reference threshold
+i_wtp = int(np.where(grid == WTP)[0][0])
+evsi = pd.Series({n: fan[n][i_wtp] for n in sizes})  # EVSI at the reference threshold
 years = np.arange(10)
 beneficiaries = 2_000 * (1.03 ** -years).sum()  # discounted future patients
-cost = 300_000 + 6_000 * 2 * np.array(sizes)  # 2n participants
-enbs = pd.Series(beneficiaries * evsi.to_numpy() - cost, index=pd.Index(sizes, name="n per arm"))
+cost = 100_000 + 300 * np.array(sizes)
+enbs = pd.Series(beneficiaries * evsi.to_numpy() - cost, index=pd.Index(sizes, name="patients"))
 best = enbs.idxmax()
-print(f"optimal size: {best} per arm, ENBS {enbs[best]:,.0f}")
+print(f"optimal size: {best} patients, ENBS {enbs[best]:,.0f}")
 enbs.round(0)
 ```
 
+ENBS rises with survey size as long as the added precision is worth more than its cost, then falls once EVSI approaches the EVPPI ceiling and the survey keeps costing more per patient without resolving much further uncertainty.
+
 ```{python}
-ax = enbs.plot(marker="o", xlabel="trial size (n per arm)", ylabel="ENBS")
+ax = enbs.plot(marker="o", xlabel="survey size (patients)", ylabel="ENBS")
 ax.axhline(0, color="0.6", lw=0.8);
 ax.plot(best, enbs[best], "r*", ms=14);
 ```
-
