@@ -2,6 +2,12 @@
 
 Applies to everything written in this repository: README, roadmap, docstrings, comments, commit messages, website pages, error messages.
 
+## Who reads this, and the voice to write in
+
+Write for a health economics and outcomes research (HEOR) modeler: a reader studying or working in health economics, epidemiology, statistics, or a related quantitative field, at the level of a graduate student or beyond, who builds cost-effectiveness models and writes code to do it, but who is not a software engineer. Assume this reader is comfortable with cost-effectiveness modeling and some statistics, and knows what a cohort state-transition model, a quality-adjusted life-year, a prior, and a posterior are. Do not assume deep statistical training: this reader wants to learn the methods a tutorial presents, so explain a technique such as a Gaussian process or simulation-based inference rather than treating it as already known. Do not assume this reader knows software-engineering vocabulary or wants it.
+
+Write in the voice of the methods section or statistical appendix of a clinical or health-economics journal: a PhD-level author explaining a method to a peer, in plain and precise language. Two registers are wrong for this repository, in opposite directions. One is dense jargon and formality for its own sake, which the Vocabulary section below rules out. The other is conversational or promotional writing: casual idiom, figures of speech, and salesmanship about the method. A tutorial here is a written scientific methods section, not a blog post, a conference talk, or a product page. When a sentence would sound out of place in a journal's methods appendix, it is out of place here.
+
 ## Be concise, not clipped
 
 Concise means every sentence earns its place, not that sentences lose their verbs. Write full sentences: a subject and a verb, every time. "Three interventions for a chronic disease: standard of care, a new drug, and drug plus monitoring" is a fragment, a label standing in for a sentence. "Three interventions compete for a chronic disease: standard of care, a new drug, and drug plus monitoring" is a sentence, and no longer than the fragment was. If trimming a sentence would strip its verb, the sentence was doing real work; cut a different sentence instead, or leave it whole.
@@ -34,6 +40,18 @@ Do not narrate self-evident code line by line ("first we import pandas, then we 
 
 Only explain what you can actually verify. A "why" sentence earns its place when it follows directly from the code, the model's math, or an output you have checked, not from a plausible-sounding guess about the author's intent. Do not invent a rationale for a modeling choice (why this correlation, why this parameter value) unless the source material or the code supports it; if the real reason is not known, describe what the code does and stop. Do not reach for an interpretive aphorism to make a result sound more insightful than it is (a restated inequality dressed up as a conclusion, a clever-sounding turn of phrase you have not derived step by step). If you are not certain a sentence is both correct and useful, cut it rather than leave it in on the chance it reads well.
 
+The reader may be new to the method even when they are not new to health economics. A tutorial does not have to teach a method such as a Gaussian process or simulation-based inference in depth. Name the method, say in a sentence or two what it does and why it is used here, and link to a reputable external page for a reader who wants the full treatment. Make clear what the method contributes to this analysis and where to learn more, rather than reproducing a textbook derivation. This does not mean writing for a beginner in health economics: keep the field's vocabulary and explain only the unfamiliar method, not the familiar modeling around it.
+
+The following mechanics are adapted from [Rules for writing software tutorials](https://refactoringenglish.com/excerpts/rules-for-software-tutorials/), narrowed to this repository's Python and Quarto tutorials. Several rules there are already covered above (separate the values a reader changes, keep headings parallel, show and confirm the result, link to the full script); these are the ones that add something.
+
+- Put a specific outcome in the title and on the first screen. The title names what the reader will be able to do, and the opening states the result they are working toward, the target number or figure, before the code that produces it.
+- Teach one method per tutorial. If a page must combine two, introduce the second only after the first is working, and defer side complications to the end rather than interleaving them.
+- Keep the code runnable at every step. A reader who runs the blocks in order should have working code after each one, not only at the end.
+- State the extra dependencies a page needs in its first paragraph, and keep that set as small as the analysis allows.
+- Make code blocks copy-and-run. No shell-prompt characters, no `>>>` prompts, and no line numbers inside code the reader is meant to run. Write command-line flags in long form (`--recursive`, not `-r`) so the reader can tell what each one does.
+- Use example values that are unmistakably illustrative. Parameter values, state names, and cohort labels should read as chosen for the example, so a reader never mistakes an illustrative number for a required one.
+- Do the tedious steps for the reader. Where a step would otherwise be manual editing or clicking, give a short code block that does it instead.
+
 ## Punctuation and formatting
 
 - No em-dashes. Use a comma, a colon, parentheses, or a new sentence.
@@ -49,6 +67,8 @@ Only explain what you can actually verify. A "why" sentence earns its place when
 - 500 words is a guide for trimming bloat, not a hard ceiling to hit by deleting explanation. If a page runs longer because it walks through several worked steps or explains genuinely non-obvious choices, let it; if it runs longer because of throat-clearing or repetition, cut that instead. A page padded with filler to reach 500 words is as wrong as one that cuts reasoning to stay under it.
 - Quarto pages link to each other rather than repeating content. The first paragraph of a page situates it relative to existing pages: what it covers and where to go next. Do not state what it "assumes"; either the page is self-contained or it links to the page that supplies the missing piece.
 - For quarto notebooks or any doc that executes code, render it and verify the prose matches the code output, including plots, after writing.
+- Before adding an external link, open it and confirm it resolves to the reputable page you intend, a method's documentation, a textbook chapter, a peer-reviewed article, or a Wikipedia article on the method. Do not cite a URL you have not checked, and do not guess a link from a plausible-looking address. A dead or wrong link is worse than no link.
+- Link sparingly. Link the one or two methods a reader is most likely to want to read further on, not every technical term. A page dense with links reads as an index, not a tutorial.
 
 ## Vocabulary
 
@@ -78,6 +98,28 @@ Do not mention external existing R packages anywhere.
 - State limitations plainly. "Ties are broken by first occurrence" beats hedging or silence.
 - No rhetorical questions, no triads for rhythm ("fast, simple, and powerful"), no closing summaries that restate the section.
 - Use the plain, literal word over an idiom or figure of speech chosen to sound polished. Say "the model type to use", not "the engine to reach for"; say "is worth its cost", not "pays off"; say "exceeds the threshold", not "clears the threshold". If a phrase takes a second read to parse, or sounds like it is trying to be memorable rather than clear, replace it with the literal wording.
+
+## No conversational or promotional phrasing
+
+The voice is a written methods section, so casual idiom, figures of speech, and salesmanship do not belong, even when they read smoothly. These are the forms that most often slip in. Each example is taken from a real draft in this repository.
+
+- Casual verbs in place of precise ones. "The posterior means sit on the true values" should read "recover the true values". "The estimates land near the target" should read "are close to the target".
+- Salesmanship about the method. "The idea is worth the machinery", "that ratio is the whole case for the approach", and "this is where it pays off" sell rather than describe. State what the method does and what it costs, then let the numbers make the case: "is worth its cost when the model is slow to run", followed by the run counts.
+- Vague or figurative quantities. "A model that takes a minute per run turns a calibration into days" should read "requires days to calibrate". "Let the inference call the approximation as often as it likes" should read "the inference then queries the approximation without further model runs". "To show how little the surrogate needs" should read "to show how few runs the surrogate requires".
+- Anthropomorphizing the code or the model. A model does not want, a surrogate does not see the points it was trained on, and inference does not like anything. Describe what the code computes: not "model runs it never saw" but "model runs that were not in its design".
+- A wrong word dressed as a phrase. Name the object correctly before worrying about how the sentence reads. The prevalence over time in a cohort model without transmission is a prevalence trajectory, not an "epidemic curve": a cohort model has no epidemic. A factual error is not excused by reading well.
+
+## Revising your own writing
+
+Do not treat a first draft as finished. Every time you write prose here, and every time you finish writing a tutorial for the first time, revise it in a systematic pass before considering it done:
+
+1. Read the whole piece back, start to finish, as the intended reader would.
+2. Check it against this guide point by point: the reader and voice above, the concision rules, the punctuation rules, the vocabulary list, and the conversational-phrasing list. For a tutorial, also check it against "What makes a tutorial good": does the opening state what the reader will be able to do afterward, does every section open with a full sentence of purpose, does every output get a sentence interpreting it, are the headings grammatically parallel, and is every "why" sentence one you can actually verify.
+3. Note each place it deviates, and why.
+4. Make the edits.
+5. Return to step 1 and reread the whole piece. Repeat until a full read finds nothing left to fix.
+
+One pass is not enough. The first read catches the obvious problems; idiom, tone, and unparallel headings usually surface only on a second or third read. For a page that executes code, one of these passes is the render-and-check pass: run the page and confirm the prose matches the output, including numbers and plots.
 
 ## Docstrings
 

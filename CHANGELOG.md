@@ -10,6 +10,17 @@ Each entry links to the pull request that introduced it. Add a line under
 
 ## [Unreleased]
 
+### Added
+
+- Surrogate-accelerated calibration tutorial and `examples/surrogate_calibration.py`:
+  train a Gaussian process surrogate of a three-state Markov model on a 60-point
+  Latin hypercube design, then calibrate two transition probabilities with neural
+  posterior estimation from the `sbi` package using the surrogate as the simulator.
+  The posterior matches an `abc_calibrate` reference run to within about 0.001 on
+  every parameter mean and standard deviation, at more than a hundred times fewer
+  model runs (60 versus several thousand). Adds a `surrogate` optional dependency
+  extra for `sbi` ([#61](https://github.com/pedroliman/heormodel/issues/61)).
+
 ## [0.7.3] - 2026-07-12
 
 ### Changed

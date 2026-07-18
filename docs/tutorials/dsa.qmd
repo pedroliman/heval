@@ -54,7 +54,7 @@ WTP = 100_000.0
 
 ## Running a one-way sweep
 
-`one_way` varies a single parameter across the listed values, holding the rest at base. The result runs through `run_psa` like any draw matrix. Here the incremental net monetary benefit of Intervention AB over standard of care falls as the treatment-B cost rises, crossing zero near its base value.
+`one_way` varies a single parameter across the listed values, holding the rest at base. Here the incremental net monetary benefit of Intervention AB over standard of care falls as the treatment-B cost rises, crossing zero near its base value.
 
 ```{python}
 from heormodel.cea import nmb
@@ -81,7 +81,7 @@ td = tornado_data(run_psa(engine, oat[0]).outcomes, oat, wtp=WTP,
 plot_tornado(td.head(6))
 ```
 
-The utility of the treated Sick state (`u_trtA`) and the progression hazard ratio under treatment B (`hr_S1S2_trtB`) move the result most; the state costs barely register.
+The utility of the treated Sick state (`u_trtA`) and the progression hazard ratio under treatment B (`hr_S1S2_trtB`) move the result most; the state costs move it least.
 
 ## Sweeping a two-way grid
 

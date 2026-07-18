@@ -8,11 +8,11 @@ title: Discrete-event simulation engine
 
 <!-- colab-badge:end -->
 
-This tutorial shows how to build a resource-constrained model with `DESModel`, the model type to use when a shared, scarce resource makes entities queue, so that one patient's outcome depends on the others in the system, a coupling neither a cohort nor an independent microsimulation model can carry. It runs that model through the same cost-effectiveness and value-of-information analysis as any other model; the [microsimulation tutorial](microsim.qmd) covers ideas this one builds on: building the model once and running it on draws, and accruing discounted costs and effects over time. This page walks through [`examples/des.py`](https://github.com/pedroliman/heormodel/blob/main/examples/des.py) step by step. A discrete-event simulation without resource constraints is a continuous-time state-transition model, which the continuous clock of `MicrosimModel` runs directly; the [discrete-event simulation replication](mdm-des.qmd) reproduces a published example of that kind.
+This tutorial shows how to build a resource-constrained model with `DESModel`, the model type to use when a shared, scarce resource makes patients queue, so that one patient's outcome depends on the others in the system, a coupling neither a cohort nor an independent microsimulation model can represent. It runs that model through the same cost-effectiveness and value-of-information analysis as any other model; the [microsimulation tutorial](microsim.qmd) covers ideas this one builds on: building the model once and running it on draws, and accruing discounted costs and effects over time. This page walks through [`examples/des.py`](https://github.com/pedroliman/heormodel/blob/main/examples/des.py) step by step. A discrete-event simulation without resource constraints is a continuous-time state-transition model, which the continuous clock of `MicrosimModel` runs directly; the [discrete-event simulation replication](mdm-des.qmd) reproduces a published example of that kind.
 
 ## Modeling the queueing process
 
-The model is a specialist clinic operating over a four-year horizon. Patients arrive over time and wait for a specialist, a SimPy `Resource`. While waiting, untreated disease costs `c_wait_year` per year at utility `u_wait`. Once seen, a one-off treatment cost is incurred and the patient spends the rest of the horizon treated at the higher `u_treated`. `DESModel` builds on SimPy: the environment, the process, and the resource stay the user's own code, and the `toolkit` argument adds discounted accrual, seeding, and an event log on top.
+The model is a specialist clinic operating over a four-year horizon. Patients arrive over time and wait for a specialist, a SimPy `Resource`. While waiting, untreated disease costs `c_wait_year` per year at utility `u_wait`. Once seen, a one-time treatment cost is incurred and the patient spends the rest of the horizon treated at the higher `u_treated`. `DESModel` builds on SimPy: the environment, the process, and the resource stay the user's own code, and the `toolkit` argument adds discounted accrual, seeding, and an event log.
 
 ```{python}
 import numpy as np
@@ -45,11 +45,11 @@ def clinic(env, patient, params, intervention, toolkit):
             yield env.timeout(toolkit.rng.gamma(2.0, params["service_time"] / 2.0))
 ```
 
-`toolkit.accrue_over(start, end, cost_rate, utility_rate)` integrates and discounts a flow over an absolute interval, so billing the queueing time a patient just endured is one call once the specialist is granted. The process reads the run's time horizon back as `toolkit.horizon`, so it need not repeat the value the engine already holds. A patient still waiting at the horizon is never seen: the request loses the race and only the waiting segment is billed.
+`toolkit.accrue_over(start, end, cost_rate, utility_rate)` integrates and discounts a flow over an absolute interval, so billing the queueing time a patient just endured is one call once the specialist is granted. The process reads the run's time horizon back as `toolkit.horizon`, so it need not repeat the value the engine already holds. A patient still waiting at the horizon is never seen: the horizon arrives before the specialist, and only the waiting segment is billed.
 
 ## Configuring once, evaluating on draws
 
-The model goes to the engine when you build it; the draw matrix goes to `run_psa`. The two interventions differ only in capacity, so each is an `Intervention` carrying the numeric knobs that arm sets: `n_servers`, and a per-patient overhead `c_capacity` for the expanded arm. This is the right use of decision levers, a scenario knob the model already reads as a parameter, rather than a flag standing in for which arm is which. They see the same patients and service draws through common random numbers, so the incremental result reflects the capacity change, not sampling noise.
+The model goes to the engine when you build it; the draw matrix goes to `run_psa`. The two interventions differ only in capacity, so each is an `Intervention` carrying the numeric values that an arm sets: `n_servers`, and a per-patient overhead `c_capacity` for the expanded arm. Capacity is a parameter the model already reads, not a flag standing in for which arm is which. The two interventions use the same patients and service draws through common random numbers, so the incremental result reflects the capacity change, not sampling noise.
 
 ```{python}
 from heormodel.models import DESModel, Intervention
@@ -80,7 +80,7 @@ outcomes.summary().round(2)
 
 ## Analyzing cost-effectiveness, value of information, and the queue
 
-From here nothing is engine-specific: the same `icer_table`, `evpi`, and `evppi_ranking` calls used for a cohort or microsimulation model apply to this queueing model's `Outcomes`. Expanded capacity increases quality-adjusted life-years by cutting the time patients spend waiting at the low utility, at a higher cost.
+From here nothing is engine-specific: the same `icer_table`, `evpi`, and `evppi_ranking` calls used for a cohort or microsimulation model apply to this queueing model's `Outcomes`. Expanded capacity increases quality-adjusted life-years by reducing the time patients spend waiting at the low utility, at a higher cost.
 
 ```{python}
 from heormodel.cea import icer_table
@@ -95,7 +95,7 @@ print(f"EVPI at WTP {WTP:,.0f}: {evpi(outcomes, WTP):,.1f}")
 evppi_ranking(outcomes, draws, WTP).round(1)
 ```
 
-Service time leads the value-of-information ranking: it sets how fast the queue clears, so it determines whether the extra capacity is worth its cost. Passing `collect="events"` to `run_psa` returns the event log alongside the outcomes, and `queue_waits` turns it into per-request waits without touching engine internals.
+Service time leads the value-of-information ranking: it sets how fast the queue clears, so it determines whether the extra capacity is worth its cost. Passing `collect="events"` to `run_psa` returns the event log alongside the outcomes, and `queue_waits` converts it into per-request waits.
 
 ```{python}
 from heormodel.models import queue_waits
