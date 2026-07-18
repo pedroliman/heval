@@ -8,7 +8,7 @@ title: Surrogate-accelerated calibration
 
 <!-- colab-badge:end -->
 
-This tutorial shows how to calibrate a model when each run is expensive, by fitting a fast surrogate of the model on a small design and running the inference against the surrogate instead. It trains a Gaussian process on a few dozen model runs, then calibrates twice against it, once with approximate Bayesian computation (ABC) and once with neural posterior estimation, and checks both against a direct ABC run on the model. All three posteriors agree, and the surrogate reaches them with about sixty model runs against the thousands a direct calibration takes. It builds on the [ABC](calibrate-abc.qmd) and [simulation-based inference](calibrate-sbi.qmd) tutorials, walks through [`examples/surrogate_calibration.py`](https://github.com/pedroliman/heormodel/blob/main/examples/surrogate_calibration.py), and needs both extras: `uv pip install 'heormodel[calibration,surrogate]'`.
+This tutorial shows how to calibrate a model when each run is expensive, by fitting a fast surrogate of the model on a small design and running the inference against the surrogate instead. It trains a [Gaussian process](https://scikit-learn.org/stable/modules/gaussian_process.html) on a few dozen model runs, then calibrates twice against it, once with approximate Bayesian computation (ABC) and once with neural posterior estimation, and checks both against a direct ABC run on the model. All three posteriors agree, and the surrogate reaches them with about sixty model runs against the thousands a direct calibration takes. It builds on the [ABC](calibrate-abc.qmd) and [simulation-based inference](calibrate-sbi.qmd) tutorials, walks through [`examples/surrogate_calibration.py`](https://github.com/pedroliman/heormodel/blob/main/examples/surrogate_calibration.py), and needs both extras: `uv pip install 'heormodel[calibration,surrogate]'`.
 
 The first two tutorials each calibrated the model directly and each spent thousands of model runs. A surrogate moves that cost up front into a fixed design: run the model a few dozen times, fit a fast approximation of its output, and let the inference query the approximation without running the model again. The tutorial makes two points. The surrogate is faithful, so inference against it reproduces the direct posterior. And the two inference methods, run on the same surrogate, agree, so the method and the surrogate are independent choices.
 
@@ -204,7 +204,7 @@ summary = pd.DataFrame({
 summary.round(4)
 ```
 
-The surrogate posteriors, from either method, sit on top of the direct posterior and on the truth.
+The surrogate posteriors, from either method, overlap the direct posterior and center on the truth.
 
 ```{python}
 import matplotlib.pyplot as plt

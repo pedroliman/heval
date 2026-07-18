@@ -8,9 +8,9 @@ title: Calibrating a stochastic microsimulation
 
 <!-- colab-badge:end -->
 
-This tutorial calibrates a model that is not only slow but random: an individual-level microsimulation that returns a different result every time it runs. It shows how a Gaussian process surrogate can carry the model's own variability into the calibration, so the posterior reflects both the sampling error in the data and the simulation noise in the model. The posterior comes out wider than the deterministic calibrations of the earlier tutorials, by an amount that shrinks as the simulated population grows. It walks through [`examples/calibrate_microsim.py`](https://github.com/pedroliman/heormodel/blob/main/examples/calibrate_microsim.py) and needs the surrogate extra: `uv pip install 'heormodel[surrogate]'`.
+This tutorial calibrates a model that is not only slow but random: an [individual-level microsimulation](microsim.qmd) that returns a different result every time it runs. It shows how a Gaussian process surrogate can carry the model's own variability into the calibration, so the posterior reflects both the sampling error in the data and the simulation noise in the model. The posterior comes out wider than the deterministic calibrations of the earlier tutorials, by an amount that shrinks as the simulated population grows. It walks through [`examples/calibrate_microsim.py`](https://github.com/pedroliman/heormodel/blob/main/examples/calibrate_microsim.py) and needs the surrogate extra: `uv pip install 'heormodel[surrogate]'`.
 
-The three earlier tutorials calibrated a deterministic cohort model, where a parameter set gives one prevalence curve and the only uncertainty is the sample that measured it. A microsimulation is different: it simulates individual people, so a finite population gives a prevalence estimate that changes from run to run. That simulation noise is a second source of uncertainty, separate from the data. Averaging it away would take many runs of an already expensive model, so instead the surrogate learns it: fit a Gaussian process to a few noisy runs, and its predictive spread stands in for the model's variability without running it again.
+The three earlier tutorials calibrated a deterministic cohort model, where a parameter set gives one prevalence curve and the only uncertainty is the sample that measured it. A microsimulation is different: it simulates individual people, so a finite population gives a prevalence estimate that changes from run to run. That simulation noise is a second source of uncertainty, separate from the data. Averaging it away would take many runs of an already expensive model, so instead the surrogate learns it: fit a [Gaussian process](https://scikit-learn.org/stable/modules/gaussian_process.html) to a few noisy runs, and its predictive spread stands in for the model's variability without running it again.
 
 ## Building the microsimulation twin
 
@@ -85,7 +85,8 @@ def microsim_prevalence(param_rows, population):
     result = np.zeros((len(draws), len(TARGET_CYCLES)))
     for iteration in range(len(draws)):
         for column, cycle in enumerate(TARGET_CYCLES):
-            result[iteration, column] = occupancy.loc[(INTERVENTION, iteration, float(cycle)), "sick"]
+            key = (INTERVENTION, iteration, float(cycle))
+            result[iteration, column] = occupancy.loc[key, "sick"]
     return result
 
 check = microsim_prevalence([TRUTH] * 40, population=POPULATION)
@@ -96,7 +97,7 @@ pd.DataFrame({
 }, index=[f"sick_c{c}" for c in TARGET_CYCLES]).round(4)
 ```
 
-At a population of 2,000 the microsimulation mean sits on the cohort prevalence, confirming the two are the same model. The replicate standard deviation, about 0.008, is the run-to-run noise a single simulation carries. This is comparable to the sampling error of the target, so it is not negligible.
+At a population of 2,000 the microsimulation mean matches the cohort prevalence, confirming the two are the same model. The replicate standard deviation, about 0.008, is the run-to-run noise a single simulation carries. This is comparable to the sampling error of the target, so it is not negligible.
 
 ## Fitting a surrogate to noisy runs
 
