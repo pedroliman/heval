@@ -8,11 +8,11 @@ title: Calibration workflow
 
 <!-- colab-badge:end -->
 
-This tutorial shows how to mix two parameter sources in one analysis: some parameters are calibrated to observed data, and the rest come from the literature. Both feed one probabilistic sensitivity analysis that flows through cost-effectiveness and value-of-information analysis exactly as a single-source analysis would. It builds on the [full pipeline tutorial](full-pipeline.qmd) and walks through [`examples/calibration_workflow.py`](https://github.com/pedroliman/heormodel/blob/main/examples/calibration_workflow.py) step by step. Calibration needs the `calibration` extra: `uv pip install 'heormodel[calibration]'`.
+This tutorial shows how to mix two parameter sources in one analysis: some parameters are calibrated to observed data, and the rest come from the literature. Both feed one probabilistic sensitivity analysis, and the cost-effectiveness and value-of-information analyses that follow treat the mixed draws exactly as they would a single-source analysis. It builds on the [full pipeline tutorial](full-pipeline.qmd) and walks through [`examples/calibration_workflow.py`](https://github.com/pedroliman/heormodel/blob/main/examples/calibration_workflow.py) step by step. Calibration needs the `calibration` extra: `uv pip install 'heormodel[calibration]'`.
 
 ## Specifying the disease model
 
-A three-state continuous-time Markov chain runs over Healthy, Sick, and Dead from age 40. Two rates are unknown and will be calibrated: the Healthy to Sick onset hazard and the excess Sick to Dead progression hazard. Treatment scales the progression hazard by `rr_progression`, a literature parameter, buying time in the Sick state. Discounted state occupancy is the closed-form integral of the transition matrix, `e0 @ inv(r I - Q)`, so no cycle loop is needed.
+A three-state continuous-time Markov chain runs over Healthy, Sick, and Dead from age 40. Two rates are unknown and will be calibrated: the Healthy to Sick onset hazard and the excess Sick to Dead progression hazard. Treatment scales the progression hazard by `rr_progression`, a literature parameter, extending time in the Sick state. Discounted state occupancy is the closed-form integral of the transition matrix, `e0 @ inv(r I - Q)`, so no cycle loop is needed.
 
 ```{python}
 import numpy as np
@@ -52,7 +52,7 @@ def occupancy(onset, progression):
 
 ## Calibrating the rates
 
-`abc_calibrate` runs approximate Bayesian computation (sequential Monte Carlo) against the registry targets and returns an iteration-indexed posterior draw matrix. The targets here were generated from onset 0.02 and progression 0.05, so calibration has a known answer to recover.
+`abc_calibrate` runs approximate Bayesian computation (sequential Monte Carlo) against the observed calibration targets and returns an iteration-indexed posterior draw matrix. The targets here were generated from onset 0.02 and progression 0.05, so calibration has a known answer to recover.
 
 ```{python}
 import os
@@ -78,6 +78,8 @@ calibration = abc_calibrate(
 posterior = calibration.posterior
 posterior.mean().round(4)
 ```
+
+Both posterior means are close to the onset and progression rates that generated the targets, 0.02 and 0.05, so calibration recovers the known answer.
 
 The onset and progression posteriors are strongly correlated: both raise prevalence, so the data constrain their combination more tightly than either alone.
 
@@ -106,7 +108,7 @@ lit_draws = literature.sample(N, seed=rng_lit)
 
 ## Mixing the two sources
 
-`mix_draws` joins the sources into one matrix. It resamples whole rows within each source, so the posterior's joint correlation survives, and resamples sources independently, so no correlation is invented across them.
+`mix_draws` joins the sources into one matrix. It resamples whole rows within each source, so the posterior's joint correlation is preserved, and resamples sources independently, so no correlation is introduced across them.
 
 ```{python}
 from heormodel.params import mix_draws
@@ -114,6 +116,8 @@ from heormodel.params import mix_draws
 draws = mix_draws(posterior, lit_draws, n=N, seed=rng_mix)
 list(draws.columns)
 ```
+
+One matrix now holds both sources, so the decision model reads every parameter, calibrated and literature, from a single set of columns.
 
 ## Running the model and analyzing the outcomes
 
@@ -143,6 +147,8 @@ from heormodel.cea import icer_table
 icer_table(outcomes).round(3)
 ```
 
+The value-of-information analysis below asks which parameters the decision is most sensitive to at a willingness-to-pay threshold of 50,000. Expected value of perfect information (EVPI) bounds the value of resolving all parameter uncertainty, and the ranking attributes that value to individual parameters by their expected value of partial perfect information.
+
 ```{python}
 from heormodel.voi import evpi, evppi_ranking
 
@@ -155,7 +161,7 @@ The treatment effect `rr_progression` leads the ranking. The calibrated rates ra
 
 ## Recording provenance across sources
 
-`capture_run` takes a `draw_sources` map so the run report records where each parameter came from, calibration or literature, which matters here since the two sources carry different kinds of uncertainty and a reviewer will want to tell them apart.
+`capture_run` takes a `draw_sources` argument giving each parameter's source, so the run report records where each parameter came from, calibration or literature, which matters here since the two sources carry different kinds of uncertainty and a reviewer will want to tell them apart.
 
 ```{python}
 from heormodel.report import capture_run
