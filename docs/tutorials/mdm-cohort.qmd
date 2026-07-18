@@ -85,6 +85,6 @@ The mean frontier matches the deterministic ranking above. Whether that ranking 
 print(f"EVPI at WTP 100,000: {evpi(outcomes, 100_000.0):,.0f}")
 ```
 
-EVPI is positive at a threshold of 100,000 because Intervention AB, the most expensive option, is the best choice in some draws but not others: the uncertainty in whether it is worth adopting has a real cost, and resolving it would be worth exactly this much per person.
+EVPI is positive at a threshold of 100,000 because Intervention AB, the most expensive option, is the best choice in some draws but not others: the uncertainty in whether it is worth adopting has a real cost, and resolving it would be worth exactly this much per person. The [value of information](voi.qmd) tutorial takes this same model further: which parameter that uncertainty attaches to, and whether a proposed study to resolve it is worth its cost.
 
 Reference: Alarid-Escudero F, Krijkamp EM, Enns EA, Yang A, Hunink MGM, Pechlivanoglou P, Jalal H. An introductory tutorial on cohort state-transition models in R using a cost-effectiveness analysis example. Medical Decision Making. 2023;43(1):3-20.
