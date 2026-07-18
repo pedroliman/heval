@@ -26,7 +26,7 @@ uv add heormodel
 
 ## Quickstart
 
-Here is a quick example to get you started: a three-state Markov cohort state-transition model comparing treatment with standard care, evaluated by probabilistic sensitivity analysis. This code builds the model, runs it, and reports the ICER table and the expected value of perfect information.
+This example compares treatment with standard care in a three-state Markov cohort state-transition model, evaluated by probabilistic sensitivity analysis. The code builds the model, runs it, and reports the ICER table and the expected value of perfect information.
 
 ```python
 import numpy as np
@@ -82,7 +82,7 @@ round(evpi(outcomes, wtp=50_000), 1)
 # 2738.7
 ```
 
-Once you master this workflow, you can do a lot more with the package, like defining microsimulations, discrete-event simulation models, and compartmental transmission models written as ordinary differential equations (the `ODEModel` engine, with a susceptible-exposed-infectious-recovered vaccination example). The package also has a calibration function you can use to calibrate some parameters, take others from the literature, then run a full probabilistic sensitivity analysis. When the model is expensive to run, a surrogate-accelerated calibration tutorial trains a Gaussian process on a small design and calibrates through it with the `sbi` package, reaching the same posterior with about a hundred times fewer model runs.
+Beyond this workflow, the package supports microsimulations, discrete-event simulation models, and compartmental transmission models written as ordinary differential equations (the `ODEModel` engine, with a susceptible-exposed-infectious-recovered vaccination example). A calibration function calibrates some parameters, takes others from the literature, then runs a full probabilistic sensitivity analysis. When the model is expensive to run, a surrogate-accelerated calibration tutorial trains a Gaussian process on a small design and calibrates through it with the `sbi` package, reaching the same posterior with about a hundred times fewer model runs.
 
 ## Development
 
