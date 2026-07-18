@@ -8,11 +8,11 @@ title: Value of information
 
 <!-- colab-badge:end -->
 
-This tutorial shows how to run the full value-of-information workflow, expected value of perfect information (EVPI), of partial perfect information (EVPPI), and of sample information (EVSI), and checks every estimate against a closed form, continuing from the [full pipeline tutorial](full-pipeline.qmd). The model is the Gaussian linear decision model that anchors the regression value-of-information literature (Strong, Oakley & Brennan, 2014, Medical Decision Making 34:311-326; Strong, Oakley, Brennan & Breeze, 2015, Medical Decision Making 35:570-583): its incremental net benefit is Normal, so all three measures have closed forms via the unit normal loss integral, which is what lets this page check each estimate rather than assume it. The measures follow the good-practice framing of Rothery and others (2020, Value in Health 23:277-286). The full script is [`examples/voi_tutorial.py`](https://github.com/pedroliman/heormodel/blob/main/examples/voi_tutorial.py).
+This tutorial shows how to run the full value-of-information workflow, expected value of perfect information (EVPI), of partial perfect information (EVPPI), and of sample information (EVSI), and checks every estimate against a closed form, continuing from the [full pipeline tutorial](full-pipeline.qmd). The full script is [`examples/voi_tutorial.py`](https://github.com/pedroliman/heormodel/blob/main/examples/voi_tutorial.py).
 
 ## Specifying the decision model
 
-Two interventions, standard care and a new drug, differ by an uncertain incremental effect `dq` (quality-adjusted life-years, QALYs) and an uncertain incremental cost `dc`, both Normal. At a 30,000-per-QALY threshold the drug is cost-effective on the means, so value of information addresses not which intervention to pick but what evidence to reduce that uncertainty is worth.
+We specify two interventions, standard care and a new drug, which differ by an uncertain incremental effect `dq` (quality-adjusted life-years, QALYs) and an uncertain incremental cost `dc`, both Normal.
 
 ```{python}
 import numpy as np
@@ -26,6 +26,7 @@ WTP = 30_000.0
 MU_Q, SD_Q = 0.20, 0.30
 MU_C, SD_C = 4_000.0, 8_000.0
 
+# TODO: Here we should just use one of the models like the markov model instead of doing this.
 def new_drug(d: pd.DataFrame) -> Outcomes:
     zero = np.zeros(len(d))
     costs = pd.DataFrame({"Standard care": zero, "New drug": d["dc"]}, index=d.index)
@@ -40,6 +41,8 @@ outcomes = run_psa(new_drug, draws, sequential=True).outcomes
 The closed forms use the unit normal loss integral: the value of resolving uncertainty is the expected value of acting on perfect information minus the value of the current decision.
 
 ```{python}
+#TODO: let's not even define the analytic form of the voi, we don't need it anymore.
+# TODO: so let's drop this part.
 def emax0(m, s):  # E[max(0, X)] for X ~ Normal(m, s**2)
     return m * norm.cdf(m / s) + s * norm.pdf(m / s)
 
@@ -48,13 +51,14 @@ def analytic_voi(s_conditional):
     return emax0(m, s_conditional) - max(0.0, m)
 ```
 
-## Bounding research value with EVPI
+## Calculating the Expected Value of Perfect Information (EVPI)
 
 EVPI is the difference between a decision made with perfect information and one made with current information, an upper bound on the value of any research. `evpi` recovers the closed form within Monte Carlo error.
 
 ```{python}
 from heormodel.voi import evpi
 
+# Here we should call the evpi function instead of doing this.
 s_total = np.hypot(WTP * SD_Q, SD_C)
 pd.Series({"estimate": evpi(outcomes, WTP), "closed form": analytic_voi(s_total)}).round(0)
 ```
@@ -66,6 +70,7 @@ EVPPI is the value of resolving one parameter while the rest stay uncertain. It 
 ```{python}
 from heormodel.voi import evppi, evppi_ranking
 
+# TODO: again, take out analytic voi from here.
 ranking = evppi_ranking(outcomes, draws, WTP)
 closed = pd.Series({"dq": analytic_voi(WTP * SD_Q), "dc": analytic_voi(SD_C)})
 pd.DataFrame({"estimate": ranking, "closed form": closed}).round(0)
@@ -73,13 +78,14 @@ pd.DataFrame({"estimate": ranking, "closed form": closed}).round(0)
 
 The ranking is threshold-specific: below about 28,000 per QALY the cost ranks higher instead. The default `spline` metamodel suits one or two parameters; `method="gp"` (a Gaussian process) handles groups of many parameters.
 
-## Pricing a study with EVSI
+## Expected Value of Sample Information (EVSI)
 
-EVSI is the value of a study of finite sample size, not perfect resolution. Consider a two-arm trial measuring the incremental effect, each arm reporting a mean QALY difference with sampling standard deviation `tau = 1 / sqrt(n)`. `simulate_summaries` draws one trial summary per parameter draw from its true `dq`, and `evsi_regression` computes the value from the fitted conditional means, checked here against the closed form.
+EVSI is the value of a study of finite sample size. Consider a two-arm trial measuring the incremental effect, each arm reporting a mean QALY difference with sampling standard deviation `tau = 1 / sqrt(n)`. `simulate_summaries` draws one trial summary per parameter draw from its true `dq`, and `evsi_regression` computes the value from the fitted conditional means, checked here against the closed form.
 
 ```{python}
 from heormodel.voi import evsi_regression, simulate_summaries
 
+# TODO: Don't need to check against the closed form solution here. Keep that for the package tests.
 tau = 1.0 / np.sqrt(200)
 summaries = simulate_summaries(
     draws, lambda row, r: {"xbar": row["dq"] + r.normal(0.0, tau)}, seed=200)
@@ -88,7 +94,7 @@ pd.Series({"estimate": evsi_regression(outcomes, summaries, WTP),
            "closed form": analytic_voi(s_evsi)}).round(0)
 ```
 
-Reported against the willingness-to-pay threshold, EVSI is a family of curves, one per sample size. Each stays between zero and the effect EVPPI, not the EVPI: this trial measures only the effect, so it cannot resolve the cost uncertainty, which stays in the decision and caps the study's value below perfect information. A trial that also measured cost would rise toward EVPI instead. Larger trials shrink `tau`, lifting each curve toward the effect EVPPI.
+Reported against the willingness-to-pay threshold, EVSI is a family of curves, one per sample size. Each stays between zero and the effect EVPPI. This trial measures only the health effect, so it does not resolve the cost uncertainty which limits the study's value below perfect information. A trial that also measured cost would rise toward EVPI instead. Larger trials shrink `tau`, lifting each curve toward the effect EVPPI.
 
 ```{python}
 import matplotlib.pyplot as plt
@@ -116,17 +122,17 @@ sm = cm.ScalarMappable(norm=scale, cmap=ramp); sm.set_array([])
 fig.colorbar(sm, ax=ax, label="trial size (n per arm)");
 ```
 
-Two features of the plot are counterintuitive; the model explains both. At a zero threshold EVPI is already about 1,600: health is unpriced, so the choice turns on cost alone, and the uncertain cost `dc` is a saving 31% of the time that perfect information would capture. The EVSI curves start at zero there, since an effect study is worthless when the effect has no value. No curve peaks: the net benefit standard deviation `hypot(WTP * SD_Q, SD_C)` grows with the threshold, so the cost of a wrong choice rises while the probability of one stays near 25%. In a model with bounded outcome variance the decision would instead become near-certain at a high threshold, and its value of information would peak near the tie before decaying.
+## Expected net benefit of sampling (EBNS)
 
-## Scaling EVSI to a funding decision
+So, how many people should we sample? We can answer that question by calculating the expected net benefit of sampling (EBNS).
 
-Per-person EVSI becomes a funding decision once scaled to the population it informs. Multiply by the beneficiary population, `2,000` patients a year over `10` years discounted at 3.5%, then subtract the study cost, a `300,000` setup plus `6,000` per participant (two arms, so `2n`). The difference is the expected net benefit of sampling (ENBS), and ENBS at or above zero is the condition for running the study. It peaks at an interior size: smaller is underpowered, larger adds less EVSI than it costs.
+We calculate EBNS by multiplying the per-person EVSI by the beneficiary population and bring it to a present value estimate. For instance, suppose `2,000` patients a year would benefit from the study over `10` year. We discount those benefits at 3% per year, then subtract the study cost (say, a `300,000` fixed cost plus `6,000` per participant in each trial arm. An ENBS at or above zero is the condition for running the study. We can then investigate what is the trial size that maximizes the net expected benefit of sampling.
 
 ```{python}
 i30 = int(np.where(grid == WTP)[0][0])
 evsi = pd.Series({n: fan[n][i30] for n in sizes})  # EVSI at the reference threshold
 years = np.arange(10)
-beneficiaries = 2_000 * (1.035 ** -years).sum()  # discounted future patients
+beneficiaries = 2_000 * (1.03 ** -years).sum()  # discounted future patients
 cost = 300_000 + 6_000 * 2 * np.array(sizes)  # 2n participants
 enbs = pd.Series(beneficiaries * evsi.to_numpy() - cost, index=pd.Index(sizes, name="n per arm"))
 best = enbs.idxmax()
@@ -140,6 +146,3 @@ ax.axhline(0, color="0.6", lw=0.8);
 ax.plot(best, enbs[best], "r*", ms=14);
 ```
 
-## Reading the estimates together
-
-EVPI is the upper bound: no research exceeds it. EVPPI ranks research targets, a ranking that shifts with the threshold. EVSI prices a concrete design against the uncertainty it can resolve, and ENBS weighs it against cost for a fund-or-not decision with a best sample size. Every estimate above is within about one percent of its closed form at 100,000 iterations. Next: the [calibration workflow](calibration-workflow.qmd) feeds a calibrated posterior into the same pipeline.
