@@ -89,6 +89,23 @@ class TestValidationIncrementalAnalysis:
         assert table.loc["C", "inc_effect"] == pytest.approx(0.1)
         assert np.isnan(table.loc["C", "icer"])
 
+    def test_reference_skips_dominated_options(self):
+        # X and Y are both extendedly dominated and adjacent in cost order. A
+        # dominated option cannot be a comparator, so Y is referenced against the
+        # frontier option A, not against X, and B skips both to reference A.
+        means = pd.DataFrame(
+            {"cost": [0.0, 100.0, 150.0, 200.0], "effect": [0.0, 0.10, 0.15, 0.90]},
+            index=["A", "X", "Y", "B"],
+        )
+        table = icer_table(means)
+        assert list(table["status"]) == [STATUS_ND, STATUS_ED, STATUS_ED, STATUS_ND]
+        # cost minus incremental cost recovers the comparator's cost; every
+        # non-cheapest row references A at cost 0.
+        reference_cost = table["cost"] - table["inc_cost"]
+        assert reference_cost.loc["X"] == pytest.approx(0.0)
+        assert reference_cost.loc["Y"] == pytest.approx(0.0)
+        assert reference_cost.loc["B"] == pytest.approx(0.0)
+
 
 class TestIcerEdgeCases:
     def test_duplicate_interventions_keep_first(self):

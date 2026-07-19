@@ -32,7 +32,7 @@ _DISPLAY_NAMES: dict[str, str] = {
     "effect": "Effect",
     "inc_cost": "Incremental cost",
     "inc_effect": "Incremental effect",
-    "icer": "Incremental cost-effectiveness ratio",
+    "icer": "ICER",
     "status": "Status",
 }
 
@@ -72,11 +72,10 @@ def format_icer_table(
 
     Returns:
         DataFrame of strings indexed by intervention, sorted by cost, with
-        spelled-out sentence-case columns ``Cost``, ``Effect``, ``Incremental
-        cost``, ``Incremental effect``, ``Incremental cost-effectiveness ratio``
-        and ``Status``. Cells with no value (the cheapest frontier
-        intervention's incremental columns, or any dominated intervention's) are
-        blank.
+        sentence-case columns ``Cost``, ``Effect``, ``Incremental cost``,
+        ``Incremental effect``, ``ICER`` and ``Status``. Cells with no value (the
+        cheapest frontier intervention's incremental columns, or any dominated
+        intervention's ICER) are blank.
 
     Example:
         >>> import pandas as pd
@@ -85,7 +84,7 @@ def format_icer_table(
         ...     {"cost": [0.0, 100.0, 400.0], "effect": [0.0, 0.5, 1.0]},
         ...     index=["A", "B", "D"],
         ... )
-        >>> format_icer_table(means).loc["D", "Incremental cost-effectiveness ratio"]
+        >>> format_icer_table(means).loc["D", "ICER"]
         '600'
     """
     if isinstance(digits, Mapping):

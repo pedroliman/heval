@@ -146,7 +146,7 @@ class TestFormatIcerTable:
     def test_intervals_written_point_low_high(self, psa):
         outcomes, _ = psa
         formatted = format_icer_table(outcomes)
-        cell = formatted.loc["B", "Incremental cost-effectiveness ratio"]
+        cell = formatted.loc["B", "ICER"]
         assert cell.count("(") == 1 and cell.endswith(")")
         assert "," in cell.split("(")[1]  # low and high separated by a comma
 
@@ -156,7 +156,7 @@ class TestFormatIcerTable:
             index=["A", "B", "D"],
         )
         formatted = format_icer_table(means)
-        assert formatted.loc["D", "Incremental cost-effectiveness ratio"] == "600"
+        assert formatted.loc["D", "ICER"] == "600"
         assert "(" not in formatted.loc["B", "Cost"]
 
     def test_sentence_case_spelled_out_columns(self, psa):
@@ -167,13 +167,13 @@ class TestFormatIcerTable:
             "Effect",
             "Incremental cost",
             "Incremental effect",
-            "Incremental cost-effectiveness ratio",
+            "ICER",
             "Status",
         ]
         assert formatted.index.name == "Intervention"
         # the cheapest frontier intervention has no incremental columns
         assert formatted.loc["A", "Incremental cost"] == ""
-        assert formatted.loc["A", "Incremental cost-effectiveness ratio"] == ""
+        assert formatted.loc["A", "ICER"] == ""
 
     def test_default_digits_round_costs_and_effects_differently(self):
         means = pd.DataFrame(
@@ -206,4 +206,4 @@ class TestFormatIcerTable:
     def test_interval_none_suppresses_bounds(self, psa):
         outcomes, _ = psa
         formatted = format_icer_table(outcomes, interval=None)
-        assert "(" not in formatted.loc["B", "Incremental cost-effectiveness ratio"]
+        assert "(" not in formatted.loc["B", "ICER"]
