@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://pedroliman.github.io/heormodel/sitemap.xml

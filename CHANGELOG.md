@@ -12,6 +12,14 @@ Each entry links to the pull request that introduced it. Add a line under
 
 ### Added
 
+- Search-engine metadata across the documentation website: a site-wide meta
+  description, Open Graph and Twitter card tags with a preview image, a
+  `robots.txt` that points to the generated sitemap, `WebSite` and
+  `SoftwareSourceCode` structured data, a keyword-rich home-page title with a
+  lead paragraph describing the package, and `keywords` on the main tutorials
+  covering the cost-effectiveness and value-of-information terms readers search
+  for ([#72](https://github.com/pedroliman/heormodel/issues/72)).
+
 - Three calibration tutorials and example scripts that, with the surrogate
   tutorial, form a sequence on one shared three-state Markov model and one
   observed survey, so the posteriors are comparable across methods:

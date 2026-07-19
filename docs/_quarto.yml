@@ -1,6 +1,11 @@
 project:
   type: website
   pre-render: _prerender.py
+  resources:
+    - robots.txt
+    - images/og-card.png
+
+lang: en
 
 execute:
   # Reuse a tutorial's last computed output instead of re-running its code
@@ -15,6 +20,12 @@ website:
   title: heormodel
   site-url: https://pedroliman.github.io/heormodel/
   repo-url: https://github.com/pedroliman/heormodel
+  description: "Health economic evaluation in Python: parameter sampling, cost-effectiveness analysis, value of information, sensitivity analysis, and Bayesian calibration across cohort, microsimulation, discrete-event, and compartmental models."
+  image: images/og-card.png
+  image-alt: "heormodel: health economic evaluation in Python."
+  open-graph: true
+  twitter-card:
+    card-style: summary_large_image
   page-navigation: true
   back-to-top-navigation: true
   google-analytics: "G-J6M5ECXYJC"
@@ -107,6 +118,8 @@ format:
     toc: true
     code-copy: true
     code-tools: true
+    include-in-header:
+      - _structured-data.html
 
 metadata-files:
   - reference/_sidebar.yml

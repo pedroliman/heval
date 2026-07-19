@@ -1,6 +1,7 @@
 ---
 title: Discrete-event simulation engine
 description: "Build a resource-constrained model with `DESModel`, for a scarce shared resource that makes patients queue."
+keywords: [discrete-event simulation, DES, queueing model, resource-constrained model, patient waiting time, cost-effectiveness modeling, health economics, Python]
 ---
 
 <!-- colab-badge:start -->

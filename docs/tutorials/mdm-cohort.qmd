@@ -1,6 +1,7 @@
 ---
 title: Cohort state-transition model
 description: "Build a cohort state-transition model with `MarkovModel` and validate it against a published Sick-Sicker result."
+keywords: [cohort state-transition model, Markov model, Markov cohort model, state-transition model, Sick-Sicker, cost-effectiveness modeling, health economics, Python]
 ---
 
 <!-- colab-badge:start -->

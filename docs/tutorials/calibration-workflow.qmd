@@ -1,6 +1,7 @@
 ---
 title: Calibration workflow
 description: "Mix calibrated parameters with literature parameters in one probabilistic analysis using `mix_draws`."
+keywords: [model calibration, Bayesian calibration, calibrating a health economic model, posterior, prior, cost-effectiveness modeling, health economics, Python]
 ---
 
 <!-- colab-badge:start -->

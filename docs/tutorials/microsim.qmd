@@ -1,6 +1,7 @@
 ---
 title: Microsimulation engine
 description: "Build an individual-level model with `MicrosimModel`, for outcomes that depend on patient history or on heterogeneity a cohort average removes."
+keywords: [microsimulation, individual-level simulation, patient-level simulation, individual sampling, cost-effectiveness modeling, health economics, Python]
 ---
 
 <!-- colab-badge:start -->
