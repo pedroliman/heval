@@ -1,0 +1,107 @@
+---
+title: Tutorials
+description: Every tutorial, ordered as a learning path from the standard analysis workflow through the model engines to calibration and published replications.
+toc: false
+listing:
+  - id: getting-started
+    contents:
+      - full-pipeline.qmd
+      - byo-outputs.qmd
+      - parameter-inputs.qmd
+    type: grid
+    grid-columns: 3
+    fields: [title, description]
+    sort: false
+    categories: false
+    filter-ui: false
+    sort-ui: false
+  - id: model-engines
+    contents:
+      - mdm-cohort.qmd
+      - microsim.qmd
+      - markov-vs-microsim.qmd
+      - des.qmd
+      - seir-vaccination.qmd
+    type: grid
+    grid-columns: 3
+    fields: [title, description]
+    sort: false
+    categories: false
+    filter-ui: false
+    sort-ui: false
+  - id: sensitivity-voi
+    contents:
+      - dsa.qmd
+      - voi.qmd
+    type: grid
+    grid-columns: 3
+    fields: [title, description]
+    sort: false
+    categories: false
+    filter-ui: false
+    sort-ui: false
+  - id: calibration
+    contents:
+      - calibration-workflow.qmd
+      - calibrate-abc.qmd
+      - calibrate-sbi.qmd
+      - surrogate-calibration.qmd
+      - calibrate-microsim.qmd
+    type: grid
+    grid-columns: 3
+    fields: [title, description]
+    sort: false
+    categories: false
+    filter-ui: false
+    sort-ui: false
+  - id: replications
+    contents:
+      - replication-gallery.qmd
+      - mdm-cohort-timedep.qmd
+      - mdm-microsim.qmd
+      - mdm-des.qmd
+    type: grid
+    grid-columns: 3
+    fields: [title, description]
+    sort: false
+    categories: false
+    filter-ui: false
+    sort-ui: false
+---
+
+The tutorials are ordered as a learning path. Each group builds on the ones before it, and within a group the prerequisite tutorial comes first. A reader new to the package can read top to bottom; a reader who knows the workflow can jump to the group they need.
+
+## Getting started
+
+These tutorials cover the standard probabilistic sensitivity analysis workflow: specify parameters, sample draws, run a model, and analyze cost-effectiveness and value of information. Start here to see the pipeline every engine plugs into, then how to feed it results or parameters computed elsewhere.
+
+:::{#getting-started}
+:::
+
+## Model engines
+
+Each tutorial covers one model type: it builds a model, then runs the same analysis as the getting-started workflow, so the engine is the only part that changes. The cohort state-transition model comes first as the standard engine, and the microsimulation, discrete-event, and compartmental engines follow for the problems a cohort average cannot represent.
+
+:::{#model-engines}
+:::
+
+## Sensitivity and value of information
+
+These two analyses quantify what the uncertainty in a model means for the decision. Deterministic sensitivity analysis asks which parameters move the result, and value-of-information analysis prices resolving the remaining uncertainty. Both read the same outcomes the engines produce.
+
+:::{#sensitivity-voi}
+:::
+
+## Calibration
+
+These tutorials fit model parameters to observed data, then carry the fitted uncertainty into the same analysis. The calibration workflow comes first, then three inference methods on a shared model, and finally calibration of a stochastic microsimulation.
+
+:::{#calibration}
+:::
+
+## Replications
+
+These tutorials reproduce published cost-effectiveness analyses with `heormodel`, each matching the source's deterministic result before extending it to a probabilistic analysis. Read them to check the package against known answers and to see complete worked models.
+
+:::{#replications}
+:::
