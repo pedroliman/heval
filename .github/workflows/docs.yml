@@ -28,12 +28,23 @@ jobs:
       - uses: quarto-dev/quarto-actions/setup@v2
         with:
           version: 1.9.38
+      # Install Poppins for the website plots, before any step imports matplotlib
+      # so its font cache picks the family up. These fonts style the rendered
+      # site only; they are not part of the package.
+      - name: Install Poppins for website plots
+        run: |
+          mkdir -p "$HOME/.fonts"
+          cp docs/fonts/*.ttf "$HOME/.fonts/"
+          fc-cache -f >/dev/null 2>&1 || true
       - uses: actions/cache@v4
         with:
           path: docs/_freeze
-          key: quarto-freeze-${{ hashFiles('docs/**/*.qmd', 'examples/**', 'src/heormodel/**', 'uv.lock') }}
+          # The version tag (v2) is bumped to force a one-time full re-render when
+          # the plot style changes, since freeze reuses stored figures whenever a
+          # tutorial's own source is unchanged. Later builds cache again as usual.
+          key: quarto-freeze-v2-${{ hashFiles('docs/**/*.qmd', 'examples/**', 'src/heormodel/**', 'uv.lock') }}
           restore-keys: |
-            quarto-freeze-
+            quarto-freeze-v2-
       - run: uv sync --extra docs
       - run: uv run quartodoc build --config docs/_quarto.yml
       - run: uv run quartodoc interlinks
@@ -41,6 +52,8 @@ jobs:
       - run: quarto render docs
         env:
           QUARTO_PYTHON: ${{ github.workspace }}/.venv/bin/python
+          # Style the website plots with Poppins and a high figure resolution.
+          MATPLOTLIBRC: ${{ github.workspace }}/docs/matplotlibrc
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs/_site

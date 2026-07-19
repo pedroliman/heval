@@ -10,8 +10,12 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+from matplotlib import colors as mcolors
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
+from scipy.stats import gaussian_kde
 
 from heormodel._util import require_shared_index
 from heormodel.cea.ceac import ce_plane as _ce_plane_data
@@ -71,15 +75,73 @@ def intervention_colors(interventions: list[str]) -> dict[str, str]:
     return {s: PALETTE[i] for i, s in enumerate(interventions)}
 
 
+#: Fewest iterations for which a highest-density region is estimated; below
+#: this a group falls back to a scatter, since a density from a handful of
+#: points would be arbitrary.
+_HDR_MIN_POINTS = 20
+
+#: Enclosed-mass levels of the nested highest-density regions, outer to inner.
+_HDR_LEVELS: tuple[float, ...] = (0.95, 0.8, 0.5)
+
+
+def _hdr_regions(ax: Axes, x: np.ndarray, y: np.ndarray, color: str) -> bool:
+    """Shade nested highest-density regions of a 2D sample; report success.
+
+    Each region is the smallest area holding the given share of the draws, so
+    the innermost band is the 50% region and the outermost the 95% region. The
+    density threshold for a share is the matching quantile of a Gaussian kernel
+    density estimate evaluated at the draws. Returns False, drawing nothing,
+    when the sample is too small or too degenerate to estimate a density, so the
+    caller can fall back to a scatter.
+    """
+    if x.size < _HDR_MIN_POINTS or np.ptp(x) == 0 or np.ptp(y) == 0:
+        return False
+    try:
+        kde = gaussian_kde(np.vstack([x, y]))
+        density_at_points = kde(np.vstack([x, y]))
+    except np.linalg.LinAlgError:
+        return False
+
+    thresholds = [float(np.quantile(density_at_points, 1 - p)) for p in _HDR_LEVELS]
+    if len(set(thresholds)) < len(thresholds):
+        return False
+
+    pad_x = 0.30 * np.ptp(x)
+    pad_y = 0.30 * np.ptp(y)
+    grid_x, grid_y = np.mgrid[
+        x.min() - pad_x:x.max() + pad_x:200j,
+        y.min() - pad_y:y.max() + pad_y:200j,
+    ]
+    density = kde(np.vstack([grid_x.ravel(), grid_y.ravel()])).reshape(grid_x.shape)
+    levels = thresholds + [float(density.max()) + 1e-12]
+    if not np.all(np.diff(levels) > 0):
+        return False
+
+    alphas = (0.20, 0.40, 0.65)  # outer to inner band
+    fills = [mcolors.to_rgba(color, a) for a in alphas]
+    ax.contourf(grid_x, grid_y, density, levels=levels, colors=fills)
+    ax.contour(grid_x, grid_y, density, levels=[thresholds[-1]],
+               colors=[color], linewidths=1.0, alpha=0.7)
+    return True
+
+
 def plot_ce_plane(
     outcomes: Outcomes,
     *,
     comparator: str | None = None,
     wtp: float | None = None,
     effect: str | None = None,
+    kind: str = "density",
     ax: Axes | None = None,
 ) -> Axes:
-    """Scatter of incremental cost vs incremental effect per iteration.
+    """Incremental cost vs incremental effect per iteration on the plane.
+
+    With ``kind="density"`` (the default) each intervention's cloud of draws is
+    drawn as nested highest-density regions (the 50%, 80% and 95% regions),
+    which read the spread more clearly than an overplotted scatter once there
+    are many iterations. An intervention with too few iterations to estimate a
+    density falls back to a scatter. ``kind="scatter"`` draws every iteration as
+    a point.
 
     Args:
         outcomes: Outcomes from a probabilistic sensitivity analysis.
@@ -87,6 +149,8 @@ def plot_ce_plane(
             or the first intervention if none was flagged).
         wtp: If given, draw the willingness-to-pay threshold line.
         effect: Effect column (default: primary).
+        kind: ``"density"`` for highest-density regions, ``"scatter"`` for a
+            point per iteration.
         ax: Existing axes to draw on.
 
     Example:
@@ -99,30 +163,33 @@ def plot_ce_plane(
         >>> ax.get_xlabel()
         'Incremental effect (qaly)'
     """
+    if kind not in ("density", "scatter"):
+        raise ValueError(f"kind must be 'density' or 'scatter', not {kind!r}.")
     ax = ax or plt.subplots()[1]
     data = _ce_plane_data(outcomes, comparator=comparator, effect=effect)
     colors = intervention_colors(outcomes.interventions)
+    shown = [str(s) for s in data["intervention"].unique()]
     for s, grp in data.groupby("intervention", sort=False):
-        ax.scatter(
-            grp["inc_effect"],
-            grp["inc_cost"],
-            s=9,
-            alpha=0.35,
-            lw=0,
-            color=colors[str(s)],
-            label=str(s),
-        )
+        x = grp["inc_effect"].to_numpy(dtype=np.float64)
+        y = grp["inc_cost"].to_numpy(dtype=np.float64)
+        drew_density = kind == "density" and _hdr_regions(ax, x, y, colors[str(s)])
+        if not drew_density:
+            ax.scatter(x, y, s=9, alpha=0.35, lw=0, color=colors[str(s)])
+    handles: list[Patch | Line2D] = [
+        Patch(facecolor=mcolors.to_rgba(colors[s], 0.65), label=s) for s in shown
+    ]
     if wtp is not None:
         xs = np.array(ax.get_xlim())
-        ax.plot(xs, wtp * xs, color="0.4", lw=1.2, ls="--", label=f"WTP = {wtp:g}")
+        ax.plot(xs, wtp * xs, color="0.4", lw=1.2, ls="--")
         ax.set_xlim(*xs)
+        handles.append(Line2D([0], [0], color="0.4", lw=1.2, ls="--", label=f"WTP = {wtp:g}"))
     ax.axhline(0, color="0.6", lw=0.8)
     ax.axvline(0, color="0.6", lw=0.8)
     ax.set_xlabel(f"Incremental effect ({effect or outcomes.effect})")
     ax.set_ylabel("Incremental cost")
     ref = comparator or outcomes.comparator or outcomes.interventions[0]
     ax.set_title(f"Cost-effectiveness plane vs {ref}")
-    ax.legend(frameon=False)
+    ax.legend(handles=handles, frameon=False)
     _style(ax)
     return ax
 

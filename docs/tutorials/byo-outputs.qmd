@@ -94,7 +94,7 @@ The ranking is sorted from the highest value downward, so the parameter at the t
 
 ## Plotting the cost-effectiveness plane, acceptability, and tornado
 
-The cost-effectiveness plane scatters every iteration's incremental cost and effect against a comparator, so the spread of the cloud shows the uncertainty that the table's point estimates alone cannot.
+The cost-effectiveness plane draws the highest-density regions of every iteration's incremental cost and effect against a comparator, so the spread of each intervention's regions shows the uncertainty that the table's point estimates alone cannot.
 
 ```{python}
 from heormodel.report import plot_ce_plane, plot_ceac, plot_frontier, plot_tornado, tornado_data

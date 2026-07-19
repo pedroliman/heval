@@ -1,6 +1,7 @@
 ---
 title: Deterministic sensitivity analysis
 description: "Run the three deterministic sensitivity designs, one-way, one-at-a-time, and grid, and read them as tornado and heatmap reports."
+keywords: [deterministic sensitivity analysis, DSA, one-way sensitivity analysis, one-at-a-time, tornado diagram, tornado plot, scenario analysis, cost-effectiveness, Python]
 ---
 
 <!-- colab-badge:start -->

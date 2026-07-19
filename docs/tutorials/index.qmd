@@ -1,6 +1,7 @@
 ---
 title: Tutorials
 description: Every tutorial, in the order a reader learns the package, from the standard analysis workflow through the model engines to calibration and replications.
+keywords: [cost-effectiveness modeling tutorial, cost-effectiveness analysis, value of information, probabilistic sensitivity analysis, Markov model, microsimulation, discrete-event simulation, Bayesian calibration, health economics, Python]
 toc: false
 listing:
   - id: getting-started

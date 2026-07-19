@@ -1,10 +1,26 @@
 ---
 title: heormodel
+pagetitle: "heormodel: cost-effectiveness modeling and value of information in Python"
 subtitle: "Health economic evaluation in Python: parameter sampling, simulation across model types, cost-effectiveness analysis, and value-of-information analysis for model-based health technology assessment."
+description: "heormodel is a Python package for cost-effectiveness modeling and value-of-information analysis: sample parameters, run a model, and report cost-effectiveness, sensitivity, and calibration results."
+keywords:
+  - cost-effectiveness modeling
+  - cost-effectiveness analysis
+  - value of information
+  - probabilistic sensitivity analysis
+  - health economics
+  - health technology assessment
+  - cohort state-transition model
+  - microsimulation
+  - discrete-event simulation
+  - Bayesian calibration
+  - Python
 author: Pedro Nascimento de Lima
 title-block-banner: true
 sidebar: false
 ---
+
+heormodel builds cost-effectiveness models in Python and evaluates them under uncertainty. It samples parameters from distributions, runs a cohort state-transition, microsimulation, discrete-event, or compartmental model over those draws, and reports incremental cost-effectiveness ratios, cost-effectiveness acceptability curves, deterministic sensitivity analyses, and the expected value of perfect, partial perfect, and sample information. Bayesian calibration fits model parameters to data and carries the fitted uncertainty into the same analysis.
 
 ## Install
 
@@ -69,7 +85,7 @@ outcomes = run_psa(engine, draws).outcomes
 icer_table(outcomes).round(1)
 ```
 
-The `icer_table` orders interventions by cost and reports incremental cost-effectiveness ratios along the efficiency frontier; the `status` column flags dominated (`D`) and extended-dominated (`ED`) interventions. All three interventions lie on the frontier here, with Treatment A entering near 11,000 per quality-adjusted life-year (QALY) and Treatment B near 52,000. `plot_ce_plane` scatters every iteration's incremental cost and effect against standard care, and `plot_ceac` reports the share of iterations in which each intervention has the highest net benefit, across a grid of willingness-to-pay thresholds:
+The `icer_table` orders interventions by cost and reports incremental cost-effectiveness ratios along the efficiency frontier; the `status` column flags dominated (`D`) and extended-dominated (`ED`) interventions. All three interventions lie on the frontier here, with Treatment A entering near 11,000 per quality-adjusted life-year (QALY) and Treatment B near 52,000. `plot_ce_plane` draws the highest-density regions of every iteration's incremental cost and effect against standard care, the 50%, 80% and 95% regions of each intervention's cloud, and `plot_ceac` reports the share of iterations in which each intervention has the highest net benefit, across a grid of willingness-to-pay thresholds:
 
 ```{python}
 grid = np.linspace(0, 100_000, 41)

@@ -1,6 +1,7 @@
 ---
 title: Value of information
 description: "Run the value-of-information workflow: expected value of perfect, partial perfect, and sample information."
+keywords: [value of information, VOI, EVPI, EVPPI, EVSI, expected value of perfect information, expected value of partial perfect information, expected value of sample information, health economics, Python]
 ---
 
 <!-- colab-badge:start -->

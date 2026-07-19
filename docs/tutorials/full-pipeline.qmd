@@ -1,6 +1,7 @@
 ---
 title: Full pipeline
 description: "Run the standard probabilistic sensitivity analysis end to end: parameters, sampled draws, `run_psa`, then cost-effectiveness and value of information."
+keywords: [cost-effectiveness analysis, cost-effectiveness modeling, probabilistic sensitivity analysis, PSA, ICER, incremental cost-effectiveness ratio, cost-effectiveness acceptability curve, CEAC, net monetary benefit, health economics, Python]
 ---
 
 <!-- colab-badge:start -->
