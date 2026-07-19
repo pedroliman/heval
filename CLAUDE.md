@@ -22,7 +22,7 @@ Guidance for Claude Code when working in this repository.
 
 ## Writing style
 
-Applies to everything: README, docs, docstrings, comments, commit messages, and how you talk to me in this repository. Follow it in chat replies too, not only in files you write. Full guide: `devdocs/guidance/writing_style.md`.
+Before writing any user-facing prose in this repository, you must read `devdocs/guidance/writing_style.md` in full in the current session and make the text follow it. This is mandatory, not advisory: if you have not read the guide yet this session, read it before you write. User-facing prose means documentation, docstrings, comments, commit messages, README and website pages, and any substantive prose in a chat reply, not only files you write. A `PreToolUse` hook restates this reminder on every file edit, as a safety net rather than a substitute for reading the guide.
 
 Write for a health economics and outcomes research (HEOR) modeler: a reader studying or working in health economics, epidemiology, or statistics, at the level of a graduate student or beyond, who builds cost-effectiveness models and codes but is not a software engineer. Assume comfort with cost-effectiveness modeling and some statistics, but not deep statistical training; a reader who wants to learn a method a tutorial presents. Write in the voice of a methods appendix in a clinical journal: a PhD-level author explaining a method to a peer, plainly. Avoid both dense jargon and conversational or promotional writing.
 
