@@ -10,6 +10,21 @@ Each entry links to the pull request that introduced it. Add a line under
 
 ## [Unreleased]
 
+### Fixed
+
+- A stray, unmatched closing code fence at the end of `docs/tutorials/microsim.qmd`
+  opened a never-closed code block that swallowed Quarto's hidden navigation
+  markup, so the rendered microsimulation tutorial showed that markup as raw
+  text at the bottom of the page
+  ([#76](https://github.com/pedroliman/heormodel/issues/76)).
+
+- The site-wide social preview image resolved to a 404 on every tutorial
+  page: `docs/_quarto.yml` used a document-relative `image` path, which
+  Quarto resolves against each page's own directory rather than the project
+  root, so pages under `tutorials/` picked up an extra `tutorials/` segment.
+  Switched to a project-relative path
+  ([#74](https://github.com/pedroliman/heormodel/issues/74)).
+
 ### Added
 
 - Search-engine metadata across the documentation website: a site-wide meta
