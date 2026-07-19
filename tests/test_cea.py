@@ -108,6 +108,96 @@ class TestIcerEdgeCases:
         assert table.loc["B", "icer"] == pytest.approx(100.0)
 
 
+class TestIcerUncertaintyIntervals:
+    """Intervals from a probabilistic PSA, with paired incremental measures."""
+
+    @pytest.fixture
+    def psa_outcomes(self) -> Outcomes:
+        rng = np.random.default_rng(0)
+        n = 4000
+        costs = pd.DataFrame(
+            {
+                "A": rng.normal(0.0, 1.0, n),
+                "B": rng.normal(100.0, 20.0, n),
+                "D": rng.normal(400.0, 60.0, n),
+            }
+        )
+        effects = pd.DataFrame(
+            {
+                "A": rng.normal(0.0, 0.01, n),
+                "B": rng.normal(0.5, 0.05, n),
+                "D": rng.normal(1.0, 0.08, n),
+            }
+        )
+        return Outcomes.from_wide(costs, effects, effect="qaly")
+
+    def test_interval_columns_present_and_ordered(self, psa_outcomes):
+        table = icer_table(psa_outcomes)
+        expected = []
+        for estimate in ("cost", "effect", "inc_cost", "inc_effect", "icer"):
+            expected += [estimate, f"{estimate}_lo", f"{estimate}_hi"]
+        expected.append("status")
+        assert list(table.columns) == expected
+
+    def test_no_intervals_for_mean_table(self, reference_means):
+        assert "cost_lo" not in icer_table(reference_means).columns
+
+    def test_no_intervals_when_suppressed(self, psa_outcomes):
+        assert "cost_lo" not in icer_table(psa_outcomes, interval=None).columns
+
+    def test_point_estimates_unchanged_by_intervals(self, psa_outcomes):
+        with_ci = icer_table(psa_outcomes)
+        without = icer_table(psa_outcomes, interval=None)
+        for col in ("cost", "effect", "inc_cost", "inc_effect", "icer"):
+            np.testing.assert_allclose(
+                with_ci[col].to_numpy(dtype=float), without[col].to_numpy(dtype=float)
+            )
+
+    def test_incremental_interval_is_paired_not_marginal(self, psa_outcomes):
+        # The paired difference D minus B per draw, then its percentiles, is
+        # narrower than differencing the two strategies' separate intervals,
+        # because the two costs move together across draws under common draws.
+        table = icer_table(psa_outcomes)
+        costs = psa_outcomes.costs_wide()
+        paired = (costs["D"] - costs["B"]).to_numpy()
+        lo, hi = np.percentile(paired, [2.5, 97.5])
+        assert table.loc["D", "inc_cost_lo"] == pytest.approx(lo)
+        assert table.loc["D", "inc_cost_hi"] == pytest.approx(hi)
+
+    def test_icer_interval_from_paired_ratio(self, psa_outcomes):
+        table = icer_table(psa_outcomes)
+        costs = psa_outcomes.costs_wide()
+        effects = psa_outcomes.effects_wide("qaly")
+        ratio = (costs["D"] - costs["B"]).to_numpy() / (effects["D"] - effects["B"]).to_numpy()
+        lo, hi = np.percentile(ratio, [2.5, 97.5])
+        assert table.loc["D", "icer_lo"] == pytest.approx(lo)
+        assert table.loc["D", "icer_hi"] == pytest.approx(hi)
+
+    def test_interval_brackets_point_estimate(self, psa_outcomes):
+        table = icer_table(psa_outcomes)
+        for estimate in ("cost", "effect", "inc_cost", "inc_effect", "icer"):
+            point = table[estimate]
+            lo, hi = table[f"{estimate}_lo"], table[f"{estimate}_hi"]
+            valid = point.notna()
+            assert (lo[valid] <= point[valid] + 1e-9).all()
+            assert (point[valid] <= hi[valid] + 1e-9).all()
+
+    def test_cheapest_frontier_intervention_has_no_incremental_interval(self, psa_outcomes):
+        table = icer_table(psa_outcomes)
+        assert np.isnan(table.loc["A", "inc_cost_lo"])
+        assert np.isnan(table.loc["A", "icer_hi"])
+
+    def test_interval_level_widens_the_band(self, psa_outcomes):
+        wide = icer_table(psa_outcomes, interval=0.99)
+        narrow = icer_table(psa_outcomes, interval=0.5)
+        assert wide.loc["B", "cost_lo"] < narrow.loc["B", "cost_lo"]
+        assert wide.loc["B", "cost_hi"] > narrow.loc["B", "cost_hi"]
+
+    def test_rejects_out_of_range_interval(self, psa_outcomes):
+        with pytest.raises(ValueError):
+            icer_table(psa_outcomes, interval=1.5)
+
+
 @pytest.fixture
 def simple_outcomes() -> Outcomes:
     costs = pd.DataFrame({"A": [0.0, 0.0, 0.0, 0.0], "B": [50.0, 50.0, 50.0, 50.0]})

@@ -33,7 +33,12 @@ def _mean_table(source: Outcomes | pd.DataFrame, effect: str | None) -> pd.DataF
     return pd.DataFrame({"cost": df["cost"], "effect": df[eff]})
 
 
-def icer_table(source: Outcomes | pd.DataFrame, *, effect: str | None = None) -> pd.DataFrame:
+def icer_table(
+    source: Outcomes | pd.DataFrame,
+    *,
+    effect: str | None = None,
+    interval: float | None = 0.95,
+) -> pd.DataFrame:
     """Full incremental analysis: dominance, extended dominance, and ICERs.
 
     Args:
@@ -42,6 +47,12 @@ def icer_table(source: Outcomes | pd.DataFrame, *, effect: str | None = None) ->
             ``cost`` and the effect column.
         effect: Effect column name (defaults to the outcomes' primary
             effect, or ``"effect"`` for plain tables).
+        interval: Central probability for the uncertainty interval, or ``None``
+            to omit intervals. When ``source`` is a probabilistic `Outcomes`
+            with more than one iteration, each estimate gains ``_lo``/``_hi``
+            columns holding the two-sided interval across parameter draws (the
+            default ``0.95`` gives a 95% interval, the 2.5th and 97.5th
+            percentiles). A mean table or a single draw carries no intervals.
 
     Returns:
         DataFrame indexed by intervention, sorted by cost, with columns
@@ -49,6 +60,18 @@ def icer_table(source: Outcomes | pd.DataFrame, *, effect: str | None = None) ->
         ``status`` (``"ND"`` on the frontier, ``"D"`` strongly dominated,
         ``"ED"`` extendedly dominated). ICERs are computed between adjacent
         frontier interventions; the cheapest frontier intervention has no ICER.
+        With intervals, each of ``cost``, ``effect``, ``inc_cost``,
+        ``inc_effect`` and ``icer`` is followed by its ``_lo`` and ``_hi``
+        bounds. Dominance and the frontier are settled once on the mean costs
+        and effects; the intervals describe the spread of each measure for that
+        fixed frontier. The incremental measures are differences between
+        strategies, so their intervals are taken from the paired per-iteration
+        difference (``cost`` of the frontier intervention minus ``cost`` of its
+        cheaper frontier neighbour in the same draw), not from the separate
+        intervals of the two strategies. The ICER interval comes from the
+        per-draw ratio of paired incremental cost to paired incremental effect;
+        draws whose incremental effect approaches zero make that ratio unstable,
+        so read the incremental cost and effect intervals alongside it.
 
     Example:
         >>> import pandas as pd
@@ -114,7 +137,69 @@ def icer_table(source: Outcomes | pd.DataFrame, *, effect: str | None = None) ->
     result["icer"] = icer
     result["status"] = status
     result.index.name = "intervention"
+
+    if interval is not None and isinstance(source, Outcomes) and source.n_iterations > 1:
+        frontier_order = [str(means.index[i]) for i in nd]
+        result = _add_intervals(source, result, effect, interval, frontier_order)
     return result
+
+
+def _add_intervals(
+    source: Outcomes,
+    result: pd.DataFrame,
+    effect: str | None,
+    interval: float,
+    frontier_order: list[str],
+) -> pd.DataFrame:
+    """Attach ``_lo``/``_hi`` interval columns to a mean incremental table.
+
+    Per-strategy cost and effect intervals are the percentiles of each
+    intervention's own draws. The incremental measures are differences between
+    strategies, so their intervals are taken from the paired per-iteration
+    difference between a frontier intervention and its cheaper frontier
+    neighbour, not from the two strategies' separate intervals.
+    """
+    if not 0.0 < interval < 1.0:
+        raise ValueError(f"interval must be strictly between 0 and 1, got {interval}.")
+    lo_q = 100.0 * (1.0 - interval) / 2.0
+    hi_q = 100.0 * (1.0 + interval) / 2.0
+
+    costs = source.costs_wide()
+    effects = source.effects_wide(effect)
+    labels = [str(s) for s in result.index]
+
+    bounds: dict[str, dict[str, float]] = {label: {} for label in labels}
+    for label in labels:
+        bounds[label]["cost_lo"], bounds[label]["cost_hi"] = np.percentile(
+            costs[label].to_numpy(dtype=np.float64), [lo_q, hi_q]
+        )
+        bounds[label]["effect_lo"], bounds[label]["effect_hi"] = np.percentile(
+            effects[label].to_numpy(dtype=np.float64), [lo_q, hi_q]
+        )
+
+    for prev, cur in zip(frontier_order[:-1], frontier_order[1:], strict=False):
+        inc_cost = (costs[cur] - costs[prev]).to_numpy(dtype=np.float64)
+        inc_effect = (effects[cur] - effects[prev]).to_numpy(dtype=np.float64)
+        icer = inc_cost / inc_effect
+        bounds[cur]["inc_cost_lo"], bounds[cur]["inc_cost_hi"] = np.percentile(
+            inc_cost, [lo_q, hi_q]
+        )
+        bounds[cur]["inc_effect_lo"], bounds[cur]["inc_effect_hi"] = np.percentile(
+            inc_effect, [lo_q, hi_q]
+        )
+        bounds[cur]["icer_lo"], bounds[cur]["icer_hi"] = np.percentile(icer, [lo_q, hi_q])
+
+    # interleave each estimate with its lower and upper bounds, status last
+    ordered: list[str] = []
+    for estimate in ("cost", "effect", "inc_cost", "inc_effect", "icer"):
+        ordered += [estimate, f"{estimate}_lo", f"{estimate}_hi"]
+    ordered.append("status")
+
+    out = result.copy()
+    for estimate in ("cost", "effect", "inc_cost", "inc_effect", "icer"):
+        out[f"{estimate}_lo"] = [bounds[label].get(f"{estimate}_lo", np.nan) for label in labels]
+        out[f"{estimate}_hi"] = [bounds[label].get(f"{estimate}_hi", np.nan) for label in labels]
+    return out[ordered]
 
 
 def frontier(source: Outcomes | pd.DataFrame, *, effect: str | None = None) -> list[str]:

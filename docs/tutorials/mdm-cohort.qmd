@@ -58,7 +58,7 @@ engine = MarkovModel(states=STATES, interventions=INTERVENTIONS, transitions_and
 
 ## Reproducing the published base case
 
-Before sampling any uncertainty, running the model once at the article's point estimates checks that the transition matrix and rewards are specified correctly: the result should match the published table exactly. It does. Intervention A is dominated; the frontier runs standard of care, then Intervention B (incremental cost-effectiveness ratio about 73,000 per quality-adjusted life-year), then Intervention AB (about 126,000).
+Before sampling any uncertainty, running the model once at the article's point estimates checks that the transition matrix and rewards are specified correctly: the result should match the published table exactly. It does. Intervention A is dominated; the frontier runs standard of care, then Intervention B (incremental cost-effectiveness ratio, or ICER, about 73,000 per quality-adjusted life-year, or QALY), then Intervention AB (about 126,000).
 
 ```{python}
 from heormodel.cea import icer_table
@@ -91,7 +91,9 @@ outcomes = run_psa(engine, draws, sequential=True).outcomes
 icer_table(outcomes).round(2)
 ```
 
-The mean frontier matches the deterministic ranking above. Whether that ranking holds at a given threshold in every draw, rather than only on average, is what the expected value of perfect information (EVPI) measures next:
+Because `outcomes` holds 1,000 parameter draws, `icer_table` reports a 95% uncertainty interval for every estimate in the `_lo` and `_hi` columns. The incremental cost, the incremental effect, and the ICER are differences between an intervention and its cheaper neighbour on the frontier, so each is formed within every draw and then summarized by its 2.5th and 97.5th percentiles, rather than by differencing the two interventions' separate intervals. The mean frontier matches the deterministic ranking above: standard of care, then Intervention B at about 76,000 per QALY (95% interval about 52,000 to 104,000), then Intervention AB at about 122,000 (about 80,000 to 188,000). The interval on the ratio is wider for Intervention AB because its incremental effect over Intervention B, about 0.98 QALYs against 1.42, is smaller, so a given spread in incremental cost produces a wider range of ratios.
+
+Whether that ranking holds at a given threshold in every draw, rather than only on average, is what the expected value of perfect information (EVPI) measures next:
 
 ```{python}
 print(f"EVPI at WTP 100,000: {evpi(outcomes, 100_000.0):,.0f}")
