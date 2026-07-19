@@ -35,6 +35,18 @@ Each entry links to the pull request that introduced it. Add a line under
 
 ### Changed
 
+- `plot_ce_plane` now draws each intervention's iterations as nested
+  highest-density regions, the 50%, 80% and 95% regions of the cloud, rather
+  than a scatter of points, which reads the spread more clearly once there are
+  many iterations. An intervention with too few iterations falls back to a
+  scatter, and `kind="scatter"` restores a point per iteration
+  ([#73](https://github.com/pedroliman/heormodel/pull/73)).
+
+- The documentation website renders its plots in the Poppins font at a higher
+  figure resolution. The font is installed by the documentation workflow and
+  styles the built site only, so it is not added to the installed package
+  ([#73](https://github.com/pedroliman/heormodel/pull/73)).
+
 - The documentation website now uses a top navigation bar with a contextual
   sidebar per section, the tutorials are grouped into an ordered learning path
   (getting started, model engines, sensitivity and value of information,

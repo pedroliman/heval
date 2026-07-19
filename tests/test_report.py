@@ -38,6 +38,33 @@ class TestPlots:
         ax = plot_ce_plane(outcomes, wtp=500.0)
         assert isinstance(ax, Axes)
         assert "Cost-effectiveness plane" in ax.get_title()
+        labels = [t.get_text() for t in ax.get_legend().get_texts()]
+        assert "B" in labels and "WTP = 500" in labels
+
+    def test_ce_plane_density_fills_regions(self, psa):
+        # With enough iterations the default draws filled highest-density regions
+        # (a QuadContourSet), not a scatter of points.
+        outcomes, _ = psa
+        ax = plot_ce_plane(outcomes)
+        kinds = {type(c).__name__ for c in ax.collections}
+        assert "QuadContourSet" in kinds or any("Contour" in k for k in kinds)
+
+    def test_ce_plane_scatter_kind(self, psa):
+        outcomes, _ = psa
+        ax = plot_ce_plane(outcomes, kind="scatter")
+        assert any(type(c).__name__ == "PathCollection" for c in ax.collections)
+
+    def test_ce_plane_falls_back_to_scatter_when_few_points(self):
+        # Too few iterations to estimate a density: the default still draws.
+        costs = pd.DataFrame({"A": [0.0, 0.0, 0.0], "B": [1.0, 2.0, 3.0]})
+        effects = pd.DataFrame({"A": [0.0, 0.0, 0.0], "B": [0.1, 0.2, 0.3]})
+        ax = plot_ce_plane(Outcomes.from_wide(costs, effects))
+        assert any(type(c).__name__ == "PathCollection" for c in ax.collections)
+
+    def test_ce_plane_rejects_unknown_kind(self, psa):
+        outcomes, _ = psa
+        with pytest.raises(ValueError, match="density"):
+            plot_ce_plane(outcomes, kind="cloud")
 
     def test_ceac_with_frontier(self, psa):
         outcomes, _ = psa

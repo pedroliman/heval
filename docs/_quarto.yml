@@ -119,6 +119,10 @@ format:
     toc: true
     code-copy: true
     code-tools: true
+    # Render figures at a high resolution so plot text stays sharp on
+    # high-density displays.
+    fig-format: retina
+    fig-dpi: 150
     include-in-header:
       - _structured-data.html
 
