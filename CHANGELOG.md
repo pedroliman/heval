@@ -10,6 +10,15 @@ Each entry links to the pull request that introduced it. Add a line under
 
 ## [Unreleased]
 
+### Fixed
+
+- The site-wide social preview image resolved to a 404 on every tutorial
+  page: `docs/_quarto.yml` used a document-relative `image` path, which
+  Quarto resolves against each page's own directory rather than the project
+  root, so pages under `tutorials/` picked up an extra `tutorials/` segment.
+  Switched to a project-relative path
+  ([#74](https://github.com/pedroliman/heormodel/issues/74)).
+
 ### Added
 
 - Search-engine metadata across the documentation website: a site-wide meta

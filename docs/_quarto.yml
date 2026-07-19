@@ -22,7 +22,7 @@ website:
   site-url: https://pedroliman.github.io/heormodel/
   repo-url: https://github.com/pedroliman/heormodel
   description: "Health economic evaluation in Python: parameter sampling, cost-effectiveness analysis, value of information, sensitivity analysis, and Bayesian calibration across cohort, microsimulation, discrete-event, and compartmental models."
-  image: images/og-card.png
+  image: /images/og-card.png
   image-alt: "heormodel: health economic evaluation in Python."
   open-graph: true
   twitter-card:
