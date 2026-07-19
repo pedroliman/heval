@@ -12,6 +12,7 @@ from heormodel.report import (
     PALETTE,
     RunRecord,
     capture_run,
+    format_icer_table,
     intervention_colors,
     plot_ce_plane,
     plot_ceac,
@@ -137,3 +138,70 @@ class TestProvenance:
         outcomes, _ = psa
         report = capture_run(seed=5, outcomes=outcomes).to_markdown()
         assert "Draw sources" not in report
+
+
+class TestFormatIcerTable:
+    """The reading-oriented ICER table: rounded numbers and point (low, high)."""
+
+    def test_intervals_written_point_low_high(self, psa):
+        outcomes, _ = psa
+        formatted = format_icer_table(outcomes)
+        cell = formatted.loc["B", "icer"]
+        assert cell.count("(") == 1 and cell.endswith(")")
+        assert "," in cell.split("(")[1]  # low and high separated by a comma
+
+    def test_mean_table_has_no_parentheses(self):
+        means = pd.DataFrame(
+            {"cost": [0.0, 100.0, 400.0], "effect": [0.0, 0.5, 1.0]},
+            index=["A", "B", "D"],
+        )
+        formatted = format_icer_table(means)
+        assert formatted.loc["D", "icer"] == "600"
+        assert "(" not in formatted.loc["B", "cost"]
+
+    def test_columns_and_blank_cells(self, psa):
+        outcomes, _ = psa
+        formatted = format_icer_table(outcomes)
+        assert list(formatted.columns) == [
+            "cost",
+            "effect",
+            "inc_cost",
+            "inc_effect",
+            "icer",
+            "status",
+        ]
+        # the cheapest frontier intervention has no incremental columns
+        assert formatted.loc["A", "inc_cost"] == ""
+        assert formatted.loc["A", "icer"] == ""
+
+    def test_default_digits_round_costs_and_effects_differently(self):
+        means = pd.DataFrame(
+            {"cost": [0.0, 12345.678], "effect": [0.0, 1.23456]},
+            index=["A", "B"],
+        )
+        formatted = format_icer_table(means)
+        assert formatted.loc["B", "cost"] == "12,346"  # whole units, separator
+        assert formatted.loc["B", "effect"] == "1.23"  # two decimals
+
+    def test_digits_override_applies_everywhere(self):
+        means = pd.DataFrame(
+            {"cost": [0.0, 12345.678], "effect": [0.0, 1.23456]},
+            index=["A", "B"],
+        )
+        formatted = format_icer_table(means, digits=1)
+        assert formatted.loc["B", "cost"] == "12,345.7"
+        assert formatted.loc["B", "effect"] == "1.2"
+
+    def test_digits_mapping_sets_one_measure(self):
+        means = pd.DataFrame(
+            {"cost": [0.0, 12345.678], "effect": [0.0, 1.23456]},
+            index=["A", "B"],
+        )
+        formatted = format_icer_table(means, digits={"cost": 2})
+        assert formatted.loc["B", "cost"] == "12,345.68"
+        assert formatted.loc["B", "effect"] == "1.23"  # default kept for effect
+
+    def test_interval_none_suppresses_bounds(self, psa):
+        outcomes, _ = psa
+        formatted = format_icer_table(outcomes, interval=None)
+        assert "(" not in formatted.loc["B", "icer"]

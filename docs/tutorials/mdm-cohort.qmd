@@ -75,6 +75,7 @@ The article's uncertainty distributions for each parameter become a `ParameterSe
 
 ```{python}
 from heormodel.params import Beta, Gamma, LogNormal, ParameterSet
+from heormodel.report import format_icer_table
 from heormodel.run import SeedManager, run_psa
 from heormodel.voi import evpi
 
@@ -88,10 +89,10 @@ params = ParameterSet({
 })
 draws = params.sample(1000, seed=SeedManager(20260705).generator())
 outcomes = run_psa(engine, draws, sequential=True).outcomes
-icer_table(outcomes).round(2)
+format_icer_table(outcomes)
 ```
 
-Because `outcomes` holds 1,000 parameter draws, `icer_table` reports a 95% uncertainty interval for every estimate in the `_lo` and `_hi` columns. The incremental cost, the incremental effect, and the ICER are differences between an intervention and its cheaper neighbour on the frontier, so each is formed within every draw and then summarized by its 2.5th and 97.5th percentiles, rather than by differencing the two interventions' separate intervals. The mean frontier matches the deterministic ranking above: standard of care, then Intervention B at about 76,000 per QALY (95% interval about 52,000 to 104,000), then Intervention AB at about 122,000 (about 80,000 to 188,000). The interval on the ratio is wider for Intervention AB because its incremental effect over Intervention B, about 0.98 QALYs against 1.42, is smaller, so a given spread in incremental cost produces a wider range of ratios.
+Because `outcomes` holds 1,000 parameter draws, the table reports a 95% uncertainty interval for every estimate, written as the point estimate followed by its 2.5th and 97.5th percentiles in parentheses. `format_icer_table` rounds costs and the ratio to whole units and effects to two decimals for reading; `icer_table` returns the same numbers unrounded, in separate `_lo` and `_hi` columns, for further computation. The incremental cost, the incremental effect, and the ICER are differences between an intervention and its cheaper neighbour on the frontier, so each is formed within every draw and then summarized by percentiles, rather than by differencing the two interventions' separate intervals. The mean frontier matches the deterministic ranking above: standard of care, then Intervention B at about 76,000 per QALY (95% interval about 52,000 to 104,000), then Intervention AB at about 122,000 (about 80,000 to 188,000). The interval on the ratio is wider for Intervention AB because its incremental effect over Intervention B, about 0.98 QALYs against 1.42, is smaller, so a given spread in incremental cost produces a wider range of ratios.
 
 Whether that ranking holds at a given threshold in every draw, rather than only on average, is what the expected value of perfect information (EVPI) measures next:
 

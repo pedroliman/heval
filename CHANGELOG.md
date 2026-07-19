@@ -34,7 +34,9 @@ Each entry links to the pull request that introduced it. Add a line under
   0.95) and `interval=None` omits them. Dominance and the frontier are settled
   once on the mean costs and effects, and the incremental measures, which are
   differences between strategies, are formed within each parameter draw in a
-  paired way before being summarized by percentiles
+  paired way before being summarized by percentiles. `heormodel.report`
+  gains `format_icer_table`, which renders that table for reading, with each
+  estimate rounded and written as `point (low, high)`
   ([#81](https://github.com/pedroliman/heormodel/issues/81)).
 
 - Search-engine metadata across the documentation website: a site-wide meta
