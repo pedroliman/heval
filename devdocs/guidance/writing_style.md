@@ -8,6 +8,8 @@ Write for a health economics and outcomes research (HEOR) modeler: a reader stud
 
 Write in the voice of the methods section or statistical appendix of a clinical or health-economics journal: a PhD-level author explaining a method to a peer, in plain and precise language. Two registers are wrong for this repository, in opposite directions. One is dense jargon and formality for its own sake, which the Vocabulary section below rules out. The other is conversational or promotional writing: casual idiom, figures of speech, and salesmanship about the method. A tutorial here is a written scientific methods section, not a blog post, a conference talk, or a product page. When a sentence would sound out of place in a journal's methods appendix, it is out of place here.
 
+Within that voice, a tutorial is the place for a guided, first-person-plural register: "we specify two interventions", "we start by drawing a Latin hypercube sample", "as in the other engines, we sample the parameters and run the analysis". A journal methods section uses this "we", and it is the default for tutorials, not a lapse into conversation. Stating why a method is chosen, with its reasons, is part of that register and is content, not salesmanship: "a Gaussian process is used here because it is fast to fit and reports its own uncertainty" describes the choice. What the paragraph above rules out is casual idiom, figures of speech, and selling the method, not the plain "we" of an author working through an analysis with the reader.
+
 ## Be concise, not clipped
 
 Concise means every sentence earns its place, not that sentences lose their verbs. Write full sentences: a subject and a verb, every time. "Three interventions for a chronic disease: standard of care, a new drug, and drug plus monitoring" is a fragment, a label standing in for a sentence. "Three interventions compete for a chronic disease: standard of care, a new drug, and drug plus monitoring" is a sentence, and no longer than the fragment was. If trimming a sentence would strip its verb, the sentence was doing real work; cut a different sentence instead, or leave it whole.
@@ -15,7 +17,7 @@ Concise means every sentence earns its place, not that sentences lose their verb
 - Lead with the point. Cut warm-up sentences, not verbs.
 - One idea per sentence. Prefer short sentences over long ones, never over incomplete ones. Keep every paragraph under 5 sentences.
 - Cut words that add no information: "it is worth noting that", "in order to", "as mentioned above".
-- Prefer a number or an example over an adjective. "Agrees within 5% at 80,000 iterations" beats "highly accurate".
+- Prefer a number or an example over an adjective. "Agrees within 5% at 80,000 iterations" beats "highly accurate". When the number is already printed in the output just above, the sentence interpreting it can state plainly what it means ("the error is small enough to treat the surrogate as the model") rather than requoting a second figure. That is interpretation, not vague praise.
 - If a paragraph restates the previous one, delete it. If a sentence explains a choice a reader would otherwise have to guess at, keep it. That explanation is content, not filler, and word-count pressure is never a reason to cut it.
 
 ## What makes a tutorial good
@@ -26,11 +28,11 @@ Open with a sentence that states what the tutorial teaches, in those terms: "Thi
 
 After that opening, structure every section the same way:
 
-1. A heading that names what the section does, not the artifact it produces or introduces. "Reading external results" beats "An external results table"; "Ranking parameters by their value of information" beats "One call into the standard structure". A reader scanning the table of contents should be able to tell what happens at each step.
+1. A heading that names what the section does, not the artifact it produces or introduces. "Reading external results" beats "An external results table"; "Ranking parameters by their value of information" beats "One call into the standard structure". A reader scanning the table of contents should be able to tell what happens at each step. When a section computes a named quantity, name that quantity in the heading, spelled out with its acronym on first use, rather than paraphrasing what the section does with it: "Expected value of sample information (EVSI)" and "Cost-effectiveness acceptability curve (CEAC)" are clearer signposts than "Pricing a study" or "What the uncertainty is worth resolving". The named quantity is what a reader scans the contents for, so a plain "Calculating the expected value of perfect information (EVPI)" beats an evocative paraphrase of its purpose.
 2. At least one full sentence before the first code block in the section. State what the code is about to do and, whenever it is not obvious from the code itself, why: why this distribution, why this sample size, why this comparator, why this threshold. A code block with no lead-in reads as a dump, not a tutorial.
 3. A sentence or two after the output that interprets it: what the number or plot means for the decision, not a restatement of what was just computed.
 
-Keep the headings on a page grammatically parallel. The tutorials name each section with a gerund: "Specifying the model", "Running the analysis", "Analyzing cost-effectiveness". A lone imperative or noun phrase among them ("Run the analysis", "A model as a function") reads as an editing seam; match the form the rest of the page already uses.
+Keep the headings on a page grammatically parallel where the sections are parallel in kind. The tutorials name each section with a gerund: "Specifying the model", "Running the analysis", "Analyzing cost-effectiveness". Naming the canonical quantity a section computes takes priority over that parallelism: a noun-phrase heading for a named quantity ("Cost-effectiveness acceptability curve (CEAC)") is not an editing seam, even among gerund headings, because the name is the clearest label available. What does read as a seam is an imperative or a paraphrase used where a name was available ("Run the analysis", "A model as a function"); match the rest of the page in those cases.
 
 Separate the values a reader will change from the logic they copy unchanged. Lift the decision inputs, the willingness-to-pay threshold, the seed, the iteration count, the time horizon, to named constants near the top of the first code block. A reader adapting the tutorial to their own problem then edits those in one place rather than hunting for them inside the model function.
 
@@ -38,7 +40,11 @@ Show the result the reader is working toward, and confirm they reached it. State
 
 Do not narrate self-evident code line by line ("first we import pandas, then we define a function"), and do not let the drive for brevity turn an explanation, or the opening statement of purpose, into a fragment or a bare action list. A tutorial section that is a few sentences longer because it explains a genuinely non-obvious choice is better than one that hits a word target by cutting that explanation.
 
+One kind of repetition is a feature: the shared workflow that every engine plugs into. When each engine's tutorial defines a `ParameterSet`, samples it, calls `run_psa`, and reads an `icer_table`, naming that sequence in each ("as in the other engines, we define the parameter set, sample it, run the analysis, and read the table") is worth the lines. It teaches the reader that the pattern transfers, which is the point a reader adapting one engine's tutorial to another most needs. This is not the line-by-line narration ruled out above; it is a short reminder that the same steps recur across the package's engines.
+
 Only explain what you can actually verify. A "why" sentence earns its place when it follows directly from the code, the model's math, or an output you have checked, not from a plausible-sounding guess about the author's intent. Do not invent a rationale for a modeling choice (why this correlation, why this parameter value) unless the source material or the code supports it; if the real reason is not known, describe what the code does and stop. Do not reach for an interpretive aphorism to make a result sound more insightful than it is (a restated inequality dressed up as a conclusion, a clever-sounding turn of phrase you have not derived step by step). If you are not certain a sentence is both correct and useful, cut it rather than leave it in on the chance it reads well.
+
+Teach against a real model, and keep correctness checks in the package's tests. A tutorial should run the analysis on one of the package's model engines, a cohort model or a microsimulation, as a reader would, not on a synthetic construct built so that an analytic answer exists to check against. Confirming that an estimator matches its closed form is the job of the test suite; carrying that scaffolding into a tutorial roughly doubles its length and teaches machinery the reader will never write. State the result the analysis produces, and if it reproduces a published number say so, but leave the closed-form derivation and the ground-truth comparison out of the page.
 
 The reader may be new to the method even when they are not new to health economics. A tutorial does not have to teach a method such as a Gaussian process or simulation-based inference in depth. Name the method, say in a sentence or two what it does and why it is used here, and link to a reputable external page for a reader who wants the full treatment. Make clear what the method contributes to this analysis and where to learn more, rather than reproducing a textbook derivation. This does not mean writing for a beginner in health economics: keep the field's vocabulary and explain only the unfamiliar method, not the familiar modeling around it.
 
@@ -61,6 +67,7 @@ The following mechanics are adapted from [Rules for writing software tutorials](
 - Backticks for code identifiers: `run_psa`, `Outcomes`, `iteration`.
 - Bullets only for parallel items. Use prose for reasoning.
 - Bold sparingly, for terms a reader scans for, not for emphasis.
+- In a code block a reader reads step by step, separate the logical stages, imports, model definition, running the analysis, and plotting, with a blank line. Tightly packed lines are harder to follow than the few extra lines cost.
 
 ## Documentation pages
 
@@ -96,7 +103,7 @@ Do not mention external existing R packages anywhere.
 - Plain and direct. Write for a health economist who codes, not for a press release.
 - Active voice by default: "the engine returns `Outcomes`".
 - State limitations plainly. "Ties are broken by first occurrence" beats hedging or silence.
-- No rhetorical questions, no triads for rhythm ("fast, simple, and powerful"), no closing summaries that restate the section.
+- No rhetorical questions for rhythm or left hanging, no triads for rhythm ("fast, simple, and powerful"), no closing summaries that restate the section. A question that motivates a section and is answered in the next sentence is acceptable ("How many people should the trial enroll? The expected net benefit of sampling answers that."); a question asked only for effect, or left without an answer, is not.
 - Use the plain, literal word over an idiom or figure of speech chosen to sound polished. Say "the model type to use", not "the engine to reach for"; say "is worth its cost", not "pays off"; say "exceeds the threshold", not "clears the threshold". If a phrase takes a second read to parse, or sounds like it is trying to be memorable rather than clear, replace it with the literal wording.
 
 ## No conversational or promotional phrasing
